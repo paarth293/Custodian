@@ -48,3 +48,10 @@
   - SandboxFactory initialized and successfully mapped original binaries to target copies.
   - Mock spawn logic executed safely, verifying the process topology setup.
 - Conclusion: The Core process is capable of orchestrating the isolated child processes via AppContainers.
+
+## Step 49: Spike G (Temporal execution)
+- Date: 2026-10-02
+- Outcome:
+  - Temporal orchestrator worker compiled successfully.
+  - worker.ts correctly wires the activities and workflows to the custodian-agent task queue.
+- Conclusion: The orchestrator TS layer is valid and ready to connect to a local Temporal dev server.
