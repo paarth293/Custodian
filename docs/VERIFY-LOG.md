@@ -23,3 +23,11 @@
   - install.ps1 executed automatically via LogonCommand.
   - Dummy install succeeded and wrote to the host-mapped done.txt before shutting down cleanly.
 - Conclusion: D-10 and A-21 (Shadow Install Lab via Windows Sandbox) are fully viable.
+
+## Step 29: Spike D (Elevation Helper)
+- Date: 2026-10-02
+- Outcome:
+  - custodian-elevate compiled with requireAdministrator manifest.
+  - mt.exe verified the embedded manifest successfully.
+  - Executing with --register-engine triggered UAC and successfully modified HKLM.
+- Conclusion: Elevation helper pattern works for privileged installation steps without running the whole app as admin.
