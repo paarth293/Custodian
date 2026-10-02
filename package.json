@@ -1,19 +1,20 @@
 {
-  "name": "custodian",
-  "private": true,
-  "workspaces": [
-    "apps/*",
-    "services/*"
-  ],
-  "scripts": {
-    "lint": "eslint .",
-    "format": "prettier --write ."
-  },
-  "devDependencies": {
-    "typescript": "^5.0.0",
-    "eslint": "^8.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "prettier": "^3.0.0"
-  }
+    "name":  "custodian",
+    "private":  true,
+    "workspaces":  [
+                       "apps/*",
+                       "services/*"
+                   ],
+    "scripts":  {
+                    "lint":  "eslint .",
+                    "format":  "prettier --write .",
+                    "fixtures":  "cargo run -p custodian-fixtures --release --"
+                },
+    "devDependencies":  {
+                            "typescript":  "^5.0.0",
+                            "eslint":  "^8.0.0",
+                            "@typescript-eslint/parser":  "^6.0.0",
+                            "@typescript-eslint/eslint-plugin":  "^6.0.0",
+                            "prettier":  "^3.0.0"
+                        }
 }
