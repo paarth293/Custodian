@@ -3,5 +3,7 @@ name = "custodian-journal"
 version = "0.1.0"
 edition = "2021"
 
-[lints]
-workspace = true
+[dependencies]
+notify = "6.1.1"
+tokio = { version = "1.0", features = ["full"] }
+thiserror = "1.0"
