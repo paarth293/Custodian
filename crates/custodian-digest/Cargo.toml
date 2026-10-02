@@ -3,5 +3,7 @@ name = "custodian-digest"
 version = "0.1.0"
 edition = "2021"
 
-[lints]
-workspace = true
+[dependencies]
+blake3 = "1.5.0"
+thiserror = "1.0"
+custodian-winsec = { path = "../custodian-winsec" }
