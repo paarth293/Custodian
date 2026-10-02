@@ -14,7 +14,7 @@ impl JournalBatcher {
 
     pub async fn process(
         &self,
-        mut rx: mpsc::Receiver<(PathBuf, notify::EventKind)>,
+        rx: &mut mpsc::Receiver<(PathBuf, notify::EventKind)>,
     ) -> Vec<PathBuf> {
         let mut paths = HashSet::new();
         
@@ -45,7 +45,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_debounce() {
-        let (tx, rx) = mpsc::channel(100);
+        let (tx, mut rx) = mpsc::channel(100);
         let batcher = JournalBatcher::new(50);
         
         let path = PathBuf::from("file.txt");
@@ -54,7 +54,7 @@ mod tests {
             tx.send((path.clone(), EventKind::Any)).await.unwrap();
         }
         
-        let results = batcher.process(rx).await;
+        let results = batcher.process(&mut rx).await;
         assert_eq!(results.len(), 1);
         assert_eq!(results[0], path);
     }
