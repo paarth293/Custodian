@@ -1,9 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import './App.css';
 import Cubby from './components/Cubby';
 
 function App() {
   const [expanded, setExpanded] = useState(false);
+  const [ledger, setLedger] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (expanded) {
+      invoke<string[]>('get_ledger').then(setLedger).catch(console.error);
+    }
+  }, [expanded]);
 
   return (
     <div className={"app-container ${expanded ? 'expanded' : ''}"}>
@@ -16,7 +24,11 @@ function App() {
       {expanded && (
         <div className="settings-panel">
           <h2>Ledger & Settings</h2>
-          <p>Transaction history will appear here.</p>
+          <ul>
+            {ledger.map((item, idx) => (
+              <li key={idx}>{item}</li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
