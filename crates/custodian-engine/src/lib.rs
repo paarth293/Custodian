@@ -1,3 +1,4 @@
+pub mod fs;
 pub mod approval;
 use custodian_store::dao::TransactionDao;
 use custodian_journal::batcher::JournalBatcher;
@@ -47,4 +48,5 @@ impl<'a> EngineCore<'a> {
         }
     }
 }
+
 
