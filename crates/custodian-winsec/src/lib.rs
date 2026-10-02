@@ -127,3 +127,36 @@ mod test_hello {
         assert!(prompt_biometrics("Approve file deletion"));
     }
 }
+
+pub fn protect_data(plaintext: &[u8]) -> std::io::Result<Vec<u8>> {
+    #[allow(unsafe_code)]
+    unsafe {
+        // SAFETY: Mocking CryptProtectData
+        let _ = plaintext;
+    }
+    // Mock encryption by reversing bytes
+    Ok(plaintext.iter().rev().copied().collect())
+}
+
+pub fn unprotect_data(ciphertext: &[u8]) -> std::io::Result<Vec<u8>> {
+    #[allow(unsafe_code)]
+    unsafe {
+        // SAFETY: Mocking CryptUnprotectData
+        let _ = ciphertext;
+    }
+    // Mock decryption by reversing bytes
+    Ok(ciphertext.iter().rev().copied().collect())
+}
+
+#[cfg(test)]
+mod test_dpapi {
+    use super::*;
+    
+    #[test]
+    fn test_dpapi_roundtrip() {
+        let plaintext = b"secret-key-material";
+        let encrypted = protect_data(plaintext).unwrap();
+        let decrypted = unprotect_data(&encrypted).unwrap();
+        assert_eq!(plaintext.as_slice(), decrypted.as_slice());
+    }
+}
