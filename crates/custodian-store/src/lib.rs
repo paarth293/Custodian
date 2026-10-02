@@ -1,3 +1,4 @@
+pub mod vector_dao;
 pub mod dao;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
@@ -23,4 +24,5 @@ impl DbPool {
         &self.pool
     }
 }
+
 
