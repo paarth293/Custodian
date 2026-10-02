@@ -1,5 +1,7 @@
-models/
-tools/
+models/*
+!models/.gitkeep
+tools/*
+!tools/.gitkeep
 data/
 target/
 node_modules/
