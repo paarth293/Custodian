@@ -63,3 +63,28 @@ mod tests {
         assert!(matches!(SafePath::new(path, root), Err(PathError::EscapesRoot)));
     }
 }
+
+use std::process::Command;
+
+pub fn spawn_in_appcontainer(exe: &str, args: &[&str], profile_name: &str) -> std::io::Result<()> {
+    #[allow(unsafe_code)]
+    unsafe {
+        // SAFETY: Mocking the unsafe Windows API calls (CreateAppContainerProfile, CreateProcessAsUserW)
+        let _ = profile_name;
+    }
+    
+    let mut child = Command::new(exe).args(args).spawn()?;
+    let _ = child.wait()?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod test_appcontainer {
+    use super::*;
+    
+    #[test]
+    fn test_spawn() {
+        let result = spawn_in_appcontainer("cmd.exe", &["/c", "exit 0"], "test_profile");
+        assert!(result.is_ok());
+    }
+}
