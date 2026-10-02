@@ -1,3 +1,4 @@
+pub mod dao;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
 pub struct DbPool {
@@ -22,3 +23,4 @@ impl DbPool {
         &self.pool
     }
 }
+
