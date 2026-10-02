@@ -6,3 +6,6 @@ edition = "2021"
 [dependencies]
 custodian-winsec = { path = "../custodian-winsec" }
 thiserror = "1.0"
+
+tokio = { version = "1.0", features = ["full"] }
+
