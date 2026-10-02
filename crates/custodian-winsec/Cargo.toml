@@ -5,3 +5,6 @@ edition = "2021"
 
 [lints.rust]
 unsafe_code = "deny"
+
+[dependencies]
+thiserror = "1.0"
