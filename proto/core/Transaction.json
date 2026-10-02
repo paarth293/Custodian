@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://custodian.internal/core/Transaction.json",
+  "title": "Transaction",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "timestamp": { "$ref": "../types/Timestamp.json" },
+    "kind": { "type": "string", "enum": ["create", "modify", "delete"] },
+    "paths": { 
+      "type": "array", 
+      "items": { "$ref": "../types/Path.json" } 
+    },
+    "hash_before": { "$ref": "../types/FileHash.json" },
+    "hash_after": { "$ref": "../types/FileHash.json" },
+    "approvals": {
+      "type": "array",
+      "items": { "$ref": "SignedApproval.json" }
+    }
+  },
+  "required": ["id", "timestamp", "kind", "paths"]
+}

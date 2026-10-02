@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://custodian.internal/core/SignedApproval.json",
+  "title": "SignedApproval",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "signature": { "type": "string" }
+  },
+  "required": ["id", "signature"]
+}
