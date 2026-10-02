@@ -123,3 +123,62 @@ mod tests {
         assert!(matches!(result, Err(IpcError::InvalidSignature)));
     }
 }
+
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Role {
+    Supervisor,
+    Core,
+    Engine,
+    Agent,
+    MlHost,
+    Orchestrator,
+    Broker,
+    Relay,
+    Sandbox,
+}
+
+pub struct PeerMatrix {
+    keys: HashMap<Role, [u8; 32]>,
+}
+
+impl Default for PeerMatrix {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PeerMatrix {
+    pub fn new() -> Self {
+        Self {
+            keys: HashMap::new(),
+        }
+    }
+
+    pub fn generate_key(&mut self, role: Role) -> [u8; 32] {
+        let mut key = [0u8; 32];
+        for (i, b) in key.iter_mut().enumerate() {
+            *b = (role as u8).wrapping_add(i as u8); // Mock generation
+        }
+        self.keys.insert(role, key);
+        key
+    }
+
+    pub fn get_key(&self, role: Role) -> Option<[u8; 32]> {
+        self.keys.get(&role).copied()
+    }
+}
+
+#[cfg(test)]
+mod matrix_tests {
+    use super::*;
+
+    #[test]
+    fn test_peer_matrix_unique_keys() {
+        let mut matrix = PeerMatrix::new();
+        let key_core = matrix.generate_key(Role::Core);
+        let key_engine = matrix.generate_key(Role::Engine);
+        assert_ne!(key_core, key_engine);
+    }
+}
