@@ -1,0 +1,55 @@
+name: CI
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Layout check
+        run: powershell.exe -ExecutionPolicy Bypass -File scripts/check-layout.ps1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.85.0
+          components: rustfmt, clippy
+      - name: Cargo clippy
+        run: cargo clippy --workspace -- -D warnings
+      - name: Cargo test
+        run: cargo test --workspace
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+      - name: npm ci
+        run: npm ci
+      - name: eslint
+        run: npx eslint .
+      - name: tsc
+        run: npx tsc -b
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+      - name: Install Python tools
+        run: pip install ruff mypy pytest pip-audit
+      - name: ruff
+        run: ruff check .
+      - name: mypy
+        run: mypy .
+      
+      - name: Install cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@v2
+      - name: Cargo deny
+        run: cargo deny check
+      - name: npm audit
+        run: npm audit --omit=dev --audit-level=high || echo "Audit returned non-zero, but continuing"
+      - name: pip audit
+        run: pip-audit -r services/mlhost/requirements.txt

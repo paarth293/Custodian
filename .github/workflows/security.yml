@@ -1,0 +1,11 @@
+name: Security
+on:
+  schedule:
+    - cron: '0 0 * * *'
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fuzz placeholder
+        run: echo "Fuzzing jobs will be added in later steps"
