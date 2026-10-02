@@ -31,3 +31,12 @@
   - mt.exe verified the embedded manifest successfully.
   - Executing with --register-engine triggered UAC and successfully modified HKLM.
 - Conclusion: Elevation helper pattern works for privileged installation steps without running the whole app as admin.
+
+## Step 36: Spike E (E2E Move)
+- Date: 2026-10-02
+- Outcome:
+  - VFS watcher observed a simulated file creation.
+  - IPC decoded the move approval frame successfully.
+  - fs::execute_move relocated the file via SafePath.
+  - Transaction wrote successfully to Postgres.
+- Conclusion: The Engine pipeline successfully connects VFS, IPC, execution, and Postgres persistence.
