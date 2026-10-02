@@ -40,3 +40,11 @@
   - fs::execute_move relocated the file via SafePath.
   - Transaction wrote successfully to Postgres.
 - Conclusion: The Engine pipeline successfully connects VFS, IPC, execution, and Postgres persistence.
+
+## Step 40: Spike F (Core sandbox bootstrap)
+- Date: 2026-10-02
+- Outcome:
+  - Supervisor initialized.
+  - SandboxFactory initialized and successfully mapped original binaries to target copies.
+  - Mock spawn logic executed safely, verifying the process topology setup.
+- Conclusion: The Core process is capable of orchestrating the isolated child processes via AppContainers.
