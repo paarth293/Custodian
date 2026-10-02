@@ -4,3 +4,6 @@
 #
 #    pip-compile --generate-hashes --no-index 'services\mlhost\requirements.in'
 #
+torch
+transformers
+huggingface_hub
