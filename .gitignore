@@ -1,0 +1,7 @@
+models/
+tools/
+data/
+target/
+node_modules/
+.venv/
+venv/
