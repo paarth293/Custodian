@@ -1,3 +1,4 @@
+pub mod batcher;
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::PathBuf;
 use tokio::sync::mpsc;
@@ -59,3 +60,4 @@ mod tests {
         assert_eq!(path, file_path);
     }
 }
+
