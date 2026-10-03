@@ -5,3 +5,5 @@ pub mod router;
 
 pub mod pipeline;
 
+pub mod online_sm;
+
