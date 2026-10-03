@@ -4,10 +4,12 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js",
-    "test": "node dist/index.js test-caps"
+    "test": "node dist/index.js test-caps && ts-node src/provider.ts test-provider"
   },
   "devDependencies": {
+    "@types/node": "^26.6.4",
     "esbuild": "^0.20.0",
-    "typescript": "^5.0.0"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   }
 }
