@@ -20,5 +20,11 @@ impl OnlineStateMachine {
     
     pub fn go_offline(&mut self) {
         self.state = OnlineState::Offline;
+        self.kill_broker_job();
+    }
+    
+    fn kill_broker_job(&self) {
+        // Mocks TerminateJobObject for Broker job
+        println!("Broker Job Terminated.");
     }
 }
