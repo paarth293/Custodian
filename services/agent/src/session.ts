@@ -1,5 +1,5 @@
 export class OnlinePlannerSession {
-    static build(params: { request: string, publicFacts: any[], fields: any[] }) {
+    static build(_params: { request: string, publicFacts: unknown[], fields: unknown[] }) {
         return "Clean session data";
     }
 }

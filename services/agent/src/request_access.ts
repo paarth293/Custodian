@@ -8,7 +8,7 @@ export const RequestAccessSchema = z.object({
 export class AccessManager {
     lastRequest: number = 0;
 
-    requestAccess(args: any) {
+    requestAccess(args: unknown) {
         const parsed = RequestAccessSchema.safeParse(args);
         if (!parsed.success) return { error: "Rejected: invalid reason_code" };
         

@@ -8,7 +8,7 @@ export class BrowserBroker {
         }
     }
     
-    async performAction(action: string, params: any) {
+    async performAction(action: string, _params: unknown) {
         const validActions = ['navigate', 'search', 'read', 'click', 'type', 'select', 'scroll', 'download', 'submit', 'handover'];
         if (!validActions.includes(action)) throw new Error("E_POLICY");
         return Action  + action +  executed;

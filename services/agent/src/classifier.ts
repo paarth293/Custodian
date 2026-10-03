@@ -6,9 +6,9 @@ export const ClassifierSchema = z.object({
     looks_personal: z.boolean()
 });
 
-export function batchClassify(items: any[]) {
+export function batchClassify(items: Record<string, unknown>[]) {
     return items.map(item => ({
-        id: item.id,
+        id: item['id'],
         category: 'Document',
         label: 'User File',
         looks_personal: true
