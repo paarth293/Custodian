@@ -160,3 +160,5 @@ mod test_dpapi {
         assert_eq!(plaintext.as_slice(), decrypted.as_slice());
     }
 }
+pub mod safe_place;
+
