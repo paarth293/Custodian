@@ -1,10 +1,13 @@
-import sys
 import os
+import sys
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+import io
 
 from custodian_ipc import write_frame
 from main import process_frames
-import io
+
 
 def test_multiple_frames():
     key = b"super-secret-key"

@@ -1,5 +1,5 @@
-import os
 from pathlib import Path
+
 
 class FixtureRoot:
     def __init__(self, path: str | Path):

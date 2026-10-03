@@ -1,6 +1,8 @@
-import sys
 import struct
+import sys
+
 from custodian_ipc import read_frame, write_frame
+
 
 def process_frames():
     key = b"super-secret-key"
@@ -27,8 +29,8 @@ def process_frames():
                 resp = write_frame({"status": "ok", "embedding": [0.0] * 1536}, key)
                 sys.stdout.buffer.write(resp)
                 sys.stdout.buffer.flush()
-        except Exception as e:
-            pass 
+        except Exception:  # noqa: BLE001, S112
+            continue
 
 if __name__ == "__main__":
     process_frames()

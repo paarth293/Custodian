@@ -1,5 +1,6 @@
 import os
 
+
 def load_model(model_name: str):
     model_path = os.path.join(os.path.dirname(__file__), "..", "..", "models", model_name)
     

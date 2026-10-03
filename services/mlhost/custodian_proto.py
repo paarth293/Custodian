@@ -1,10 +1,11 @@
+from collections.abc import Callable
 from dataclasses import dataclass
-from uuid import UUID
-from typing import Any, TypeVar, Callable, Type, cast
-from enum import Enum
 from datetime import datetime
-import dateutil.parser
+from enum import Enum
+from typing import Any, TypeVar, cast
+from uuid import UUID
 
+import dateutil.parser
 
 T = TypeVar("T")
 EnumT = TypeVar("EnumT", bound=Enum)
@@ -33,17 +34,17 @@ def from_union(fs, x):
     for f in fs:
         try:
             return f(x)
-        except:
-            pass
+        except Exception:  # noqa: BLE001, S112
+            continue
     assert False
 
 
-def to_enum(c: Type[EnumT], x: Any) -> EnumT:
+def to_enum(c: type[EnumT], x: Any) -> EnumT:
     assert isinstance(x, c)
     return x.value
 
 
-def to_class(c: Type[T], x: Any) -> dict:
+def to_class(c: type[T], x: Any) -> dict:
     assert isinstance(x, c)
     return cast(Any, x).to_dict()
 
