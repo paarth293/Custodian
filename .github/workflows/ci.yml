@@ -44,6 +44,13 @@ jobs:
         run: ruff check .
       - name: mypy
         run: mypy .
+      - name: pytest
+        run: pytest services/mlhost/tests/ -v
+        
+      - name: vitest (agent & broker)
+        run: |
+          cd services/agent; npx vitest run --passWithNoTests
+          cd ../broker; npx vitest run --passWithNoTests
       
 
       - name: npm audit
