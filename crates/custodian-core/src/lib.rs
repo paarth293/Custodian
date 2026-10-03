@@ -9,3 +9,5 @@ pub mod online_sm;
 
 pub mod downloads;
 
+pub mod install_lab;
+
