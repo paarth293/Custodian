@@ -1,3 +1,5 @@
 {
-    "planner_offline": { "sha256": "mock_hash" }
+  "planner_offline": {
+    "sha256": "bee16c3d68880bcc286e819feb18ffba81bfafb51e2285ad5c2dc548bbc3d60c"
+  }
 }

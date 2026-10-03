@@ -1,12 +1,12 @@
+/** Per-task budget of online minutes. */
 export class BudgetManager {
-    minutes: number = 60;
-    exhausted: boolean = false;
-    
-    tick() {
-        this.minutes--;
-        if (this.minutes <= 0) {
-            this.exhausted = true;
-            console.log("Budget exhausted. Pausing task.");
-        }
-    }
+  constructor(public minutes = 60) {}
+
+  get exhausted(): boolean {
+    return this.minutes <= 0;
+  }
+
+  tick(): void {
+    if (this.minutes > 0) this.minutes--;
+  }
 }
