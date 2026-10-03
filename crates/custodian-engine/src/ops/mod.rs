@@ -7,3 +7,5 @@ pub mod offload;
 
 pub mod online_only;
 
+pub mod perm_delete;
+
