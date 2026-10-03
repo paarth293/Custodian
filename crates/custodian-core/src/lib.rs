@@ -19,3 +19,7 @@ pub mod install_recipe;
 
 pub mod install_undo;
 
+pub mod backup_check;
+pub mod safe_mode;
+pub mod uninstall_prep;
+
