@@ -60,3 +60,5 @@ pub mod undo;
 
 pub mod purge;
 
+pub mod disk;
+
