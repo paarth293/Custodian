@@ -1,22 +1,16 @@
-import os
-import sys
+"""Manual check of Laya's offline inference against a few sample files.
 
-# Add the src folder to path so we can import laya and model_loader
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "services", "mlhost"))
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "services", "mlhost", "src"))
+Requires the model in models/ and requirements-model.txt installed:
+    PYTHONPATH=services/mlhost python scripts/test_laya.py
+"""
 
-from laya import decide
+from mlhost.laya import decide
 
-print("Testing Laya offline inference...")
-
-test_cases = [
+SAMPLES = [
     {"filename": "windows_update.dll", "av_hits": 0, "signed": True},
     {"filename": "free_minecraft_hack.exe", "av_hits": 12, "signed": False},
-    {"filename": "unknown_script.bat", "av_hits": 2, "signed": False}
+    {"filename": "unknown_script.bat", "av_hits": 2, "signed": False},
 ]
 
-for i, data in enumerate(test_cases):
-    print(f"\n--- Test Case {i+1} ---")
-    print(f"Input: {data}")
-    decision = decide(i, data)
-    print(f"Laya's Decision: {decision}")
+for sample in SAMPLES:
+    print(f"{sample} -> {decide(sample)}")

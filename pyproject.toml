@@ -1,6 +1,21 @@
-[tool.mypy]
-strict = false
-ignore_missing_imports = true
-
 [tool.ruff]
-line-length = 88
+line-length = 100
+target-version = "py312"
+extend-exclude = ["services/mlhost/mlhost/proto.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "BLE"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["mlhost", "fixture_root"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+mypy_path = "services/mlhost"
+explicit_package_bases = true
+exclude = ["^target/", "^node_modules/"]
+
+[tool.pytest.ini_options]
+pythonpath = ["services/mlhost", "services/mlhost/tests"]
+testpaths = ["services/mlhost/tests", "tests/e2e"]
