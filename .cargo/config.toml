@@ -1,6 +1,0 @@
-[build]
-rustflags = ["-C", "link-arg=/guard:cf", "-C", "link-arg=/CETCOMPAT", "-C", "control-flow-guard"]
-
-[target.x86_64-pc-windows-msvc]
-linker = "C:\\Users\\paagu\\.rustup\\toolchains\\1.89.0-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-pc-windows-msvc\\bin\\rust-lld.exe"
-rustflags = ["-C", "linker-flavor=lld-link"]
