@@ -1,5 +1,9 @@
-import { useRive } from '@rive-app/react-canvas';
+import riveWasmUrl from '@rive-app/canvas/rive.wasm?url';
+import { RuntimeLoader, useRive } from '@rive-app/react-canvas';
 import { useState } from 'react';
+
+// Serve the Rive runtime from the app bundle; the CSP forbids remote content.
+RuntimeLoader.setWasmUrl(riveWasmUrl);
 
 /** Animation asset; place the exported Rive file at public/cubby.riv. */
 const CUBBY_ASSET = '/cubby.riv';

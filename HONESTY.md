@@ -45,8 +45,10 @@ Placeholders with their final signatures but without the real implementation.
 - ML host: `extract_embeddings` returns a zero vector; `safety`, `tabpfn_models`
   and `voice` return fixed values. `decide` runs the real model when it is
   present in `models/`, otherwise abstains.
-- Desktop: `get_ledger` returns sample entries; `sign_approval` returns a tagged
-  string, not a signature.
+- Desktop: `get_ledger` returns sample entries. Approval signing
+  (`approval_service::sign_approval`) and the approval window are Rust-only by
+  design but not yet called by an engine dispatcher; the signature is a tagged
+  string, not a real signature.
 
 ## Cut
 

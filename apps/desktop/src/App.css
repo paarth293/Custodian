@@ -53,3 +53,10 @@ body {
   box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
   overflow-y: auto;
 }
+
+.approval-view {
+  height: 100vh;
+  padding: 24px;
+  background-color: #1e1e1e;
+  color: #fff;
+}
