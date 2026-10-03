@@ -26,10 +26,14 @@ impl Ledger {
             .truncate(false)
             .open(path)?;
             
-        Ok(Self {
+        let mut ledger = Self {
             file,
             last_hash: [0u8; 32],
-        })
+        };
+        // Resume the hash chain from the existing records; starting from zeros
+        // would make every record appended after a restart fail verification.
+        ledger.verify()?;
+        Ok(ledger)
     }
 
     pub fn append_record(&mut self, data: &[u8]) -> Result<(), LedgerError> {
@@ -89,7 +93,8 @@ impl Ledger {
             
             prev_hash.copy_from_slice(&expected_hash);
         }
-        
+
+        self.last_hash = prev_hash;
         Ok(())
     }
 }
@@ -98,6 +103,24 @@ impl Ledger {
 mod tests {
     use super::*;
     use std::fs;
+
+    #[test]
+    fn test_chain_continues_after_reopen() {
+        let path = std::env::temp_dir().join("ledger_reopen_test.bin");
+        let _ = fs::remove_file(&path);
+
+        {
+            let mut ledger = Ledger::new(path.to_str().unwrap()).unwrap();
+            ledger.append_record(b"tx1").unwrap();
+        }
+        {
+            let mut ledger = Ledger::new(path.to_str().unwrap()).unwrap();
+            ledger.append_record(b"tx2").unwrap();
+        }
+
+        let mut ledger = Ledger::new(path.to_str().unwrap()).unwrap();
+        ledger.verify().unwrap();
+    }
 
     #[test]
     fn test_t_k1_tamper_detection() {
@@ -118,7 +141,9 @@ mod tests {
             file.write_all(&[0xFF]).unwrap();
         }
         
-        let mut ledger = Ledger::new(path.to_str().unwrap()).unwrap();
-        assert!(matches!(ledger.verify(), Err(LedgerError::TamperDetected)));
+        assert!(matches!(
+            Ledger::new(path.to_str().unwrap()),
+            Err(LedgerError::TamperDetected)
+        ));
     }
 }

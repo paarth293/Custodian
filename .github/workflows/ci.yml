@@ -33,6 +33,12 @@ jobs:
         run: npx eslint .
       - name: tsc
         run: npx tsc -b
+      - name: Agent tests
+        run: npx ts-node src/tests.ts
+        working-directory: services/agent
+      - name: Broker tests
+        run: npx ts-node src/tests.ts
+        working-directory: services/broker
       
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -44,6 +50,8 @@ jobs:
         run: ruff check .
       - name: mypy
         run: mypy .
+      - name: pytest
+        run: pytest services/mlhost/tests
       
       - name: Install cargo-deny
         uses: EmbarkStudios/cargo-deny-action@v2

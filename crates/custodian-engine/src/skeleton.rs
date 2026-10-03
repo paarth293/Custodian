@@ -16,6 +16,20 @@ pub enum ApprovalError {
     StaleFacts,
 }
 
+/// The bytes an approver must sign: the plan hash plus the expiry and nonce.
+///
+/// Signing the plan hash alone would let anyone who has seen a valid approval
+/// re-submit it with a fresh nonce and a later expiry, defeating both replay
+/// protection and expiry.
+pub fn approval_message(plan_hash: &[u8], expiry_ts: u64, nonce: &str) -> Vec<u8> {
+    let mut msg = Vec::with_capacity(plan_hash.len() + 8 + nonce.len() + 8);
+    msg.extend_from_slice(&(plan_hash.len() as u64).to_le_bytes());
+    msg.extend_from_slice(plan_hash);
+    msg.extend_from_slice(&expiry_ts.to_le_bytes());
+    msg.extend_from_slice(nonce.as_bytes());
+    msg
+}
+
 pub struct EngineSkeleton {
     public_key: VerifyingKey,
     used_nonces: Mutex<HashSet<String>>,
@@ -51,7 +65,8 @@ impl EngineSkeleton {
         }
 
         let signature = Signature::from_bytes(signature_bytes);
-        if self.public_key.verify_strict(plan_hash, &signature).is_err() {
+        let message = approval_message(plan_hash, expiry_ts, nonce);
+        if self.public_key.verify_strict(&message, &signature).is_err() {
             return Err(ApprovalError::Auth);
         }
 
@@ -75,32 +90,46 @@ mod tests {
         let engine = EngineSkeleton::new(public_key);
         
         let plan_hash = b"valid_plan_hash";
-        let signature = signing_key.sign(plan_hash);
-        
         let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
         let valid_expiry = now + 600; // 10 mins
-        
+        let sign = |plan: &[u8], expiry: u64, nonce: &str| {
+            signing_key
+                .sign(&approval_message(plan, expiry, nonce))
+                .to_bytes()
+        };
+        let signature = sign(plan_hash, valid_expiry, "nonce1");
+
         // 1. Accepted, then no-op (nonce recorded)
         assert_eq!(
-            engine.verify_approval(plan_hash, &signature.to_bytes(), valid_expiry, "nonce1"),
+            engine.verify_approval(plan_hash, &signature, valid_expiry, "nonce1"),
             Ok(())
         );
-        
+
         // 2. Reused nonce -> E_NONCE
         assert_eq!(
-            engine.verify_approval(plan_hash, &signature.to_bytes(), valid_expiry, "nonce1"),
+            engine.verify_approval(plan_hash, &signature, valid_expiry, "nonce1"),
             Err(ApprovalError::NonceReused)
         );
-        
+
         // 3. Tampered plan -> E_AUTH
         assert_eq!(
-            engine.verify_approval(b"tampered", &signature.to_bytes(), valid_expiry, "nonce2"),
+            engine.verify_approval(b"tampered", &signature, valid_expiry, "nonce2"),
             Err(ApprovalError::Auth)
         );
-        
+
+        // 3b. Replaying a seen signature under a fresh nonce or a later expiry -> E_AUTH
+        assert_eq!(
+            engine.verify_approval(plan_hash, &signature, valid_expiry, "fresh-nonce"),
+            Err(ApprovalError::Auth)
+        );
+        assert_eq!(
+            engine.verify_approval(plan_hash, &signature, valid_expiry + 3600, "nonce1b"),
+            Err(ApprovalError::Auth)
+        );
+
         // 4. Expired approval -> E_EXPIRED
         assert_eq!(
-            engine.verify_approval(plan_hash, &signature.to_bytes(), now - 10, "nonce3"),
+            engine.verify_approval(plan_hash, &sign(plan_hash, now - 10, "nonce3"), now - 10, "nonce3"),
             Err(ApprovalError::Expired)
         );
     }

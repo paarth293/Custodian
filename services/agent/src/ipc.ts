@@ -37,7 +37,7 @@ export function readFrame(buffer: Buffer, key: Buffer): unknown {
     hmac.update(payloadBytes);
     const actualSig = hmac.digest();
     
-    if (!actualSig.equals(expectedSig)) throw new Error('Invalid signature');
+    if (!crypto.timingSafeEqual(actualSig, expectedSig)) throw new Error('Invalid signature');
     
     return JSON.parse(payloadBytes.toString('utf-8'));
 }
