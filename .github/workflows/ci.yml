@@ -45,11 +45,14 @@ jobs:
       - name: mypy
         run: mypy .
       
-      - name: Install cargo-deny
-        uses: EmbarkStudios/cargo-deny-action@v2
-      - name: Cargo deny
-        run: cargo deny check
+
       - name: npm audit
         run: npm audit --omit=dev --audit-level=high || echo "Audit returned non-zero, but continuing"
       - name: pip audit
         run: pip-audit -r services/mlhost/requirements.txt
+
+  cargo-deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
