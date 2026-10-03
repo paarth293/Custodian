@@ -1,11 +1,15 @@
+/// Persists the ledger's latest height and root hash to an external anchor.
+///
+/// Placeholder: anchoring is not implemented; `load_anchor` always returns
+/// the genesis anchor.
 pub struct AnchorManager;
 
 impl AnchorManager {
     pub fn save_anchor(height: u64, root_hash: &[u8; 32]) -> Result<(), &'static str> {
-        println!("Saving anchor at height {} with hash {:?}", height, root_hash);
+        let _ = (height, root_hash);
         Ok(())
     }
-    
+
     pub fn load_anchor() -> Result<(u64, [u8; 32]), &'static str> {
         Ok((0, [0u8; 32]))
     }
@@ -16,9 +20,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_anchor_manager() {
+    fn genesis_anchor() {
         assert!(AnchorManager::save_anchor(1, &[0u8; 32]).is_ok());
-        let (height, _hash) = AnchorManager::load_anchor().unwrap();
-        assert_eq!(height, 0); 
+        assert_eq!(AnchorManager::load_anchor().unwrap(), (0, [0u8; 32]));
     }
 }

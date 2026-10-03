@@ -1,4 +1,7 @@
+/// Reverses a recorded install recipe.
+///
+/// Placeholder: succeeds without changing the system.
 pub fn undo_install(recipe: &str) -> Result<(), String> {
-    println!("Undoing install recipe: {}", recipe);
+    let _ = recipe;
     Ok(())
 }

@@ -1,23 +1,29 @@
 [package]
 name = "custodian-engine"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
+description = "Custodian engine: approved, journaled and reversible file operations."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
 
 [dependencies]
-custodian-store = { path = "../custodian-store" }
-custodian-journal = { path = "../custodian-journal" }
-custodian-digest = { path = "../custodian-digest" }
-custodian-winsec = { path = "../custodian-winsec" }
-tokio = { version = "1.0", features = ["full"] }
-thiserror = "1.0"
-uuid = { version = "1.0", features = ["v4"] }
-notify = "6.1.1"
-custodian-proto = { path = "../custodian-proto" }
-
-ed25519-dalek = { version = "2.1.1", features = ["rand_core"] }
+custodian-digest.workspace = true
+custodian-journal.workspace = true
+custodian-proto.workspace = true
+custodian-store.workspace = true
+custodian-winsec.workspace = true
+ed25519-dalek.workspace = true
+notify.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+uuid.workspace = true
 
 [dev-dependencies]
-proptest = "1.4.0"
-rand = "0.8"
-
+proptest.workspace = true
+rand.workspace = true
+tempfile.workspace = true

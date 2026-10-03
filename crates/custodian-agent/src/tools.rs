@@ -47,7 +47,7 @@ mod tests {
         let json = r#"[{"name": "search", "description": "Web search", "command": "curl"}]"#;
         let mut registry = ToolRegistry::new();
         registry.load_from_json(json).unwrap();
-        
+
         let tool = registry.get_tool("search").unwrap();
         assert_eq!(tool.description, "Web search");
     }

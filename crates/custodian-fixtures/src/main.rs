@@ -1,46 +1,67 @@
+//! Generates a synthetic user-profile tree for tests and demos.
+//!
+//! Every generated tree contains a `.custodian-fixture-root` marker, which the
+//! test kits require before they will operate on a directory.
+
 use clap::Parser;
-use std::fs::{self, File};
-use std::io::Write;
+use std::fs;
+use std::io;
 use std::path::PathBuf;
 use uuid::Uuid;
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(version, about)]
 struct Args {
+    /// Persona the fixture represents (recorded in the marker file).
     #[arg(long)]
     persona: String,
+    /// Output directory; created if missing.
     #[arg(long)]
     out: PathBuf,
-    #[arg(long)]
+    /// Seed recorded in the marker file for reproducibility.
+    #[arg(long, default_value_t = 0)]
     seed: u64,
 }
 
-fn main() {
+const FOLDERS: &[&str] = &[
+    "Desktop",
+    "Documents",
+    "Downloads",
+    "Pictures",
+    "node_modules",
+    "target",
+];
+
+fn main() -> io::Result<()> {
     let args = Args::parse();
-    
-    // Create output directory
-    fs::create_dir_all(&args.out).expect("Failed to create out dir");
-    
-    // Write marker file
-    let marker_path = args.out.join(".custodian-fixture-root");
-    let mut marker = File::create(marker_path).expect("Failed to create marker");
-    let id = Uuid::new_v4();
-    writeln!(marker, "seed: {}\nid: {}", args.seed, id).unwrap();
-    
-    // Create dummy trees
-    let folders = ["Desktop", "Documents", "Downloads", "Pictures", "node_modules", "target"];
-    for folder in folders.iter() {
-        fs::create_dir_all(args.out.join(folder)).unwrap();
+    fs::create_dir_all(&args.out)?;
+
+    fs::write(
+        args.out.join(".custodian-fixture-root"),
+        format!(
+            "persona: {}\nseed: {}\nid: {}\n",
+            args.persona,
+            args.seed,
+            Uuid::new_v4()
+        ),
+    )?;
+
+    for folder in FOLDERS {
+        fs::create_dir_all(args.out.join(folder))?;
     }
-    
-    // Exact duplicate
-    let dup_content = "identical content";
-    fs::write(args.out.join("Documents/file1.txt"), dup_content).unwrap();
-    fs::write(args.out.join("Documents/file2.txt"), dup_content).unwrap();
-    
-    // Near duplicate
-    fs::write(args.out.join("Documents/near1.txt"), "almost identical content A").unwrap();
-    fs::write(args.out.join("Documents/near2.txt"), "almost identical content B").unwrap();
-    
-    println!("Generated fixture for {} at {:?}", args.persona, args.out);
+
+    let docs = args.out.join("Documents");
+    // Exact duplicates.
+    fs::write(docs.join("file1.txt"), "identical content")?;
+    fs::write(docs.join("file2.txt"), "identical content")?;
+    // Near duplicates.
+    fs::write(docs.join("near1.txt"), "almost identical content A")?;
+    fs::write(docs.join("near2.txt"), "almost identical content B")?;
+
+    println!(
+        "Generated fixture for {} at {}",
+        args.persona,
+        args.out.display()
+    );
+    Ok(())
 }

@@ -1,58 +1,55 @@
-use std::process::Command;
+use std::io;
 use std::time::Duration;
+use tokio::process::Command;
 use tokio::time::sleep;
 
-pub struct Supervisor {
-    children: Vec<ChildProcess>,
-}
+/// Maximum restarts attempted for a crashing child before giving up.
+pub const MAX_RESTARTS: u32 = 3;
+const RESTART_BACKOFF: Duration = Duration::from_millis(10);
 
-#[allow(dead_code)]
-struct ChildProcess {
-    name: String,
+#[derive(Debug, Clone)]
+struct ChildSpec {
     exe_path: String,
     args: Vec<String>,
 }
 
-impl Default for Supervisor {
-    fn default() -> Self {
-        Self::new()
-    }
+/// Starts child processes and restarts them on failure, up to [`MAX_RESTARTS`].
+#[derive(Debug, Default)]
+pub struct Supervisor {
+    children: Vec<ChildSpec>,
 }
 
 impl Supervisor {
     pub fn new() -> Self {
-        Self {
-            children: Vec::new(),
-        }
+        Self::default()
     }
 
-    pub fn add_child(&mut self, name: &str, exe_path: &str, args: &[&str]) {
-        self.children.push(ChildProcess {
-            name: name.to_string(),
+    pub fn add_child(&mut self, exe_path: &str, args: &[&str]) {
+        self.children.push(ChildSpec {
             exe_path: exe_path.to_string(),
             args: args.iter().map(|s| s.to_string()).collect(),
         });
     }
 
-    pub async fn run_mock_loop(&self) {
-        for _child_def in &self.children {
+    /// Runs every child to completion and returns how many attempts each took.
+    pub async fn run(&self) -> io::Result<Vec<u32>> {
+        let mut attempts = Vec::with_capacity(self.children.len());
+        for child in &self.children {
             let mut attempt = 0;
             loop {
                 attempt += 1;
-                let mut cmd = Command::new("cmd.exe");
-                cmd.args(["/c", "exit 1"]);
-                
-                if let Ok(mut child) = cmd.spawn() {
-                    let status = child.wait().unwrap();
-                    if !status.success() {
-                        sleep(Duration::from_millis(10)).await;
-                        if attempt > 2 {
-                            break; 
-                        }
-                    }
+                let status = Command::new(&child.exe_path)
+                    .args(&child.args)
+                    .status()
+                    .await?;
+                if status.success() || attempt >= MAX_RESTARTS {
+                    break;
                 }
+                sleep(RESTART_BACKOFF).await;
             }
+            attempts.push(attempt);
         }
+        Ok(attempts)
     }
 }
 
@@ -60,10 +57,32 @@ impl Supervisor {
 mod tests {
     use super::*;
 
+    #[cfg(windows)]
+    fn failing() -> (&'static str, &'static [&'static str]) {
+        ("cmd.exe", &["/c", "exit 1"])
+    }
+    #[cfg(not(windows))]
+    fn failing() -> (&'static str, &'static [&'static str]) {
+        ("false", &[])
+    }
+
+    #[cfg(windows)]
+    fn succeeding() -> (&'static str, &'static [&'static str]) {
+        ("cmd.exe", &["/c", "exit 0"])
+    }
+    #[cfg(not(windows))]
+    fn succeeding() -> (&'static str, &'static [&'static str]) {
+        ("true", &[])
+    }
+
     #[tokio::test]
-    async fn test_supervisor_restarts() {
+    async fn restarts_failing_child_up_to_limit() {
         let mut sup = Supervisor::new();
-        sup.add_child("test_child", "cmd.exe", &["/c", "exit 1"]);
-        sup.run_mock_loop().await;
+        let (exe, args) = failing();
+        sup.add_child(exe, args);
+        let (exe, args) = succeeding();
+        sup.add_child(exe, args);
+
+        assert_eq!(sup.run().await.unwrap(), vec![MAX_RESTARTS, 1]);
     }
 }

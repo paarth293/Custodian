@@ -1,36 +1,37 @@
+//! File-system watching, event debouncing and the write-ahead journal.
+
 pub mod batcher;
+pub mod wal;
+
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use std::path::PathBuf;
-use tokio::sync::mpsc;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
+use tokio::sync::mpsc;
 
 #[derive(Debug, Error)]
 pub enum WatcherError {
-    #[error("Notify error: {0}")]
+    #[error("notify error: {0}")]
     Notify(#[from] notify::Error),
 }
 
+/// Recursively watches a directory and forwards every changed path.
 pub struct VfsWatcher {
     _watcher: RecommendedWatcher,
 }
 
 impl VfsWatcher {
     pub fn new(
-        watch_path: PathBuf,
+        watch_path: &Path,
         tx: mpsc::Sender<(PathBuf, EventKind)>,
     ) -> Result<Self, WatcherError> {
         let mut watcher = notify::recommended_watcher(move |res: notify::Result<Event>| {
             if let Ok(event) = res {
-                let paths = event.paths.clone();
-                let kind = event.kind;
-                for path in paths {
-                    let _ = tx.blocking_send((path, kind));
+                for path in event.paths {
+                    let _ = tx.blocking_send((path, event.kind));
                 }
             }
         })?;
-
-        watcher.watch(&watch_path, RecursiveMode::Recursive)?;
-
+        watcher.watch(watch_path, RecursiveMode::Recursive)?;
         Ok(Self { _watcher: watcher })
     }
 }
@@ -38,28 +39,23 @@ impl VfsWatcher {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::File;
-    use tokio::time::{sleep, Duration};
+    use tokio::time::{sleep, timeout, Duration};
 
     #[tokio::test]
-    async fn test_watcher() {
-        let temp_dir = std::env::temp_dir().join("custodian_watch_test");
-        std::fs::create_dir_all(&temp_dir).unwrap();
-        
+    async fn reports_created_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().canonicalize().unwrap();
         let (tx, mut rx) = mpsc::channel(100);
-        let _watcher = VfsWatcher::new(temp_dir.clone(), tx).unwrap();
-        
+        let _watcher = VfsWatcher::new(&root, tx).unwrap();
         sleep(Duration::from_millis(200)).await;
-        
-        let file_path = temp_dir.join("test.txt");
-        File::create(&file_path).unwrap();
-        
-        let event = tokio::time::timeout(Duration::from_millis(1000), rx.recv()).await;
-        assert!(event.is_ok(), "Watcher did not receive event in time");
-        let (path, _kind) = event.unwrap().unwrap();
+
+        let file_path = root.join("test.txt");
+        std::fs::write(&file_path, b"x").unwrap();
+
+        let (path, _kind) = timeout(Duration::from_secs(2), rx.recv())
+            .await
+            .expect("watcher did not report the event in time")
+            .unwrap();
         assert_eq!(path, file_path);
     }
 }
-
-pub mod wal;
-

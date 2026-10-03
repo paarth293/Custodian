@@ -1,3 +1,7 @@
-pub fn verify_publisher(_path: &str, _expected_publisher: &str) -> bool {
+/// Checks an installer's Authenticode publisher.
+///
+/// Placeholder: always `true` until `WinVerifyTrust` integration lands.
+pub fn verify_publisher(path: &str, expected_publisher: &str) -> bool {
+    let _ = (path, expected_publisher);
     true
 }

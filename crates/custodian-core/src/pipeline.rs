@@ -1,15 +1,13 @@
-use crate::router::{Router, Role};
-use std::process::Command;
+use crate::router::{Role, Router};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum PipelineError {
-    #[error("Parse failed")]
-    Parse,
-    #[error("IPC Routing failed")]
+    #[error("IPC route not permitted")]
     IpcRoute,
 }
 
+/// Moves parsed document excerpts from the parser to the agent's broker.
 pub struct ExcerptPipeline {
     router: Router,
 }
@@ -19,16 +17,14 @@ impl ExcerptPipeline {
         Self { router }
     }
 
-    pub fn process_file(&self, path: &str) -> Result<(), PipelineError> {
-        let _parser_output = Command::new("custodian-parser")
-            .arg(path)
-            .output();
-            
-        let content = b"mock_parsed_content";
-        
-        self.router.route_frame(Role::Agent, Role::Broker, content).map_err(|_| PipelineError::IpcRoute)?;
-        
-        Ok(())
+    /// Routes a parsed excerpt through the IPC policy.
+    ///
+    /// Placeholder: the sandboxed `custodian-parser` invocation is not wired
+    /// in yet, so the caller supplies the parsed content.
+    pub fn process_excerpt(&self, content: &[u8]) -> Result<(), PipelineError> {
+        self.router
+            .route_frame(Role::Agent, Role::Broker, content)
+            .map_err(|_| PipelineError::IpcRoute)
     }
 }
 
@@ -37,11 +33,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_pipeline_flow() {
-        let router = Router::new();
-        let pipeline = ExcerptPipeline::new(router);
-        
-        let result = pipeline.process_file("dummy.txt");
-        assert!(result.is_ok());
+    fn routes_excerpt() {
+        let pipeline = ExcerptPipeline::new(Router::new());
+        assert!(pipeline.process_excerpt(b"parsed content").is_ok());
     }
 }

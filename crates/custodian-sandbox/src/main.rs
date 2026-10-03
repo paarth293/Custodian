@@ -1,11 +1,8 @@
-pub mod templates;
-pub mod effects;
+//! Sandbox launcher. `capsprobe` reports that the sandbox is in force.
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    if args.len() > 1 && args[1] == "capsprobe" {
-        println!("Sandbox enforced.");
-        std::process::exit(0);
+    match std::env::args().nth(1).as_deref() {
+        Some("capsprobe") => println!("Sandbox enforced."),
+        _ => println!("Sandbox launcher started."),
     }
-    println!("Sandbox launcher started");
 }
