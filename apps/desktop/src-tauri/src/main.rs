@@ -1,3 +1,7 @@
+pub mod approval_service;
+pub mod approval_window;
+pub mod input_hook;
+pub mod hello;
 pub mod placement;
 pub mod cubby_window;
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
@@ -22,5 +26,6 @@ fn main() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
 
 
