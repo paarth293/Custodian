@@ -1,0 +1,8 @@
+**/dist/
+**/node_modules/
+target/
+package-lock.json
+Cargo.lock
+docs/
+training/dataset.jsonl
+apps/desktop/src-tauri/gen/

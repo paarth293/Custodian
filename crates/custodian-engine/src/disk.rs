@@ -1,36 +1,29 @@
 use std::fs;
-use std::path::Path;
 use std::io;
+use std::path::Path;
 
 pub struct DiskMonitor;
 
 impl DiskMonitor {
+    /// Returns the logical size of `path`.
+    ///
+    /// On Windows this will switch to `GetCompressedFileSizeW` so that
+    /// compressed and sparse files report their real on-disk footprint.
     pub fn get_real_file_size(path: &Path) -> io::Result<u64> {
-        let meta = fs::metadata(path)?;
-        
-        #[cfg(target_os = "windows")]
-        {
-            // Mock GetCompressedFileSizeW
-        }
-        
-        Ok(meta.len())
+        Ok(fs::metadata(path)?.len())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::File;
-    use std::io::Write;
 
     #[test]
-    fn test_disk_measurement() {
-        let temp_dir = std::env::temp_dir();
-        let file_path = temp_dir.join("disk_test.txt");
-        let mut file = File::create(&file_path).unwrap();
-        file.write_all(b"1234").unwrap();
+    fn measures_file_size() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("disk_test.txt");
+        fs::write(&file_path, b"1234").unwrap();
 
-        let size = DiskMonitor::get_real_file_size(&file_path).unwrap();
-        assert_eq!(size, 4);
+        assert_eq!(DiskMonitor::get_real_file_size(&file_path).unwrap(), 4);
     }
 }

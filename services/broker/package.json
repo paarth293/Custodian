@@ -1,15 +1,12 @@
 {
-  "name": "custodian-broker",
-  "version": "1.0.0",
+  "name": "@custodian/broker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Isolated browser broker for online mode: typed actions, DLP and budgets.",
+  "license": "Apache-2.0",
   "main": "dist/index.js",
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js",
-    "test": "npx ts-node src/tests.ts"
-  },
-  "devDependencies": {
-    "esbuild": "^0.20.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.0.0",
-    "vitest": "^5.0.3"
+    "build": "tsc -b",
+    "test": "vitest run"
   }
 }

@@ -1,3 +1,4 @@
+/// Lifecycle of a transaction across the journal, the file system and the DB.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TxState {
     Pending,
@@ -9,20 +10,16 @@ pub enum TxState {
 pub struct TransactionRecoverer;
 
 impl TransactionRecoverer {
+    /// Advances a transaction found during crash recovery.
+    ///
+    /// `Journaled` transactions re-run their idempotent action; `Executed`
+    /// ones only need their DB mirror; `Pending` ones were never committed.
     pub fn recover(state: TxState, idempotent_action: impl FnOnce() -> bool) -> TxState {
         match state {
-            TxState::Pending => TxState::Pending, 
-            TxState::Journaled => {
-                if idempotent_action() {
-                    TxState::DbMirrored
-                } else {
-                    TxState::Journaled
-                }
-            }
-            TxState::Executed => {
-                TxState::DbMirrored
-            }
-            TxState::DbMirrored => TxState::DbMirrored,
+            TxState::Pending => TxState::Pending,
+            TxState::Journaled if idempotent_action() => TxState::DbMirrored,
+            TxState::Journaled => TxState::Journaled,
+            TxState::Executed | TxState::DbMirrored => TxState::DbMirrored,
         }
     }
 }
@@ -32,22 +29,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_recovery_journaled() {
+    fn journaled_reruns_action() {
         let mut ran = false;
-        let action = || { ran = true; true };
-        
-        let new_state = TransactionRecoverer::recover(TxState::Journaled, action);
+        let state = TransactionRecoverer::recover(TxState::Journaled, || {
+            ran = true;
+            true
+        });
         assert!(ran);
-        assert_eq!(new_state, TxState::DbMirrored);
+        assert_eq!(state, TxState::DbMirrored);
     }
-    
+
     #[test]
-    fn test_recovery_executed() {
+    fn journaled_stays_journaled_on_failure() {
+        assert_eq!(
+            TransactionRecoverer::recover(TxState::Journaled, || false),
+            TxState::Journaled
+        );
+    }
+
+    #[test]
+    fn executed_skips_action() {
         let mut ran = false;
-        let action = || { ran = true; true };
-        
-        let new_state = TransactionRecoverer::recover(TxState::Executed, action);
-        assert!(!ran); 
-        assert_eq!(new_state, TxState::DbMirrored);
+        let state = TransactionRecoverer::recover(TxState::Executed, || {
+            ran = true;
+            true
+        });
+        assert!(!ran);
+        assert_eq!(state, TxState::DbMirrored);
     }
 }

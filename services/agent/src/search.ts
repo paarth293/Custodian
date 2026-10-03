@@ -1,4 +1,10 @@
-export function search(query: string) {
-    console.log("Searching for: " + query);
-    return [{ id: 'mock1', label: 'mock file' }];
+export interface SearchHit {
+  id: string;
+  label: string;
+}
+
+/** Local file search. Placeholder: returns no results until the index lands. */
+export function search(query: string): SearchHit[] {
+  void query;
+  return [];
 }

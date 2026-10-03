@@ -1,25 +1,33 @@
-use tauri::{SystemTray, SystemTrayMenu, CustomMenuItem, SystemTrayEvent, Manager};
+use crate::cubby_window::CUBBY_LABEL;
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::TrayIconBuilder;
+use tauri::{AppHandle, Manager};
 
-pub fn create_tray() -> SystemTray {
-    let hide = CustomMenuItem::new("hide".to_string(), "Hide Cubby");
-    let show = CustomMenuItem::new("show".to_string(), "Show Cubby");
-    let quit = CustomMenuItem::new("quit".to_string(), "Quit");
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(show)
-        .add_item(hide)
-        .add_item(quit);
-    
-    SystemTray::new().with_menu(tray_menu)
-}
+/// Adds the tray icon with Show / Hide / Quit actions for Cubby.
+pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
+    let show = MenuItem::with_id(app, "show", "Show Cubby", true, None::<&str>)?;
+    let hide = MenuItem::with_id(app, "hide", "Hide Cubby", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&show, &hide, &quit])?;
 
-pub fn handle_tray_event(app: &tauri::AppHandle, event: SystemTrayEvent) {
-    if let SystemTrayEvent::MenuItemClick { id, .. } = event {
-        let window = app.get_window("cubby").unwrap();
-        match id.as_str() {
-            "hide" => window.hide().unwrap(),
-            "show" => window.show().unwrap(),
-            "quit" => std::process::exit(0),
+    let mut builder = TrayIconBuilder::new()
+        .menu(&menu)
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "show" | "hide" => {
+                if let Some(window) = app.get_webview_window(CUBBY_LABEL) {
+                    let _ = if event.id().as_ref() == "show" {
+                        window.show()
+                    } else {
+                        window.hide()
+                    };
+                }
+            }
+            "quit" => app.exit(0),
             _ => {}
-        }
+        });
+    if let Some(icon) = app.default_window_icon() {
+        builder = builder.icon(icon.clone());
     }
+    builder.build(app)?;
+    Ok(())
 }

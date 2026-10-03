@@ -5,30 +5,34 @@ use std::io;
 pub struct OffloadOp;
 
 impl OffloadOp {
-    pub fn execute(target: &SafePath, _upload_url: &str) -> io::Result<()> {
-        let metadata = fs::metadata(target.as_path())?;
-        fs::write(target.as_path(), format!("OFFLOADED: size={}", metadata.len()))?;
-        Ok(())
+    /// Replaces `target` with a stub recording its original size.
+    ///
+    /// Placeholder: the upload to `upload_url` is not implemented yet.
+    pub fn execute(target: &SafePath, upload_url: &str) -> io::Result<()> {
+        let _ = upload_url;
+        let len = fs::metadata(target.as_path())?.len();
+        fs::write(target.as_path(), format!("OFFLOADED: size={len}"))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::File;
-    use std::io::Write;
 
     #[test]
-    fn test_offload() {
-        let temp_dir = std::env::temp_dir();
-        let file_path = temp_dir.join("large_file.bin");
-        let mut file = File::create(&file_path).unwrap();
-        file.write_all(&[0u8; 1024]).unwrap();
+    fn writes_stub() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("large_file.bin");
+        fs::write(&file_path, [0u8; 1024]).unwrap();
 
-        let safe_path = SafePath::new(&file_path, &temp_dir).unwrap();
-        OffloadOp::execute(&safe_path, "http://mock-s3-url").unwrap();
-
-        let data = fs::read_to_string(&file_path).unwrap();
-        assert_eq!(data, "OFFLOADED: size=1024");
+        OffloadOp::execute(
+            &SafePath::new(&file_path, dir.path()).unwrap(),
+            "https://example.invalid",
+        )
+        .unwrap();
+        assert_eq!(
+            fs::read_to_string(&file_path).unwrap(),
+            "OFFLOADED: size=1024"
+        );
     }
 }

@@ -1,12 +1,18 @@
 [package]
 name = "custodian-winsec"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
+description = "Windows security primitives: safe paths, AppContainer, job objects, DPAPI."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
 
-[lints.rust]
-unsafe_code = "deny"
+[lints]
+workspace = true
 
 [dependencies]
-thiserror = "1.0"
+thiserror.workspace = true
 
+[dev-dependencies]
+tempfile.workspace = true

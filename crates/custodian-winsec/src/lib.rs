@@ -1,42 +1,46 @@
-use std::path::{Path, PathBuf};
+//! Windows security primitives used across Custodian.
+//!
+//! The process-isolation, Hello and DPAPI functions are portable placeholders
+//! with the final signatures; their Win32 implementations are tracked in
+//! `HONESTY.md`.
+
+pub mod safe_place;
+
+use std::path::{Component, Path, PathBuf};
+use std::process::Command;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum PathError {
-    #[error("Path escapes root")]
+    #[error("path escapes root")]
     EscapesRoot,
-    #[error("IO error: {0}")]
+    #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
-    #[error("Invalid path")]
-    Invalid,
 }
 
+/// A path proven to live under a given root.
+///
+/// Construction rejects `..` components (which `Path::starts_with` would
+/// otherwise accept, e.g. `C:\root\..\evil`). On Windows the path is also
+/// converted to its verbatim (`\\?\`) form and trailing dots/spaces are
+/// stripped, so Win32 name normalisation cannot change its meaning later.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SafePath(PathBuf);
 
 impl SafePath {
-    pub fn new<P: AsRef<Path>>(path: P, root: P) -> Result<Self, PathError> {
+    pub fn new(path: impl AsRef<Path>, root: impl AsRef<Path>) -> Result<Self, PathError> {
         let path = path.as_ref();
-        let root_unc = format!(r"\\?\{}", root.as_ref().to_string_lossy());
-        let root_path = PathBuf::from(root_unc);
-
-        let path_str = path.to_string_lossy();
-        let trimmed = path_str.trim_end_matches(&[' ', '.'][..]);
-        
-        let mut unc = String::from(r"\\?\");
-        if !trimmed.starts_with(r"\\?\") {
-            unc.push_str(trimmed);
-        } else {
-            unc = trimmed.to_string();
-        }
-
-        let unc_path = PathBuf::from(unc);
-        
-        if !unc_path.starts_with(&root_path) {
+        if path.components().any(|c| matches!(c, Component::ParentDir)) {
             return Err(PathError::EscapesRoot);
         }
 
-        Ok(SafePath(unc_path))
+        let path = normalize(path);
+        let root = normalize(root.as_ref());
+        if !path.starts_with(&root) {
+            return Err(PathError::EscapesRoot);
+        }
+
+        Ok(SafePath(path))
     }
 
     pub fn as_path(&self) -> &Path {
@@ -44,105 +48,130 @@ impl SafePath {
     }
 }
 
+impl AsRef<Path> for SafePath {
+    fn as_ref(&self) -> &Path {
+        &self.0
+    }
+}
+
+#[cfg(windows)]
+fn normalize(path: &Path) -> PathBuf {
+    const VERBATIM: &str = r"\\?\";
+    let s = path.to_string_lossy();
+    let trimmed = s.trim_end_matches([' ', '.']);
+    if trimmed.starts_with(VERBATIM) {
+        PathBuf::from(trimmed)
+    } else {
+        PathBuf::from(format!("{VERBATIM}{trimmed}"))
+    }
+}
+
+#[cfg(not(windows))]
+fn normalize(path: &Path) -> PathBuf {
+    path.to_path_buf()
+}
+
+/// Launches `exe` inside the named AppContainer profile and waits for it.
+///
+/// Placeholder: currently a plain child process. The Win32 implementation
+/// uses `CreateAppContainerProfile` and `CreateProcessAsUserW`.
+pub fn spawn_in_appcontainer(exe: &str, args: &[&str], profile_name: &str) -> std::io::Result<()> {
+    let _ = profile_name;
+    Command::new(exe).args(args).spawn()?.wait()?;
+    Ok(())
+}
+
+/// Applies memory and CPU limits to `pid` through a job object.
+///
+/// Placeholder for `CreateJobObjectW` / `SetInformationJobObject` /
+/// `AssignProcessToJobObject`.
+pub fn apply_job_limits(pid: u32, memory_mb: u32, cpu_rate: u32) -> std::io::Result<()> {
+    let _ = (pid, memory_mb, cpu_rate);
+    Ok(())
+}
+
+/// Prompts the user for Windows Hello verification.
+///
+/// Placeholder: always succeeds until the Hello integration lands.
+pub fn prompt_biometrics(message: &str) -> bool {
+    let _ = message;
+    true
+}
+
+/// Encrypts data for the current user.
+///
+/// Placeholder for `CryptProtectData`. The transform is reversible but
+/// provides **no** confidentiality.
+pub fn protect_data(plaintext: &[u8]) -> std::io::Result<Vec<u8>> {
+    Ok(plaintext.iter().rev().copied().collect())
+}
+
+/// Inverse of [`protect_data`]. Placeholder for `CryptUnprotectData`.
+pub fn unprotect_data(ciphertext: &[u8]) -> std::io::Result<Vec<u8>> {
+    Ok(ciphertext.iter().rev().copied().collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_trailing_dot() {
-        let root = Path::new(r"C:\test_root");
-        let path = Path::new(r"C:\test_root\foo.");
-        let safe = SafePath::new(path, root).unwrap();
+    fn accepts_path_under_root() {
+        let root = std::env::temp_dir();
+        let safe = SafePath::new(root.join("a").join("b.txt"), &root).unwrap();
+        assert!(safe.as_path().ends_with("b.txt"));
+    }
+
+    #[test]
+    fn rejects_path_outside_root() {
+        let root = std::env::temp_dir().join("custodian_root");
+        let outside = std::env::temp_dir().join("elsewhere");
+        assert!(matches!(
+            SafePath::new(outside, root),
+            Err(PathError::EscapesRoot)
+        ));
+    }
+
+    #[test]
+    fn rejects_parent_dir_traversal() {
+        let root = std::env::temp_dir().join("custodian_root");
+        let sneaky = root.join("..").join("evil");
+        assert!(matches!(
+            SafePath::new(sneaky, &root),
+            Err(PathError::EscapesRoot)
+        ));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn strips_trailing_dot_and_uses_verbatim_prefix() {
+        let safe = SafePath::new(r"C:\test_root\foo.", r"C:\test_root").unwrap();
         assert_eq!(safe.as_path().to_str().unwrap(), r"\\?\C:\test_root\foo");
     }
 
     #[test]
-    fn test_escape_root() {
-        let root = Path::new(r"C:\test_root");
-        let path = Path::new(r"D:\evil");
-        assert!(matches!(SafePath::new(path, root), Err(PathError::EscapesRoot)));
-    }
-}
-
-use std::process::Command;
-
-pub fn spawn_in_appcontainer(exe: &str, args: &[&str], profile_name: &str) -> std::io::Result<()> {
-    // SAFETY: Mocking the unsafe Windows API calls (CreateAppContainerProfile, CreateProcessAsUserW)
-    let _ = profile_name;
-    
-    let mut child = Command::new(exe).args(args).spawn()?;
-    let _ = child.wait()?;
-    Ok(())
-}
-
-#[cfg(test)]
-mod test_appcontainer {
-    use super::*;
-    
-    #[test]
-    fn test_spawn() {
+    fn spawn_runs_child_to_completion() {
+        #[cfg(windows)]
         let result = spawn_in_appcontainer("cmd.exe", &["/c", "exit 0"], "test_profile");
+        #[cfg(not(windows))]
+        let result = spawn_in_appcontainer("true", &[], "test_profile");
         assert!(result.is_ok());
     }
-}
 
-pub fn apply_job_limits(pid: u32, memory_mb: u32, cpu_rate: u32) -> std::io::Result<()> {
-    // SAFETY: Mocking CreateJobObjectW, SetInformationJobObject, AssignProcessToJobObject
-    let _ = (pid, memory_mb, cpu_rate);
-    Ok(())
-}
-
-#[cfg(test)]
-mod test_job_limits {
-    use super::*;
-    
     #[test]
-    fn test_apply_limits() {
-        let result = apply_job_limits(1234, 512, 10);
-        assert!(result.is_ok());
+    fn job_limits_accept_valid_input() {
+        assert!(apply_job_limits(1234, 512, 10).is_ok());
     }
-}
 
-pub fn prompt_biometrics(message: &str) -> bool {
-    // SAFETY: Mocking LsaLogonUser / Windows Hello API
-    let _ = message;
-    true // Assume success for tests
-}
-
-#[cfg(test)]
-mod test_hello {
-    use super::*;
-    
     #[test]
-    fn test_prompt() {
+    fn biometrics_placeholder_succeeds() {
         assert!(prompt_biometrics("Approve file deletion"));
     }
-}
 
-pub fn protect_data(plaintext: &[u8]) -> std::io::Result<Vec<u8>> {
-    // SAFETY: Mocking CryptProtectData
-    let _ = plaintext;
-    // Mock encryption by reversing bytes
-    Ok(plaintext.iter().rev().copied().collect())
-}
-
-pub fn unprotect_data(ciphertext: &[u8]) -> std::io::Result<Vec<u8>> {
-    // SAFETY: Mocking CryptUnprotectData
-    let _ = ciphertext;
-    // Mock decryption by reversing bytes
-    Ok(ciphertext.iter().rev().copied().collect())
-}
-
-#[cfg(test)]
-mod test_dpapi {
-    use super::*;
-    
     #[test]
-    fn test_dpapi_roundtrip() {
+    fn dpapi_roundtrip() {
         let plaintext = b"secret-key-material";
         let encrypted = protect_data(plaintext).unwrap();
-        let decrypted = unprotect_data(&encrypted).unwrap();
-        assert_eq!(plaintext.as_slice(), decrypted.as_slice());
+        assert_eq!(unprotect_data(&encrypted).unwrap(), plaintext);
     }
 }
-pub mod safe_place;

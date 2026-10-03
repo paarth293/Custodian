@@ -1,65 +1,106 @@
 name: CI
+
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-test:
+  rust:
+    name: Rust
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Layout check
-        run: powershell.exe -ExecutionPolicy Bypass -File scripts/check-layout.ps1
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.89.0
-          components: rustfmt, clippy
-      - name: Cargo clippy
-        run: cargo clippy --workspace -- -D warnings
-      - name: Cargo test
-        run: cargo test --workspace
-      
-      - name: Setup Node
-        uses: actions/setup-node@v4
+          toolchain: 1.97.0
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
         with:
-          node-version: 24
-          cache: 'npm'
-      - name: npm ci
-        run: npm ci
+          node-version-file: .nvmrc
+          cache: npm
+      # The Tauri build embeds the frontend, so it must exist before clippy.
+      - name: Build desktop frontend
+        run: |
+          npm ci
+          npm run build -w apps/desktop
+      - name: rustfmt
+        run: cargo fmt --all --check
+      - name: clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: test
+        run: cargo test --workspace --locked
+
+  node:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: prettier
+        run: npm run format:check
       - name: eslint
-        run: npx eslint .
-      - name: tsc
-        run: npx tsc -b
-      
-      - name: Setup Python
-        uses: actions/setup-python@v5
+        run: npm run lint
+      - name: typecheck
+        run: npm run typecheck
+      - name: test
+        run: npm test
+      - name: build desktop frontend
+        run: npm run build -w apps/desktop
+
+  python:
+    name: Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: 3.12
-      - name: Install Python tools
-        run: pip install ruff mypy pytest pip-audit
+          python-version-file: .python-version
+          cache: pip
+          cache-dependency-path: services/mlhost/requirements*.txt
+      - name: Install tools
+        run: pip install -r services/mlhost/requirements.txt -r requirements-dev.txt
       - name: ruff
-        run: ruff check .
+        run: |
+          ruff check .
+          ruff format --check .
       - name: mypy
         run: mypy .
       - name: pytest
-        run: pytest services/mlhost/tests/ -v
-        
-      - name: vitest (agent & broker)
-        run: |
-          cd services/agent; npx vitest run --passWithNoTests
-          cd ../broker; npx vitest run --passWithNoTests
-      
+        run: pytest -v
 
-      - name: npm audit
-        run: npm audit --omit=dev --audit-level=high || echo "Audit returned non-zero, but continuing"
-      - name: pip audit
-        run: pip-audit -r services/mlhost/requirements.txt
-
-  cargo-deny:
+  security:
+    name: Security
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: EmbarkStudios/cargo-deny-action@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: npm audit
+        run: npm audit --audit-level=high
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - name: pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit -r services/mlhost/requirements.txt
+      - name: Secret scan
+        run: python tests/security/scan_secrets.py

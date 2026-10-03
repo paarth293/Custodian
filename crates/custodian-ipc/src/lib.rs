@@ -1,27 +1,40 @@
+//! Authenticated IPC framing shared by every Custodian process.
+//!
+//! Wire format: `"CUST" | len: u32 LE | HMAC-SHA256(payload): 32 bytes | payload`,
+//! where `payload` is UTF-8 JSON of at most [`MAX_FRAME_SIZE`] bytes. The
+//! TypeScript (`services/agent/src/ipc.ts`) and Python
+//! (`services/mlhost/mlhost/ipc.py`) implementations are byte-compatible.
+
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use hmac::{Hmac, Mac};
+use rand::RngCore;
 use serde::{de::DeserializeOwned, Serialize};
 use sha2::Sha256;
+use std::collections::HashMap;
 use std::io::{self, Read, Write};
 use thiserror::Error;
 
 type HmacSha256 = Hmac<Sha256>;
 
-const MAGIC: [u8; 4] = *b"CUST";
-const MAX_FRAME_SIZE: u32 = 10 * 1024 * 1024; // 10 MB
+pub const MAGIC: [u8; 4] = *b"CUST";
+pub const MAX_FRAME_SIZE: u32 = 10 * 1024 * 1024;
 
 #[derive(Error, Debug)]
 pub enum IpcError {
-    #[error("IO error: {0}")]
+    #[error("I/O error: {0}")]
     Io(#[from] io::Error),
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
-    #[error("Invalid magic bytes")]
+    #[error("invalid magic bytes")]
     InvalidMagic,
-    #[error("Frame too large: {0}")]
-    FrameTooLarge(u32),
-    #[error("Invalid HMAC signature")]
+    #[error("frame too large: {0} bytes")]
+    FrameTooLarge(usize),
+    #[error("invalid HMAC signature")]
     InvalidSignature,
+}
+
+fn mac(key: &[u8]) -> HmacSha256 {
+    HmacSha256::new_from_slice(key).expect("HMAC accepts keys of any length")
 }
 
 pub fn write_frame<T: Serialize, W: Write>(
@@ -29,30 +42,24 @@ pub fn write_frame<T: Serialize, W: Write>(
     payload: &T,
     key: &[u8],
 ) -> Result<(), IpcError> {
-    let json_bytes = serde_json::to_vec(payload)?;
-    let len = json_bytes.len() as u32;
+    let json = serde_json::to_vec(payload)?;
+    let len = u32::try_from(json.len())
+        .ok()
+        .filter(|&len| len <= MAX_FRAME_SIZE)
+        .ok_or(IpcError::FrameTooLarge(json.len()))?;
 
-    if len > MAX_FRAME_SIZE {
-        return Err(IpcError::FrameTooLarge(len));
-    }
-
-    let mut mac = HmacSha256::new_from_slice(key).expect("HMAC can take key of any size");
-    mac.update(&json_bytes);
-    let signature = mac.finalize().into_bytes();
+    let mut mac = mac(key);
+    mac.update(&json);
 
     writer.write_all(&MAGIC)?;
     writer.write_u32::<LittleEndian>(len)?;
-    writer.write_all(&signature)?;
-    writer.write_all(&json_bytes)?;
+    writer.write_all(&mac.finalize().into_bytes())?;
+    writer.write_all(&json)?;
     writer.flush()?;
-
     Ok(())
 }
 
-pub fn read_frame<T: DeserializeOwned, R: Read>(
-    reader: &mut R,
-    key: &[u8],
-) -> Result<T, IpcError> {
+pub fn read_frame<T: DeserializeOwned, R: Read>(reader: &mut R, key: &[u8]) -> Result<T, IpcError> {
     let mut magic = [0u8; 4];
     reader.read_exact(&mut magic)?;
     if magic != MAGIC {
@@ -61,70 +68,21 @@ pub fn read_frame<T: DeserializeOwned, R: Read>(
 
     let len = reader.read_u32::<LittleEndian>()?;
     if len > MAX_FRAME_SIZE {
-        return Err(IpcError::FrameTooLarge(len));
+        return Err(IpcError::FrameTooLarge(len as usize));
     }
 
-    let mut expected_sig = [0u8; 32];
-    reader.read_exact(&mut expected_sig)?;
-
+    let mut signature = [0u8; 32];
+    reader.read_exact(&mut signature)?;
     let mut payload = vec![0u8; len as usize];
     reader.read_exact(&mut payload)?;
 
-    let mut mac = HmacSha256::new_from_slice(key).expect("HMAC can take key of any size");
+    let mut mac = mac(key);
     mac.update(&payload);
-    if mac.verify_slice(&expected_sig).is_err() {
-        return Err(IpcError::InvalidSignature);
-    }
+    mac.verify_slice(&signature)
+        .map_err(|_| IpcError::InvalidSignature)?;
 
-    let item: T = serde_json::from_slice(&payload)?;
-    Ok(item)
+    Ok(serde_json::from_slice(&payload)?)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde::Deserialize;
-    use std::io::Cursor;
-
-    #[derive(Serialize, Deserialize, PartialEq, Debug)]
-    struct Dummy {
-        data: String,
-    }
-
-    #[test]
-    fn test_round_trip() {
-        let key = b"super-secret";
-        let payload = Dummy {
-            data: "hello world".to_string(),
-        };
-
-        let mut buf = Vec::new();
-        write_frame(&mut buf, &payload, key).unwrap();
-
-        let mut cursor = Cursor::new(buf);
-        let decoded: Dummy = read_frame(&mut cursor, key).unwrap();
-
-        assert_eq!(payload, decoded);
-    }
-
-    #[test]
-    fn test_invalid_mac() {
-        let key1 = b"secret1";
-        let key2 = b"secret2";
-        let payload = Dummy {
-            data: "hello".to_string(),
-        };
-
-        let mut buf = Vec::new();
-        write_frame(&mut buf, &payload, key1).unwrap();
-
-        let mut cursor = Cursor::new(buf);
-        let result: Result<Dummy, _> = read_frame(&mut cursor, key2);
-        assert!(matches!(result, Err(IpcError::InvalidSignature)));
-    }
-}
-
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Role {
@@ -139,28 +97,21 @@ pub enum Role {
     Sandbox,
 }
 
+/// Per-role HMAC keys, generated fresh from the OS CSPRNG on every launch.
+#[derive(Default)]
 pub struct PeerMatrix {
     keys: HashMap<Role, [u8; 32]>,
 }
 
-impl Default for PeerMatrix {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl PeerMatrix {
     pub fn new() -> Self {
-        Self {
-            keys: HashMap::new(),
-        }
+        Self::default()
     }
 
+    /// Generates (or rotates) the key for `role` and returns it.
     pub fn generate_key(&mut self, role: Role) -> [u8; 32] {
         let mut key = [0u8; 32];
-        for (i, b) in key.iter_mut().enumerate() {
-            *b = (role as u8).wrapping_add(i as u8); // Mock generation
-        }
+        rand::rngs::OsRng.fill_bytes(&mut key);
         self.keys.insert(role, key);
         key
     }
@@ -171,14 +122,66 @@ impl PeerMatrix {
 }
 
 #[cfg(test)]
-mod matrix_tests {
+mod tests {
     use super::*;
+    use serde::Deserialize;
+    use std::io::Cursor;
+
+    #[derive(Serialize, Deserialize, PartialEq, Debug)]
+    struct Dummy {
+        data: String,
+    }
+
+    fn encode(payload: &Dummy, key: &[u8]) -> Vec<u8> {
+        let mut buf = Vec::new();
+        write_frame(&mut buf, payload, key).unwrap();
+        buf
+    }
 
     #[test]
-    fn test_peer_matrix_unique_keys() {
+    fn round_trip() {
+        let payload = Dummy {
+            data: "hello world".into(),
+        };
+        let decoded: Dummy = read_frame(&mut Cursor::new(encode(&payload, b"k")), b"k").unwrap();
+        assert_eq!(payload, decoded);
+    }
+
+    #[test]
+    fn rejects_wrong_key() {
+        let buf = encode(
+            &Dummy {
+                data: "hello".into(),
+            },
+            b"secret1",
+        );
+        let result: Result<Dummy, _> = read_frame(&mut Cursor::new(buf), b"secret2");
+        assert!(matches!(result, Err(IpcError::InvalidSignature)));
+    }
+
+    #[test]
+    fn rejects_bad_magic() {
+        let mut buf = encode(&Dummy { data: "x".into() }, b"k");
+        buf[0] = b'X';
+        let result: Result<Dummy, _> = read_frame(&mut Cursor::new(buf), b"k");
+        assert!(matches!(result, Err(IpcError::InvalidMagic)));
+    }
+
+    #[test]
+    fn rejects_oversized_length() {
+        let mut buf = MAGIC.to_vec();
+        buf.extend_from_slice(&(MAX_FRAME_SIZE + 1).to_le_bytes());
+        let result: Result<Dummy, _> = read_frame(&mut Cursor::new(buf), b"k");
+        assert!(matches!(result, Err(IpcError::FrameTooLarge(_))));
+    }
+
+    #[test]
+    fn peer_keys_are_random_and_stored() {
         let mut matrix = PeerMatrix::new();
-        let key_core = matrix.generate_key(Role::Core);
-        let key_engine = matrix.generate_key(Role::Engine);
-        assert_ne!(key_core, key_engine);
+        let core = matrix.generate_key(Role::Core);
+        let engine = matrix.generate_key(Role::Engine);
+        assert_ne!(core, engine);
+        assert_eq!(matrix.get_key(Role::Core), Some(core));
+        assert_eq!(matrix.get_key(Role::Agent), None);
     }
 }

@@ -7,9 +7,9 @@
     "id": { "type": "string", "format": "uuid" },
     "timestamp": { "$ref": "../types/Timestamp.json" },
     "kind": { "type": "string", "enum": ["create", "modify", "delete"] },
-    "paths": { 
-      "type": "array", 
-      "items": { "$ref": "../types/Path.json" } 
+    "paths": {
+      "type": "array",
+      "items": { "$ref": "../types/Path.json" }
     },
     "hash_before": { "$ref": "../types/FileHash.json" },
     "hash_after": { "$ref": "../types/FileHash.json" },

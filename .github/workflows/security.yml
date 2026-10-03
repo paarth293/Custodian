@@ -1,11 +1,32 @@
-name: Security
+name: Security audit
+
+# Re-checks dependencies against newly published advisories even when the
+# code has not changed.
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
-  fuzz:
+  audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fuzz placeholder
-        run: echo "Fuzzing jobs will be added in later steps"
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check advisories
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=high
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - run: |
+          pip install pip-audit
+          pip-audit -r services/mlhost/requirements.txt

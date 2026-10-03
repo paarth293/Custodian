@@ -2,10 +2,10 @@
 
 | Component | Version | License | Source URL | Notes |
 |---|---|---|---|---|
-| Rust | 1.85.0 | MIT/Apache-2.0 | https://rustup.rs | Security-critical services |
+| Rust | 1.97.0 | MIT/Apache-2.0 | https://rustup.rs | Security-critical services |
 | Node.js | 24.x LTS | MIT | https://nodejs.org | Agent, Orchestrator, Broker |
-| Python | 3.12.7 | PSF | https://python.org | ML Host |
-| Tauri | 2.0.0 | MIT/Apache-2.0 | https://tauri.app | Desktop shell and UI |
+| Python | 3.12 | PSF | https://python.org | ML Host |
+| Tauri | 2.12 | MIT/Apache-2.0 | https://tauri.app | Desktop shell and UI |
 | PostgreSQL | 17.0 | PostgreSQL | https://postgresql.org | The Store |
 | pgvector | 0.8.0 | PostgreSQL | https://github.com/pgvector/pgvector | Vectors |
 | TimescaleDB| 2.17.0 | Timescale | https://github.com/timescale/timescaledb | Time-series |

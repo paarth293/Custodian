@@ -17,19 +17,30 @@ pub fn execute_delete(target: &SafePath) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::File;
-    use std::io::Write;
 
     #[test]
-    fn test_execute_delete() {
-        let temp_dir = std::env::temp_dir();
-        let file_path = temp_dir.join("test_delete.txt");
-        let mut file = File::create(&file_path).unwrap();
-        file.write_all(b"test").unwrap();
+    fn deletes_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test_delete.txt");
+        fs::write(&file_path, b"test").unwrap();
 
-        let safe_path = SafePath::new(&file_path, &temp_dir).unwrap();
-        execute_delete(&safe_path).unwrap();
-
+        execute_delete(&SafePath::new(&file_path, dir.path()).unwrap()).unwrap();
         assert!(!file_path.exists());
+    }
+
+    #[test]
+    fn moves_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let from = dir.path().join("a.txt");
+        let to = dir.path().join("b.txt");
+        fs::write(&from, b"x").unwrap();
+
+        execute_move(
+            &SafePath::new(&from, dir.path()).unwrap(),
+            &SafePath::new(&to, dir.path()).unwrap(),
+        )
+        .unwrap();
+        assert!(!from.exists());
+        assert_eq!(fs::read(&to).unwrap(), b"x");
     }
 }

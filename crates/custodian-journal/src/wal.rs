@@ -4,20 +4,25 @@ use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use thiserror::Error;
 
+/// Journals larger than this are refused so a runaway writer cannot fill the disk.
+pub const MAX_JOURNAL_BYTES: u64 = 64 * 1024 * 1024;
+
 #[derive(Debug, Error)]
 pub enum JournalError {
-    #[error("IO error: {0}")]
+    #[error("I/O error: {0}")]
     Io(#[from] io::Error),
-    #[error("E_SPACE")]
+    #[error("E_SPACE: journal exceeds {MAX_JOURNAL_BYTES} bytes")]
     Space,
-    #[error("Corrupt record")]
-    Corrupt,
+    #[error("record too large")]
+    RecordTooLarge,
 }
 
+/// Append-only journal of `[len: u32][crc32: u32][data]` records.
+///
+/// Reads stop at the first torn or corrupt record, which is the expected
+/// state after a crash mid-write.
 pub struct Journal {
     file: File,
-    #[allow(dead_code)]
-    offset: u64,
 }
 
 impl Journal {
@@ -26,64 +31,48 @@ impl Journal {
             .read(true)
             .write(true)
             .create(true)
-            .truncate(false) // keeping old data
+            .truncate(false)
             .open(path)?;
-            
-        // Mock disk full check
-        let meta = file.metadata()?;
-        if meta.len() > 64 * 1024 * 1024 {
+
+        if file.metadata()?.len() > MAX_JOURNAL_BYTES {
             return Err(JournalError::Space);
         }
 
-        Ok(Self { file, offset: 0 })
+        Ok(Self { file })
     }
 
+    /// Appends a record and flushes it to stable storage.
     pub fn write_record(&mut self, data: &[u8]) -> Result<(), JournalError> {
-        let mut hasher = Hasher::new();
-        hasher.update(data);
-        let crc = hasher.finalize();
+        let len = u32::try_from(data.len()).map_err(|_| JournalError::RecordTooLarge)?;
 
-        let len = data.len() as u32;
-        
         self.file.seek(SeekFrom::End(0))?;
         self.file.write_all(&len.to_le_bytes())?;
-        self.file.write_all(&crc.to_le_bytes())?;
+        self.file.write_all(&crc32(data).to_le_bytes())?;
         self.file.write_all(data)?;
-        
-        // Mock FlushFileBuffers
         self.file.sync_all()?;
-        
         Ok(())
     }
 
+    /// Returns every intact record from the start of the journal.
     pub fn read_all_good_records(&mut self) -> Result<Vec<Vec<u8>>, JournalError> {
         self.file.seek(SeekFrom::Start(0))?;
         let mut records = Vec::new();
 
         loop {
-            let mut len_buf = [0u8; 4];
-            if self.file.read_exact(&mut len_buf).is_err() {
-                break; // EOF or torn write
+            let mut header = [0u8; 8];
+            if self.file.read_exact(&mut header).is_err() {
+                break;
             }
-            let len = u32::from_le_bytes(len_buf);
+            let len = u32::from_le_bytes(header[..4].try_into().unwrap());
+            let expected_crc = u32::from_le_bytes(header[4..].try_into().unwrap());
 
-            let mut crc_buf = [0u8; 4];
-            if self.file.read_exact(&mut crc_buf).is_err() {
-                break; // torn write
+            let mut data = Vec::new();
+            let read = (&mut self.file)
+                .take(u64::from(len))
+                .read_to_end(&mut data)?;
+            if read != len as usize || crc32(&data) != expected_crc {
+                break;
             }
-            let expected_crc = u32::from_le_bytes(crc_buf);
-
-            let mut data = vec![0u8; len as usize];
-            if self.file.read_exact(&mut data).is_err() {
-                break; // torn write
-            }
-
-            let mut hasher = Hasher::new();
-            hasher.update(&data);
-            if hasher.finalize() != expected_crc {
-                break; // corrupt
-            }
-
             records.push(data);
         }
 
@@ -91,43 +80,48 @@ impl Journal {
     }
 }
 
+fn crc32(data: &[u8]) -> u32 {
+    let mut hasher = Hasher::new();
+    hasher.update(data);
+    hasher.finalize()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
 
     #[test]
-    fn test_torn_write_recovery() {
-        let temp_dir = std::env::temp_dir();
-        let path = temp_dir.join("test_journal.log");
-        let _ = fs::remove_file(&path);
-        
+    fn recovers_records_before_torn_write() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("journal.log");
+
         {
             let mut j = Journal::new(&path).unwrap();
             j.write_record(b"good1").unwrap();
             j.write_record(b"good2").unwrap();
-            
-            // torn write
-            j.file.write_all(&[10, 0, 0, 0]).unwrap(); // len=10
-            j.file.write_all(&[0, 0, 0, 0]).unwrap(); // crc
-            j.file.write_all(b"bad").unwrap(); // not 10 bytes
+
+            // Simulate a crash mid-record: header claims 10 bytes, only 3 written.
+            j.file.write_all(&10u32.to_le_bytes()).unwrap();
+            j.file.write_all(&0u32.to_le_bytes()).unwrap();
+            j.file.write_all(b"bad").unwrap();
         }
-        
-        let mut j = Journal::new(&path).unwrap();
-        let records = j.read_all_good_records().unwrap();
-        assert_eq!(records.len(), 2);
-        assert_eq!(records[0], b"good1");
-        assert_eq!(records[1], b"good2");
+
+        let records = Journal::new(&path)
+            .unwrap()
+            .read_all_good_records()
+            .unwrap();
+        assert_eq!(records, vec![b"good1".to_vec(), b"good2".to_vec()]);
     }
-    
+
     #[test]
-    fn test_space_limit() {
-        let temp_dir = std::env::temp_dir();
-        let path = temp_dir.join("test_full.log");
-        let file = File::create(&path).unwrap();
-        file.set_len(65 * 1024 * 1024).unwrap(); // > 64MB
-        
-        let res = Journal::new(&path);
-        assert!(matches!(res, Err(JournalError::Space)));
+    fn refuses_oversized_journal() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("full.log");
+        File::create(&path)
+            .unwrap()
+            .set_len(MAX_JOURNAL_BYTES + 1)
+            .unwrap();
+
+        assert!(matches!(Journal::new(&path), Err(JournalError::Space)));
     }
 }

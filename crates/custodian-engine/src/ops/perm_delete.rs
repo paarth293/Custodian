@@ -2,52 +2,51 @@ use custodian_winsec::SafePath;
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 
+const CHUNK: usize = 4096;
+
 pub struct PermDeleteOp;
 
 impl PermDeleteOp {
+    /// Overwrites the file with zeros, flushes it to disk, then removes it.
     pub fn execute(target: &SafePath) -> io::Result<()> {
-        if !target.as_path().is_file() {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Not a file"));
+        let path = target.as_path();
+        if !path.is_file() {
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "not a file"));
         }
-        
-        let meta = fs::metadata(target.as_path())?;
-        let len = meta.len();
-        
-        let mut file = OpenOptions::new().write(true).open(target.as_path())?;
-        
-        let zeros = vec![0u8; 4096];
-        let mut written = 0;
-        while written < len {
-            let chunk = std::cmp::min(4096, len - written) as usize;
-            file.write_all(&zeros[..chunk])?;
-            written += chunk as u64;
+
+        let mut remaining = fs::metadata(path)?.len();
+        {
+            let mut file = OpenOptions::new().write(true).open(path)?;
+            let zeros = [0u8; CHUNK];
+            while remaining > 0 {
+                let n = remaining.min(CHUNK as u64) as usize;
+                file.write_all(&zeros[..n])?;
+                remaining -= n as u64;
+            }
+            file.sync_all()?;
         }
-        file.sync_all()?;
-        
-        drop(file);
-        fs::remove_file(target.as_path())?;
-        Ok(())
+
+        fs::remove_file(path)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::File;
 
     #[test]
-    fn test_perm_delete() {
-        let temp_dir = std::env::temp_dir();
-        let file_path = temp_dir.join("wipe_test.txt");
-        
-        {
-            let mut file = File::create(&file_path).unwrap();
-            file.write_all(b"sensitive secret data").unwrap();
-        }
+    fn wipes_and_removes() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("wipe_test.txt");
+        fs::write(&file_path, b"sensitive secret data").unwrap();
 
-        let safe_path = SafePath::new(&file_path, &temp_dir).unwrap();
-        PermDeleteOp::execute(&safe_path).unwrap();
-
+        PermDeleteOp::execute(&SafePath::new(&file_path, dir.path()).unwrap()).unwrap();
         assert!(!file_path.exists());
+    }
+
+    #[test]
+    fn rejects_directories() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(PermDeleteOp::execute(&SafePath::new(dir.path(), dir.path()).unwrap()).is_err());
     }
 }

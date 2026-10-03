@@ -1,3 +1,6 @@
-export async function laterTrigger(_conditions: unknown): Promise<void> {
-    console.log("LaterTrigger waiting for condition");
+import { log } from '@temporalio/workflow';
+
+/** Defers a task until its conditions hold. Placeholder. */
+export async function laterTrigger(conditions: unknown): Promise<void> {
+  log.info('LaterTrigger waiting for condition', { conditions });
 }
