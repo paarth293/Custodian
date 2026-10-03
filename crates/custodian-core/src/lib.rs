@@ -15,3 +15,5 @@ pub mod install_lab_parsers;
 pub mod install_report;
 pub mod install_lab_verify;
 
+pub mod install_recipe;
+
