@@ -46,7 +46,7 @@ jobs:
         run: mypy .
       
       - name: Install cargo-deny
-        uses: EmbarkStudios/cargo-deny-action@v2
+        run: cargo install cargo-deny --locked
       - name: Cargo deny
         run: cargo deny check
       - name: npm audit
