@@ -17,3 +17,5 @@ pub mod install_lab_verify;
 
 pub mod install_recipe;
 
+pub mod install_undo;
+
