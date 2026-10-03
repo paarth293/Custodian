@@ -11,3 +11,7 @@ pub mod downloads;
 
 pub mod install_lab;
 
+pub mod install_lab_parsers;
+pub mod install_report;
+pub mod install_lab_verify;
+
