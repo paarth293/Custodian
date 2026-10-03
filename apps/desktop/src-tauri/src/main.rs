@@ -1,3 +1,5 @@
+pub mod clipboard;
+pub mod tray;
 pub mod approval_service;
 pub mod approval_window;
 pub mod input_hook;
@@ -26,6 +28,7 @@ fn main() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
 
 
 
