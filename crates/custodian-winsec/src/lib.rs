@@ -6,6 +6,8 @@
 
 pub mod safe_place;
 
+use std::fs;
+use std::io;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 use thiserror::Error;
@@ -20,27 +22,34 @@ pub enum PathError {
 
 /// A path proven to live under a given root.
 ///
-/// Construction rejects `..` components (which `Path::starts_with` would
-/// otherwise accept, e.g. `C:\root\..\evil`). On Windows the path is also
-/// converted to its verbatim (`\\?\`) form and trailing dots/spaces are
-/// stripped, so Win32 name normalisation cannot change its meaning later.
+/// Construction:
+/// - rejects `..` components;
+/// - resolves symlinks and junctions in every existing ancestor (via
+///   `canonicalize`), so a link inside the root cannot point outside it;
+/// - on Windows, strips trailing dots/spaces (which Win32 silently drops) and
+///   yields the verbatim `\\?\` form, which also normalises drive-letter case.
+///
+/// The check is made at construction time; operations should still open
+/// handles without following reparse points to close the remaining race.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SafePath(PathBuf);
 
 impl SafePath {
+    /// `root` must exist. `path` may name an entry that does not exist yet
+    /// (for example a move destination), as long as its parent chain is safe.
     pub fn new(path: impl AsRef<Path>, root: impl AsRef<Path>) -> Result<Self, PathError> {
-        let path = path.as_ref();
+        let path = trim_win32_suffix(path.as_ref());
         if path.components().any(|c| matches!(c, Component::ParentDir)) {
             return Err(PathError::EscapesRoot);
         }
 
-        let path = normalize(path);
-        let root = normalize(root.as_ref());
-        if !path.starts_with(&root) {
+        let root = fs::canonicalize(root)?;
+        let resolved = resolve(&path)?;
+        if !resolved.starts_with(&root) {
             return Err(PathError::EscapesRoot);
         }
 
-        Ok(SafePath(path))
+        Ok(SafePath(resolved))
     }
 
     pub fn as_path(&self) -> &Path {
@@ -54,20 +63,34 @@ impl AsRef<Path> for SafePath {
     }
 }
 
-#[cfg(windows)]
-fn normalize(path: &Path) -> PathBuf {
-    const VERBATIM: &str = r"\\?\";
-    let s = path.to_string_lossy();
-    let trimmed = s.trim_end_matches([' ', '.']);
-    if trimmed.starts_with(VERBATIM) {
-        PathBuf::from(trimmed)
-    } else {
-        PathBuf::from(format!("{VERBATIM}{trimmed}"))
+/// Canonicalises the deepest existing ancestor of `path` and re-appends the
+/// components that do not exist yet.
+fn resolve(path: &Path) -> io::Result<PathBuf> {
+    let mut existing = path;
+    let mut missing = Vec::new();
+    while fs::symlink_metadata(existing).is_err() {
+        let name = existing
+            .file_name()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "no existing ancestor"))?;
+        missing.push(name);
+        existing = match existing.parent() {
+            Some(parent) if !parent.as_os_str().is_empty() => parent,
+            _ => Path::new("."),
+        };
     }
+
+    let mut resolved = fs::canonicalize(existing)?;
+    resolved.extend(missing.iter().rev());
+    Ok(resolved)
+}
+
+#[cfg(windows)]
+fn trim_win32_suffix(path: &Path) -> PathBuf {
+    PathBuf::from(path.to_string_lossy().trim_end_matches([' ', '.']))
 }
 
 #[cfg(not(windows))]
-fn normalize(path: &Path) -> PathBuf {
+fn trim_win32_suffix(path: &Path) -> PathBuf {
     path.to_path_buf()
 }
 
@@ -116,28 +139,57 @@ mod tests {
     use super::*;
 
     #[test]
-    fn accepts_path_under_root() {
-        let root = std::env::temp_dir();
-        let safe = SafePath::new(root.join("a").join("b.txt"), &root).unwrap();
-        assert!(safe.as_path().ends_with("b.txt"));
+    fn accepts_existing_and_new_paths_under_root() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.txt"), b"x").unwrap();
+
+        let existing = SafePath::new(dir.path().join("a.txt"), dir.path()).unwrap();
+        assert!(existing.as_path().ends_with("a.txt"));
+
+        let new = SafePath::new(dir.path().join("sub").join("b.txt"), dir.path()).unwrap();
+        assert!(new.as_path().ends_with(Path::new("sub").join("b.txt")));
     }
 
     #[test]
     fn rejects_path_outside_root() {
-        let root = std::env::temp_dir().join("custodian_root");
-        let outside = std::env::temp_dir().join("elsewhere");
+        let root = tempfile::tempdir().unwrap();
+        let other = tempfile::tempdir().unwrap();
         assert!(matches!(
-            SafePath::new(outside, root),
+            SafePath::new(other.path().join("x"), root.path()),
             Err(PathError::EscapesRoot)
         ));
     }
 
     #[test]
     fn rejects_parent_dir_traversal() {
-        let root = std::env::temp_dir().join("custodian_root");
-        let sneaky = root.join("..").join("evil");
+        let root = tempfile::tempdir().unwrap();
+        let sneaky = root.path().join("..").join("evil");
         assert!(matches!(
-            SafePath::new(sneaky, &root),
+            SafePath::new(sneaky, root.path()),
+            Err(PathError::EscapesRoot)
+        ));
+    }
+
+    #[test]
+    fn missing_root_is_an_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("missing");
+        assert!(matches!(
+            SafePath::new(root.join("x"), &root),
+            Err(PathError::Io(_))
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rejects_symlink_escaping_root() {
+        let root = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        std::os::unix::fs::symlink(outside.path(), root.path().join("link")).unwrap();
+
+        let through_link = root.path().join("link").join("victim.dll");
+        assert!(matches!(
+            SafePath::new(through_link, root.path()),
             Err(PathError::EscapesRoot)
         ));
     }
@@ -145,8 +197,11 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn strips_trailing_dot_and_uses_verbatim_prefix() {
-        let safe = SafePath::new(r"C:\test_root\foo.", r"C:\test_root").unwrap();
-        assert_eq!(safe.as_path().to_str().unwrap(), r"\\?\C:\test_root\foo");
+        let dir = tempfile::tempdir().unwrap();
+        let safe = SafePath::new(dir.path().join("foo."), dir.path()).unwrap();
+        let s = safe.as_path().to_str().unwrap();
+        assert!(s.starts_with(r"\\?\"), "{s}");
+        assert!(s.ends_with(r"\foo"), "{s}");
     }
 
     #[test]

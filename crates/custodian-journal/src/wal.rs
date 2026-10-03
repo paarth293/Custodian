@@ -19,10 +19,12 @@ pub enum JournalError {
 
 /// Append-only journal of `[len: u32][crc32: u32][data]` records.
 ///
-/// Reads stop at the first torn or corrupt record, which is the expected
-/// state after a crash mid-write.
+/// A crash mid-write leaves a torn or corrupt record at the end. Opening the
+/// journal truncates everything from the first bad record onwards so new
+/// records are appended directly after the last good one (and stay readable).
 pub struct Journal {
     file: File,
+    recovered_bytes: u64,
 }
 
 impl Journal {
@@ -34,11 +36,27 @@ impl Journal {
             .truncate(false)
             .open(path)?;
 
-        if file.metadata()?.len() > MAX_JOURNAL_BYTES {
+        let len = file.metadata()?.len();
+        if len > MAX_JOURNAL_BYTES {
             return Err(JournalError::Space);
         }
 
-        Ok(Self { file })
+        let mut journal = Self {
+            file,
+            recovered_bytes: 0,
+        };
+        let (_, good_len) = journal.scan()?;
+        if good_len < len {
+            journal.file.set_len(good_len)?;
+            journal.file.sync_all()?;
+            journal.recovered_bytes = len - good_len;
+        }
+        Ok(journal)
+    }
+
+    /// Bytes of torn or corrupt records discarded when the journal was opened.
+    pub fn recovered_bytes(&self) -> u64 {
+        self.recovered_bytes
     }
 
     /// Appends a record and flushes it to stable storage.
@@ -55,8 +73,15 @@ impl Journal {
 
     /// Returns every intact record from the start of the journal.
     pub fn read_all_good_records(&mut self) -> Result<Vec<Vec<u8>>, JournalError> {
+        Ok(self.scan()?.0)
+    }
+
+    /// Reads records until the first torn or corrupt one; returns them and the
+    /// byte length of the intact prefix.
+    fn scan(&mut self) -> Result<(Vec<Vec<u8>>, u64), JournalError> {
         self.file.seek(SeekFrom::Start(0))?;
         let mut records = Vec::new();
+        let mut good_len = 0u64;
 
         loop {
             let mut header = [0u8; 8];
@@ -73,10 +98,11 @@ impl Journal {
             if read != len as usize || crc32(&data) != expected_crc {
                 break;
             }
+            good_len += 8 + u64::from(len);
             records.push(data);
         }
 
-        Ok(records)
+        Ok((records, good_len))
     }
 }
 
@@ -91,7 +117,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn recovers_records_before_torn_write() {
+    fn recovers_from_torn_write_and_keeps_appending() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("journal.log");
 
@@ -106,11 +132,18 @@ mod tests {
             j.file.write_all(b"bad").unwrap();
         }
 
+        let mut j = Journal::new(&path).unwrap();
+        assert_eq!(j.recovered_bytes(), 11);
+        j.write_record(b"tx3").unwrap();
+
         let records = Journal::new(&path)
             .unwrap()
             .read_all_good_records()
             .unwrap();
-        assert_eq!(records, vec![b"good1".to_vec(), b"good2".to_vec()]);
+        assert_eq!(
+            records,
+            vec![b"good1".to_vec(), b"good2".to_vec(), b"tx3".to_vec()]
+        );
     }
 
     #[test]
