@@ -9,3 +9,5 @@ pub mod online_only;
 
 pub mod perm_delete;
 
+pub mod move_outputs;
+
