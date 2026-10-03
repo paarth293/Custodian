@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { CircuitBreaker, TRIPS_PER_DAY } from '../src/circuit_breaker';
 import { validateWithGrammar } from '../src/grammar';
-import { findSandboxEscapes } from '../src/index';
+import { findSandboxEscapes, SANDBOX_PROBES } from '../src/index';
 import { sha256 } from '../src/integrity';
 import { readFrame, writeFrame } from '../src/ipc';
 import { loadModelWithVerification } from '../src/model_loader';
@@ -140,17 +140,22 @@ describe('supply-chain verification', () => {
 });
 
 describe('findSandboxEscapes', () => {
-  it('reports only the probes that succeeded', () => {
-    const escapes = findSandboxEscapes([
+  it('reports only the probes that succeeded', async () => {
+    const escapes = await findSandboxEscapes([
       {
         name: 'blocked',
         attempt: () => {
           throw new Error('denied');
         },
       },
+      { name: 'rejected', attempt: () => Promise.reject(new Error('denied')) },
       { name: 'allowed', attempt: () => undefined },
     ]);
     expect(escapes).toEqual(['allowed']);
+  });
+
+  it('includes the network-socket probe', () => {
+    expect(SANDBOX_PROBES.map((probe) => probe.name)).toContain('open network socket');
   });
 });
 

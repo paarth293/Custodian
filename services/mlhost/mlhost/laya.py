@@ -28,12 +28,12 @@ def decide(data: dict[str, Any]) -> str:
     Any failure (missing model, invalid output) abstains so the caller falls
     back to asking the user.
     """
-    prompt = build_prompt(
-        str(data.get("filename", "unknown")),
-        int(data.get("av_hits", 0)),
-        bool(data.get("signed", False)),
-    )
     try:
+        prompt = build_prompt(
+            str(data.get("filename", "unknown")),
+            int(data.get("av_hits", 0)),
+            bool(data.get("signed", False)),
+        )
         model = load_model()
         response = model.create_chat_completion(
             messages=[{"role": "user", "content": prompt}],
