@@ -85,3 +85,11 @@
   - T-CAPS-06 executed: simulated sandbox blocks reading %USERPROFILE%, opening a TCP socket, and spawning a child process outside the designated scratch area.
   - sys.ready successfully emitted over IPC.
 - Conclusion: The Agent Node environment is properly constrained.
+
+## Step 77: T-SUPPLY-01 (Model manifest verification)
+- Date: 2026-10-03
+- Outcome:
+  - Agent parses models/manifest.json before loading.
+  - Successfully rejected a tampered/corrupted model and logged sec.event.
+  - Accepted the pristine model.
+- Conclusion: Model supply chain is verified locally prior to parsing.
