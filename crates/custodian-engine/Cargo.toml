@@ -2,6 +2,7 @@
 name = "custodian-engine"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
 
 [dependencies]
 custodian-store = { path = "../custodian-store" }
@@ -19,3 +20,4 @@ ed25519-dalek = { version = "2.1.1", features = ["rand_core"] }
 [dev-dependencies]
 proptest = "1.4.0"
 rand = "0.8"
+

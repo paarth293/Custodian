@@ -2,9 +2,11 @@
 name = "custodian-winsec"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
 
 [lints.rust]
 unsafe_code = "deny"
 
 [dependencies]
 thiserror = "1.0"
+

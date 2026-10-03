@@ -2,9 +2,11 @@
 name = "custodian-store"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
 
 [dependencies]
 sqlx = { version = "0.7", features = ["runtime-tokio", "postgres", "uuid", "chrono"] }
 tokio = { version = "1.0", features = ["full"] }
 uuid = { version = "1.0", features = ["v4"] }
 chrono = "0.4"
+

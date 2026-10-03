@@ -2,10 +2,12 @@
 name = "custodian-core"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
 
 [dependencies]
 custodian-winsec = { path = "../custodian-winsec" }
 thiserror = "1.0"
 
 tokio = { version = "1.0", features = ["full"] }
+
 

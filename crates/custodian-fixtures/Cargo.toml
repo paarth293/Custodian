@@ -2,6 +2,7 @@
 name = "custodian-fixtures"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
 
 [lints]
 workspace = true
@@ -10,3 +11,4 @@ workspace = true
 clap = { version = "4.5.1", features = ["derive"] }
 rand = "0.8.5"
 uuid = { version = "1.8.0", features = ["v4"] }
+
