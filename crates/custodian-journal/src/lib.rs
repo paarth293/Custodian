@@ -61,3 +61,5 @@ mod tests {
     }
 }
 
+pub mod wal;
+
