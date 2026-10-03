@@ -14,7 +14,7 @@ function App() {
   }, [expanded]);
 
   return (
-    <div className={"app-container ${expanded ? 'expanded' : ''}"}>
+    <div className={`app-container ${expanded ? 'expanded' : ''}`}>
       <div className="canvas-panel" data-tauri-drag-region>
         <div className="cubby-wrapper" onClick={() => setExpanded(!expanded)}>
           <Cubby />

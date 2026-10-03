@@ -2,7 +2,7 @@
 
 | Component | Version | License | Source URL | Notes |
 |---|---|---|---|---|
-| Rust | 1.85.0 | MIT/Apache-2.0 | https://rustup.rs | Security-critical services |
+| Rust | 1.97.0 | MIT/Apache-2.0 | https://rustup.rs | Security-critical services |
 | Node.js | 24.x LTS | MIT | https://nodejs.org | Agent, Orchestrator, Broker |
 | Python | 3.12.7 | PSF | https://python.org | ML Host |
 | Tauri | 2.0.0 | MIT/Apache-2.0 | https://tauri.app | Desktop shell and UI |

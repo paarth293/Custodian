@@ -3,7 +3,7 @@ import * as crypto from 'crypto';
 const MAGIC = Buffer.from('CUST');
 const MAX_FRAME_SIZE = 10 * 1024 * 1024;
 
-export function writeFrame(payload: any, key: Buffer): Buffer {
+export function writeFrame(payload: unknown, key: Buffer): Buffer {
     const jsonStr = JSON.stringify(payload);
     const jsonBytes = Buffer.from(jsonStr, 'utf-8');
     const len = jsonBytes.length;
@@ -20,7 +20,7 @@ export function writeFrame(payload: any, key: Buffer): Buffer {
     return Buffer.concat([MAGIC, lenBuf, signature, jsonBytes]);
 }
 
-export function readFrame(buffer: Buffer, key: Buffer): any {
+export function readFrame(buffer: Buffer, key: Buffer): unknown {
     if (buffer.length < 40) throw new Error('Buffer too small');
     
     const magic = buffer.subarray(0, 4);

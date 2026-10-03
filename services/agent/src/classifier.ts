@@ -6,7 +6,7 @@ export const ClassifierSchema = z.object({
     looks_personal: z.boolean()
 });
 
-export function batchClassify(items: any[]) {
+export function batchClassify(items: { id: string }[]) {
     return items.map(item => ({
         id: item.id,
         category: 'Document',

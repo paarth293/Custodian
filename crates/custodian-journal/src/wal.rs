@@ -16,7 +16,6 @@ pub enum JournalError {
 
 pub struct Journal {
     file: File,
-    offset: u64,
 }
 
 impl Journal {
@@ -25,6 +24,7 @@ impl Journal {
             .read(true)
             .write(true)
             .create(true)
+            .truncate(false)
             .open(path)?;
             
         // Mock disk full check
@@ -33,7 +33,7 @@ impl Journal {
             return Err(JournalError::Space);
         }
 
-        Ok(Self { file, offset: 0 })
+        Ok(Self { file })
     }
 
     pub fn write_record(&mut self, data: &[u8]) -> Result<(), JournalError> {

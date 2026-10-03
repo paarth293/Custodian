@@ -9,6 +9,12 @@ pub struct OnlineStateMachine {
     pub state: OnlineState,
 }
 
+impl Default for OnlineStateMachine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OnlineStateMachine {
     pub fn new() -> Self { Self { state: OnlineState::Offline } }
     

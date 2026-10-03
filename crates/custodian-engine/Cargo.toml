@@ -2,6 +2,7 @@
 name = "custodian-engine"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 [dependencies]
 custodian-store = { path = "../custodian-store" }
@@ -14,9 +15,10 @@ uuid = { version = "1.0", features = ["v4"] }
 notify = "6.1.1"
 custodian-proto = { path = "../custodian-proto" }
 
-ed25519-dalek = "2.1.1"
+ed25519-dalek = { version = "2.1.1", features = ["rand_core"] }
 
 
 [dev-dependencies]
 proptest = "1.4.0"
+rand = "0.8.5"
 

@@ -1,5 +1,3 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 #[derive(Debug, PartialEq)]
 pub struct PurgeCandidate {
     pub id: String,

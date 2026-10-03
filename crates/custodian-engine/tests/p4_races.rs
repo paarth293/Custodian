@@ -1,19 +1,19 @@
 use custodian_engine::ops::quarantine::QuarantineOp;
 use custodian_winsec::SafePath;
-use std::fs::{self, File};
-use std::io::Write;
+use std::fs;
 use std::sync::Arc;
 use std::thread;
 
 #[test]
 fn test_p4_concurrent_races() {
     let temp_dir = std::env::temp_dir().join("p4_test");
+    let _ = fs::remove_dir_all(&temp_dir);
     fs::create_dir_all(&temp_dir).unwrap();
     
     let source_path = temp_dir.join("race.bin");
     let vault_path = temp_dir.join("vault");
     
-    let op = Arc::new(QuarantineOp::new(vault_path).unwrap());
+    let op = Arc::new(QuarantineOp::new(vault_path.clone()).unwrap());
     
     let mut handles = vec![];
     
@@ -35,5 +35,12 @@ fn test_p4_concurrent_races() {
         handle.join().unwrap();
     }
     
-    assert!(true);
+    // Whichever thread won each race, a quarantined payload must never be left
+    // without its key sidecar.
+    for entry in fs::read_dir(&vault_path).unwrap() {
+        let path = entry.unwrap().path();
+        if path.extension().is_some_and(|ext| ext == "bin") {
+            assert!(path.with_extension("key").exists(), "{path:?} has no key");
+        }
+    }
 }

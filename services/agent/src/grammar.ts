@@ -1,4 +1,4 @@
-export function validateWithGrammar(output: string, _schema: any): any {
+export function validateWithGrammar(output: string, _schema: unknown): unknown {
     try {
         return JSON.parse(output);
     } catch {

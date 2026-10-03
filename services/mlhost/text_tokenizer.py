@@ -1,4 +1,4 @@
-def tokenize_text(text: str):
+def tokenize_text(text: str) -> list[int]:
     print(f"Tokenizing: {text}")
     tokens = [ord(c) for c in text]
     print(f"Tokens: {tokens}")

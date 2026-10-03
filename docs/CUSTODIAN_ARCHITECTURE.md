@@ -116,7 +116,7 @@
 
 | Layer | Technology | Why | Notes |
 |---|---|---|---|
-| Security-critical services | **Rust** (stable ≥ 1.85), `windows` crate (windows-rs), `tokio` (runtime), `serde`/`serde_json`, `sha2`, `blake3`, `hmac`, `ed25519-dalek`, `rand`, `tokio-postgres` + `rustls` | Memory safety; first-class Win32 bindings | `#![forbid(unsafe_code)]` except `custodian-winsec` |
+| Security-critical services | **Rust** (stable ≥ 1.97), `windows` crate (windows-rs), `tokio` (runtime), `serde`/`serde_json`, `sha2`, `blake3`, `hmac`, `ed25519-dalek`, `rand`, `tokio-postgres` + `rustls` | Memory safety; first-class Win32 bindings | `#![forbid(unsafe_code)]` except `custodian-winsec` |
 | Desktop shell + UI host | **Tauri 2.x** (WebView2) | Small footprint; per-window capabilities | `tauri-plugin-global-shortcut`, tray API, single-instance |
 | UI | **React 19 + TypeScript 5 + Vite**, **Rive** runtime, **Zustand**, `i18next` | Fast, typed; Rive state machines for Cubby | No remote assets; strict CSP |
 | Agent | **Node.js 24 LTS** runtime renamed per service (A-03), **Mastra**, **node-llama-cpp** | Mastra = agent harness (sponsor); node-llama-cpp = in-process GGUF inference with no network port | Node permission model enabled (A-11) |

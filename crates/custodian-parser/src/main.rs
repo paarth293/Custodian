@@ -17,7 +17,7 @@ fn main() {
     
     let path = &args[1];
     
-    let extension = path.split('.').last().unwrap_or("unknown");
+    let extension = path.split('.').next_back().unwrap_or("unknown");
     let content = match fs::read_to_string(path) {
         Ok(c) => c,
         Err(_) => "Mock extracted text".to_string(),

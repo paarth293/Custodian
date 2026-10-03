@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct TxRecord {
     pub id: String,

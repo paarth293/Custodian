@@ -1,7 +1,6 @@
 import { verifyExplanation } from './verifier';
 import { CircuitBreaker } from './circuit_breaker';
 import { AccessManager } from './request_access';
-import { batchClassify } from './classifier';
 
 console.log("Running tests...");
 

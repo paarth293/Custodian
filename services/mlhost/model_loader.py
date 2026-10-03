@@ -1,6 +1,7 @@
 import os
 
-def load_model(model_name: str):
+
+def load_model(model_name: str) -> bool:
     model_path = os.path.join(os.path.dirname(__file__), "..", "..", "models", model_name)
     
     if not os.path.exists(model_path):

@@ -15,6 +15,10 @@ impl SafePlace {
         Ok(Self { root })
     }
 
+    pub fn root(&self) -> &std::path::Path {
+        &self.root
+    }
+
     pub fn write_encrypted(&self, filename: &str, data: &[u8]) -> io::Result<()> {
         let encrypted = protect_data(data)?;
         let path = self.root.join(filename);

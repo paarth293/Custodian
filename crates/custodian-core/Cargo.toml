@@ -2,6 +2,7 @@
 name = "custodian-core"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 [dependencies]
 custodian-winsec = { path = "../custodian-winsec" }

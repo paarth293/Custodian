@@ -3,3 +3,10 @@ strict = true
 
 [tool.ruff]
 line-length = 88
+# quicktype output from proto/; regenerate instead of editing
+extend-exclude = ["services/mlhost/custodian_proto.py"]
+
+[[tool.mypy.overrides]]
+# quicktype output from proto/; regenerate instead of editing
+module = "custodian_proto"
+ignore_errors = true

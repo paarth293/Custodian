@@ -1,12 +1,13 @@
-import hmac
 import hashlib
+import hmac
 import json
 import struct
+from typing import Any, cast
 
 MAGIC = b"CUST"
 MAX_FRAME_SIZE = 10 * 1024 * 1024
 
-def write_frame(payload: dict, key: bytes) -> bytes:
+def write_frame(payload: dict[str, Any], key: bytes) -> bytes:
     json_bytes = json.dumps(payload, separators=(',', ':')).encode('utf-8')
     length = len(json_bytes)
     
@@ -17,7 +18,7 @@ def write_frame(payload: dict, key: bytes) -> bytes:
     
     return MAGIC + struct.pack("<I", length) + signature + json_bytes
 
-def read_frame(data: bytes, key: bytes) -> dict:
+def read_frame(data: bytes, key: bytes) -> dict[str, Any]:
     if len(data) < 40:
         raise ValueError("Buffer too small")
         
@@ -39,4 +40,4 @@ def read_frame(data: bytes, key: bytes) -> dict:
     if not hmac.compare_digest(actual_sig, expected_sig):
         raise ValueError("Invalid signature")
         
-    return json.loads(payload_bytes.decode('utf-8'))
+    return cast(dict[str, Any], json.loads(payload_bytes.decode('utf-8')))

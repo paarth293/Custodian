@@ -4,6 +4,6 @@ export const tools = {
     quarantine: {
         name: 'quarantine',
         schema: z.object({ target_id: z.string() }),
-        execute: async (args: any) => { return { status: 'mocked_ipc', args }; }
+        execute: async (args: Record<string, unknown>) => { return { status: 'mocked_ipc', args }; }
     }
 };

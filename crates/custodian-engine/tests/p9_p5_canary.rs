@@ -1,4 +1,10 @@
 #[test]
-fn test_p9_canary() { assert!(true); }
+#[ignore = "placeholder: not implemented yet (see HONESTY.md)"]
+fn test_p9_canary() {
+    todo!("placeholder test");
+}
 #[test]
-fn test_p5_capture() { assert!(true); }
+#[ignore = "placeholder: not implemented yet (see HONESTY.md)"]
+fn test_p5_capture() {
+    todo!("placeholder test");
+}
