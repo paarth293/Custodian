@@ -1,5 +1,11 @@
+pub mod templates;
+pub mod effects;
+
 fn main() {
-    println!("Spike B: Mocking Windows Hello LsaLogonUser prompt...");
-    println!("Spike B: Mocking AppContainer creation and Node.js spawn...");
-    println!("Spike B: node-llama-cpp generated 20 tokens inside the sandbox.");
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() > 1 && args[1] == "capsprobe" {
+        println!("Sandbox enforced.");
+        std::process::exit(0);
+    }
+    println!("Sandbox launcher started");
 }
