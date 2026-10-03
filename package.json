@@ -1,22 +1,36 @@
 {
-    "name":  "custodian",
-    "private":  true,
-    "workspaces":  [
-                       "apps/*",
-                       "services/*"
-                   ],
-    "scripts":  {
-                    "lint":  "eslint .",
-                    "format":  "prettier --write .",
-                    "fixtures":  "cargo run -p custodian-fixtures --release --",
-                    "proto:gen":  "powershell -ExecutionPolicy Bypass -File scripts/gen-proto.ps1"
-                },
-    "devDependencies":  {
-                            "@typescript-eslint/eslint-plugin":  "^6.0.0",
-                            "@typescript-eslint/parser":  "^6.0.0",
-                            "eslint":  "^8.0.0",
-                            "prettier":  "^3.0.0",
-                            "quicktype":  "^26.0.0",
-                            "typescript":  "^5.0.0"
-                        }
+  "name": "custodian",
+  "private": true,
+  "license": "Apache-2.0",
+  "workspaces": [
+    "apps/desktop",
+    "services/agent",
+    "services/broker",
+    "services/orchestrator"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -b && npm run build -w apps/desktop",
+    "typecheck": "tsc -b && npm run typecheck -w apps/desktop",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run test --workspaces --if-present",
+    "fixtures": "cargo run -p custodian-fixtures --release --",
+    "proto:gen": "pwsh -File scripts/gen-proto.ps1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@types/node": "^22.10.0",
+    "eslint": "^10.0.0",
+    "eslint-plugin-react-hooks": "^7.1.0",
+    "globals": "^16.0.0",
+    "prettier": "^3.3.0",
+    "quicktype": "^26.0.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.40.0",
+    "vitest": "^5.0.3"
+  }
 }

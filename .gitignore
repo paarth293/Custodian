@@ -1,12 +1,29 @@
-models/*
-!models/.gitkeep
-tools/*
-!tools/.gitkeep
-data/
+# Build output
 target/
+dist/
+*.tsbuildinfo
+apps/desktop/src-tauri/gen/
+
+# Dependencies
 node_modules/
 .venv/
 venv/
 
-*.gguf
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
+# Models and local data (fetched separately, never committed)
+models/*
+!models/.gitkeep
+*.gguf
+data/
+
+# Logs and OS/editor files
+*.log
+.DS_Store
+Thumbs.db
+.idea/

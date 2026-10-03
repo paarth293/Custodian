@@ -1,0 +1,5 @@
+# Python tooling used by CI and local development.
+mypy>=1.11
+pytest>=8.3
+ruff>=0.6
+types-python-dateutil>=2.9

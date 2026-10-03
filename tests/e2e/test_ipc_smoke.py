@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 from mlhost.ipc import read_frame_from, write_frame
 
@@ -19,7 +20,7 @@ def test_mlhost_answers_over_stdio(tmp_path: Path) -> None:
         "CUSTODIAN_MODELS_DIR": str(tmp_path),
         "PYTHONPATH": str(MLHOST_DIR),
     }
-    requests = [
+    requests: list[dict[str, Any]] = [
         {"action": "ping"},
         {"action": "decide", "data": {"filename": "e2e.exe", "av_hits": 15, "signed": False}},
     ]
