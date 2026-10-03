@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq)]

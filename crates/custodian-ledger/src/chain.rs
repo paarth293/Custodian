@@ -23,6 +23,7 @@ impl Ledger {
             .read(true)
             .write(true)
             .create(true)
+            .truncate(false)
             .open(path)?;
             
         Ok(Self {
@@ -33,7 +34,7 @@ impl Ledger {
 
     pub fn append_record(&mut self, data: &[u8]) -> Result<(), LedgerError> {
         let mut hasher = Sha256::new();
-        hasher.update(&self.last_hash);
+        hasher.update(self.last_hash);
         hasher.update(data);
         let new_hash = hasher.finalize();
 
@@ -80,7 +81,7 @@ impl Ledger {
             }
             
             let mut hasher = Sha256::new();
-            hasher.update(&prev_hash);
+            hasher.update(prev_hash);
             hasher.update(&data);
             if hasher.finalize().as_slice() != expected_hash {
                 return Err(LedgerError::TamperDetected);

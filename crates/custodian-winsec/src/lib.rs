@@ -25,7 +25,7 @@ impl SafePath {
         
         let mut unc = String::from(r"\\?\");
         if !trimmed.starts_with(r"\\?\") {
-            unc.push_str(&trimmed);
+            unc.push_str(trimmed);
         } else {
             unc = trimmed.to_string();
         }
@@ -67,11 +67,8 @@ mod tests {
 use std::process::Command;
 
 pub fn spawn_in_appcontainer(exe: &str, args: &[&str], profile_name: &str) -> std::io::Result<()> {
-    #[allow(unsafe_code)]
-    unsafe {
-        // SAFETY: Mocking the unsafe Windows API calls (CreateAppContainerProfile, CreateProcessAsUserW)
-        let _ = profile_name;
-    }
+    // SAFETY: Mocking the unsafe Windows API calls (CreateAppContainerProfile, CreateProcessAsUserW)
+    let _ = profile_name;
     
     let mut child = Command::new(exe).args(args).spawn()?;
     let _ = child.wait()?;
@@ -90,11 +87,8 @@ mod test_appcontainer {
 }
 
 pub fn apply_job_limits(pid: u32, memory_mb: u32, cpu_rate: u32) -> std::io::Result<()> {
-    #[allow(unsafe_code)]
-    unsafe {
-        // SAFETY: Mocking CreateJobObjectW, SetInformationJobObject, AssignProcessToJobObject
-        let _ = (pid, memory_mb, cpu_rate);
-    }
+    // SAFETY: Mocking CreateJobObjectW, SetInformationJobObject, AssignProcessToJobObject
+    let _ = (pid, memory_mb, cpu_rate);
     Ok(())
 }
 
@@ -110,11 +104,8 @@ mod test_job_limits {
 }
 
 pub fn prompt_biometrics(message: &str) -> bool {
-    #[allow(unsafe_code)]
-    unsafe {
-        // SAFETY: Mocking LsaLogonUser / Windows Hello API
-        let _ = message;
-    }
+    // SAFETY: Mocking LsaLogonUser / Windows Hello API
+    let _ = message;
     true // Assume success for tests
 }
 
@@ -129,21 +120,15 @@ mod test_hello {
 }
 
 pub fn protect_data(plaintext: &[u8]) -> std::io::Result<Vec<u8>> {
-    #[allow(unsafe_code)]
-    unsafe {
-        // SAFETY: Mocking CryptProtectData
-        let _ = plaintext;
-    }
+    // SAFETY: Mocking CryptProtectData
+    let _ = plaintext;
     // Mock encryption by reversing bytes
     Ok(plaintext.iter().rev().copied().collect())
 }
 
 pub fn unprotect_data(ciphertext: &[u8]) -> std::io::Result<Vec<u8>> {
-    #[allow(unsafe_code)]
-    unsafe {
-        // SAFETY: Mocking CryptUnprotectData
-        let _ = ciphertext;
-    }
+    // SAFETY: Mocking CryptUnprotectData
+    let _ = ciphertext;
     // Mock decryption by reversing bytes
     Ok(ciphertext.iter().rev().copied().collect())
 }
@@ -161,4 +146,3 @@ mod test_dpapi {
     }
 }
 pub mod safe_place;
-

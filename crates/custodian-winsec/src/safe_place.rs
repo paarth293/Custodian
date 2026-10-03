@@ -30,6 +30,11 @@ impl SafePlace {
         file.read_to_end(&mut encrypted)?;
         unprotect_data(&encrypted)
     }
+
+    /// Returns a reference to the underlying root path.
+    pub fn root(&self) -> &PathBuf {
+        &self.root
+    }
 }
 
 #[cfg(test)]
@@ -40,10 +45,10 @@ mod tests {
     fn test_safe_place_roundtrip() {
         let temp_dir = std::env::temp_dir().join("safe_place_test");
         let safe_place = SafePlace::new(temp_dir).unwrap();
-        
+
         let secret = b"my_super_secret_sidecar_data";
         safe_place.write_encrypted("sidecar.bin", secret).unwrap();
-        
+
         let decrypted = safe_place.read_decrypted("sidecar.bin").unwrap();
         assert_eq!(secret.as_slice(), decrypted.as_slice());
     }

@@ -22,7 +22,7 @@ impl QuarantineOp {
         encrypted.reverse();
 
         let vault_file = id.to_string() + ".bin";
-        let vault_path = self.vault.root.join(&vault_file);
+        let vault_path = self.vault.root().join(&vault_file);
         fs::write(&vault_path, &encrypted)?;
 
         let sidecar_file = id.to_string() + ".key";
@@ -39,7 +39,7 @@ impl QuarantineOp {
         let _key = self.vault.read_decrypted(&sidecar_file)?;
 
         let vault_file = id.to_string() + ".bin";
-        let vault_path = self.vault.root.join(&vault_file);
+        let vault_path = self.vault.root().join(&vault_file);
         let mut data = fs::read(&vault_path)?;
 
         data.reverse();
@@ -47,7 +47,7 @@ impl QuarantineOp {
         fs::write(target, &data)?;
         
         fs::remove_file(&vault_path)?;
-        fs::remove_file(self.vault.root.join(&sidecar_file))?;
+        fs::remove_file(self.vault.root().join(&sidecar_file))?;
         
         Ok(())
     }

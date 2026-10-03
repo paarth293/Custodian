@@ -6,6 +6,7 @@ pub struct Supervisor {
     children: Vec<ChildProcess>,
 }
 
+#[allow(dead_code)]
 struct ChildProcess {
     name: String,
     exe_path: String,
@@ -39,7 +40,7 @@ impl Supervisor {
             loop {
                 attempt += 1;
                 let mut cmd = Command::new("cmd.exe");
-                cmd.args(&["/c", "exit 1"]); 
+                cmd.args(["/c", "exit 1"]);
                 
                 if let Ok(mut child) = cmd.spawn() {
                     let status = child.wait().unwrap();

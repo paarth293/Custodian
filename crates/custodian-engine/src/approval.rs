@@ -13,24 +13,20 @@ impl<'a> ApprovalExecutor<'a> {
     }
 
     pub async fn run(&self, mut rx: mpsc::Receiver<SignedApproval>) {
-        loop {
-            if let Some(approval) = rx.recv().await {
-                if self.verify_signature(&approval) {
-                    let id = match Uuid::parse_str(&approval.id) {
-                        Ok(uuid) => uuid,
-                        Err(_) => continue,
-                    };
-                    
-                    let _ = self.dao.insert_tx(
-                        id,
-                        "delete",
-                        &[],
-                        None,
-                        None
-                    ).await;
-                }
-            } else {
-                break;
+        while let Some(approval) = rx.recv().await {
+            if self.verify_signature(&approval) {
+                let id = match Uuid::parse_str(&approval.id) {
+                    Ok(uuid) => uuid,
+                    Err(_) => continue,
+                };
+                
+                let _ = self.dao.insert_tx(
+                    id,
+                    "delete",
+                    &[],
+                    None,
+                    None
+                ).await;
             }
         }
     }

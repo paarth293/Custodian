@@ -16,6 +16,7 @@ pub enum JournalError {
 
 pub struct Journal {
     file: File,
+    #[allow(dead_code)]
     offset: u64,
 }
 
@@ -25,6 +26,7 @@ impl Journal {
             .read(true)
             .write(true)
             .create(true)
+            .truncate(false) // keeping old data
             .open(path)?;
             
         // Mock disk full check
