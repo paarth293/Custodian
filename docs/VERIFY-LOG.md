@@ -77,3 +77,11 @@
   - Validated Engine skeleton, WAL journal, and transaction state machine.
   - Verified crash recovery logic can independently rebuild state from the journal and idempotently replay missing file operations without the Database.
 - Conclusion: Phase 4 is complete. The Engine core is solid, crash-safe, and ready for integration.
+
+## Step 76: T-CAPS-06 (Agent service skeleton in its jail)
+- Date: 2026-10-03
+- Outcome:
+  - Agent JS entrypoint bundled via esbuild.
+  - T-CAPS-06 executed: simulated sandbox blocks reading %USERPROFILE%, opening a TCP socket, and spawning a child process outside the designated scratch area.
+  - sys.ready successfully emitted over IPC.
+- Conclusion: The Agent Node environment is properly constrained.

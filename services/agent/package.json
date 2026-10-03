@@ -1,0 +1,13 @@
+{
+  "name": "custodian-agent",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js",
+    "test": "node dist/index.js test-caps"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0",
+    "typescript": "^5.0.0"
+  }
+}
