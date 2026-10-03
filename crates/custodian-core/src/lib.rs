@@ -7,3 +7,5 @@ pub mod pipeline;
 
 pub mod online_sm;
 
+pub mod downloads;
+
