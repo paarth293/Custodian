@@ -3,3 +3,5 @@ pub mod supervisor;
 
 pub mod router;
 
+pub mod pipeline;
+
