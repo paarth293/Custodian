@@ -13,7 +13,7 @@ impl DbPool {
             .connect(url)
             .await?;
         
-        sqlx::migrate!(./migrations)
+        sqlx::migrate!("./migrations")
             .run(&pool)
             .await?;
             
@@ -24,5 +24,4 @@ impl DbPool {
         &self.pool
     }
 }
-
 

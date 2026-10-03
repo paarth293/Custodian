@@ -25,13 +25,8 @@ impl JournalBatcher {
         }
 
         let window = Duration::from_millis(self.debounce_ms);
-        loop {
-            match timeout(window, rx.recv()).await {
-                Ok(Some((path, _))) => {
-                    paths.insert(path);
-                }
-                _ => break,
-            }
+        while let Ok(Some((path, _))) = timeout(window, rx.recv()).await {
+            paths.insert(path);
         }
 
         paths.into_iter().collect()
