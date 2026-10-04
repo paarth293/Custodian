@@ -3,6 +3,7 @@
 
 pub mod backup_check;
 pub mod downloads;
+pub mod indexer;
 pub mod install_lab;
 pub mod install_lab_parsers;
 pub mod install_lab_verify;
