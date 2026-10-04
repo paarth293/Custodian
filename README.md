@@ -41,7 +41,6 @@ over HMAC-authenticated IPC frames (`custodian-ipc`).
 | `custodian-parser`   | Sandboxed document parser                                       |
 | `custodian-sandbox`  | Sandbox launcher and declared-effect checks                     |
 | `custodian-elevate`  | Minimal elevation helper with a fixed verb allow-list           |
-| `custodian-agent`    | Tool registry                                                   |
 | `custodian-fixtures` | Generates marker-protected fixture trees                        |
 | `custodian-testkit`  | Test helpers that refuse to touch real user folders             |
 
@@ -88,6 +87,10 @@ npm run tauri -w apps/desktop -- dev     # desktop shell with hot reload
 CUSTODIAN_IPC_KEY=dev-key PYTHONPATH=services/mlhost python -m mlhost
 npm run fixtures -- --persona demo --out ./fixture   # sample data
 ```
+
+App icons are generated from `apps/desktop/src-tauri/icons/custodian.svg` with
+`npx tauri icon src-tauri/icons/custodian.svg -o src-tauri/icons` (run in `apps/desktop`, then delete the generated `android/` and `ios/` folders, which
+this desktop-only app does not use).
 
 Place model files in `models/` with `scripts/fetch-models.ps1`, which also pins
 their SHA-256 in `models/manifest.json`; unpinned or modified models are refused.

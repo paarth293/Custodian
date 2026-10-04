@@ -1,7 +1,7 @@
 """Manual check of Laya's offline inference against a few sample files.
 
 Requires the model in models/ and requirements-model.txt installed:
-    PYTHONPATH=services/mlhost python scripts/test_laya.py
+    PYTHONPATH=services/mlhost python scripts/try_laya.py
 """
 
 from mlhost.laya import decide
