@@ -8,7 +8,8 @@
   <rect x="32" y="32" width="960" height="960" rx="220" fill="url(#bg)"/>
   <path d="M512 176 L784 280 V500 C784 676 668 800 512 856 C356 800 240 676 240 500 V280 Z"
         fill="#ffffff"/>
-  <path d="M624 600 A136 136 0 1 1 640 436" fill="none" stroke="#1d4f73"
-        stroke-width="64" stroke-linecap="round"/>
-  <path d="M560 392 L676 392 L676 508 Z" fill="#1d4f73"/>
+  <!-- Undo arrow: clockwise arc from 30deg to 330deg; the head follows the arc's tangent. -->
+  <path d="M630 584 A136 136 0 1 1 630 448" fill="none" stroke="#1d4f73"
+        stroke-width="64"/>
+  <path d="M558 471 L666 510 L686 397 Z" fill="#1d4f73"/>
 </svg>
