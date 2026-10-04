@@ -32,6 +32,18 @@ fn set_ignore_cursor_events(app: tauri::AppHandle, ignore: bool) -> Result<(), S
     Ok(())
 }
 
+#[tauri::command]
+async fn send_chat_message(message: String, channel: tauri::ipc::Channel<String>) -> Result<(), String> {
+    // Phase 2.3: Placeholder for Node Agent IPC stream.
+    // This perfectly mimics the stream layout until the agent process manager is wired.
+    let reply = format!("Hello! I received your message: \"{}\". I am currently running in offline mode.", message);
+    for word in reply.split_whitespace() {
+        channel.send(format!("{} ", word)).map_err(|e| e.to_string())?;
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+    Ok(())
+}
+
 /// Commands exposed to webviews. Approval signing is intentionally absent:
 /// see `approval_service`.
 pub fn run() {
@@ -45,6 +57,7 @@ pub fn run() {
             invoke_broker,
             get_ledger,
             set_ignore_cursor_events,
+            send_chat_message,
             clipboard::set_private_text,
             placement::set_calm_mode,
         ])
