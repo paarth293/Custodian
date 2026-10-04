@@ -203,6 +203,8 @@ pub fn set_panel_open(app: AppHandle, open: bool) -> Result<PanelSide, String> {
         window
             .set_size(PhysicalSize::new(target.width as u32, target.height as u32))
             .map_err(err)?;
+        let _ = window.set_focusable(true);
+        let _ = window.set_focus();
         Ok(side)
     } else {
         let Some((compact, _, side)) = inner.expanded.take() else {
@@ -218,6 +220,7 @@ pub fn set_panel_open(app: AppHandle, open: bool) -> Result<PanelSide, String> {
         window
             .set_position(PhysicalPosition::new(compact.x, compact.y))
             .map_err(err)?;
+        let _ = window.set_focusable(false);
         save_position(&app, PhysicalPosition::new(compact.x, compact.y));
         Ok(side)
     }
