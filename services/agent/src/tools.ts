@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { getLlama } from 'node-llama-cpp';
 
 // Define the schemas for allowed tools
 export const listCandidatesSchema = z.object({
@@ -33,6 +32,8 @@ export type AgentAction = z.infer<typeof agentActionSchema>;
  * This guarantees the model will only ever output valid JSON matching our tools.
  */
 export async function getActionGrammar() {
+  // Dynamic import: node-llama-cpp is an ES module with top-level await.
+  const { getLlama } = await import('node-llama-cpp');
   const llama = await getLlama();
 
   // Convert Zod schema to a JSON schema compatible with node-llama-cpp

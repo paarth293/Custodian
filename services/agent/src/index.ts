@@ -2,9 +2,6 @@ import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as net from 'node:net';
 
-export { getChatSession, chatWithModel } from './llm';
-export * from './tools';
-
 export interface Probe {
   name: string;
   /** Attempts a privileged operation; throws or rejects if the sandbox blocked it. */
