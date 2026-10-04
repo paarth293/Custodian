@@ -21,7 +21,14 @@ def decide(d_num: int, data: dict) -> str:
         user_prompt = f"Analyze file for security decision:\nFilename: {filename}\nAV Hits: {av_hits}\nSigned: {signed}"
         
         messages = [
-            {"role": "user", "content": user_prompt}
+            {
+                "role": "system",
+                "content": "You are Custodian AI. You analyze file metadata and return exactly one action in JSON format: {'action': '...'}. The ONLY allowed actions are: 'approve', 'delete', or 'quarantine'. Do not use any other words."
+            },
+            {
+                "role": "user", 
+                "content": user_prompt
+            }
         ]
         
         # Ask Laya

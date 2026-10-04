@@ -1,8 +1,9 @@
 import struct
 import sys
+import traceback
 
 from custodian_ipc import read_frame, write_frame
-
+from laya import decide
 
 def process_frames():
     key = b"super-secret-key"
@@ -25,12 +26,27 @@ def process_frames():
         
         try:
             payload = read_frame(full_frame, key)
-            if payload.get("action") == "extract_embeddings":
+            action = payload.get("action")
+            
+            if action == "extract_embeddings":
                 resp = write_frame({"status": "ok", "embedding": [0.0] * 1536}, key)
                 sys.stdout.buffer.write(resp)
                 sys.stdout.buffer.flush()
-        except Exception:  # noqa: BLE001, S112
-            continue
+                
+            elif action == "decide":
+                # Route the decision request to Laya!
+                file_data = payload.get("data", {})
+                decision = decide(payload.get("d_num", 0), file_data)
+                
+                resp = write_frame({"status": "ok", "decision": decision}, key)
+                sys.stdout.buffer.write(resp)
+                sys.stdout.buffer.flush()
+                
+        except Exception as e:
+            # Send back an error frame so Rust doesn't hang
+            err_resp = write_frame({"status": "error", "error": str(e)}, key)
+            sys.stdout.buffer.write(err_resp)
+            sys.stdout.buffer.flush()
 
 if __name__ == "__main__":
     process_frames()
