@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getLlama, LlamaJsonSchemaGrammar } from 'node-llama-cpp';
+import { getLlama } from 'node-llama-cpp';
 
 // Define the schemas for allowed tools
 export const listCandidatesSchema = z.object({
@@ -34,20 +34,20 @@ export type AgentAction = z.infer<typeof agentActionSchema>;
  */
 export async function getActionGrammar() {
   const llama = await getLlama();
-  
+
   // Convert Zod schema to a JSON schema compatible with node-llama-cpp
   const jsonSchema = {
-    "type": "object",
-    "properties": {
-      "action": { "enum": ["list_candidates", "propose_plan", "answer"] },
-      "folder": { "type": "string" },
-      "older_than_days": { "type": "number" },
-      "candidate_ids": { "type": "array", "items": { "type": "string" } },
-      "operation": { "enum": ["quarantine", "delete"] },
-      "text": { "type": "string" }
+    type: 'object',
+    properties: {
+      action: { enum: ['list_candidates', 'propose_plan', 'answer'] },
+      folder: { type: 'string' },
+      older_than_days: { type: 'number' },
+      candidate_ids: { type: 'array', items: { type: 'string' } },
+      operation: { enum: ['quarantine', 'delete'] },
+      text: { type: 'string' },
     },
-    "required": ["action"]
-  };
-  
-  return new LlamaJsonSchemaGrammar(llama, jsonSchema as any);
+    required: ['action'],
+  } as const;
+
+  return llama.createGrammarForJsonSchema(jsonSchema);
 }

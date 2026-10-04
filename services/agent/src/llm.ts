@@ -11,14 +11,15 @@ export async function getChatSession(): Promise<LlamaChatSession> {
     sessionPromise = (async () => {
       const llama = await getLlama();
       const modelPath = path.join(__dirname, '..', '..', '..', 'models', 'laya.Q4_K_M.gguf');
-      
+
       const model = await llama.loadModel({ modelPath });
       const context = await model.createContext();
       const sequence = context.getSequence();
-      
+
       return new LlamaChatSession({
         contextSequence: sequence,
-        systemPrompt: "You are Cubby, a helpful and friendly AI desktop companion for Windows. You answer questions directly and concisely."
+        systemPrompt:
+          'You are Cubby, a helpful and friendly AI desktop companion for Windows. You answer questions directly and concisely.',
       });
     })();
   }
@@ -28,16 +29,12 @@ export async function getChatSession(): Promise<LlamaChatSession> {
 /**
  * Sends a message to the local model and returns the response.
  */
-export async function chatWithModel(message: string, onToken?: (token: string) => void): Promise<string> {
+export async function chatWithModel(
+  message: string,
+  onToken?: (token: string) => void,
+): Promise<string> {
   const session = await getChatSession();
-  
-  if (onToken) {
-    return session.prompt(message, {
-      onToken(chunk: any) {
-        onToken(session.context.decode(chunk));
-      }
-    });
-  }
-  
-  return session.prompt(message);
+
+  // onTextChunk streams already-decoded text, so no manual token decoding.
+  return onToken ? session.prompt(message, { onTextChunk: onToken }) : session.prompt(message);
 }
