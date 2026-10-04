@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import { StrictMode, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import ApprovalView, { Plan } from './components/ApprovalView';
@@ -6,25 +6,33 @@ import ApprovalView, { Plan } from './components/ApprovalView';
 const root = document.getElementById('root');
 if (!root) throw new Error('missing #root element');
 
+const params = new URLSearchParams(window.location.search);
+
+function render(node: ReactNode) {
+  createRoot(root as HTMLElement).render(<StrictMode>{node}</StrictMode>);
+}
+
 // The approval window loads index.html?approve=<plan hash>.
-const planHash = new URLSearchParams(window.location.search).get('approve');
+const planHash = params.get('approve');
 
-// In standalone approval window, we mock the plan fetch until IPC read API is fully wired
-const standalonePlan: Plan | null = planHash ? {
-  id: planHash,
-  riskLevel: 'high',
-  operations: [{ path: 'C:\\Target\\unknown.exe', action: 'quarantine', sizeBytes: 1024 }]
-} : null;
-
-createRoot(root).render(
-  <StrictMode>
-    {standalonePlan ? (
-      <ApprovalView 
-        plan={standalonePlan} 
-        onDecided={(approved) => console.log('Standalone decision:', approved)} 
-      />
-    ) : (
-      <App />
-    )}
-  </StrictMode>
-);
+if (import.meta.env.DEV && params.has('gallery')) {
+  // Development-only gallery of every Cubby mood: http://localhost:1420/?gallery
+  void Promise.all([import('./gallery/Gallery'), import('./gallery/gallery.css')]).then(
+    ([{ default: Gallery }]) => render(<Gallery />),
+  );
+} else if (planHash) {
+  // In standalone approval window, we mock the plan fetch until IPC read API is fully wired
+  const standalonePlan: Plan = {
+    id: planHash,
+    riskLevel: 'high',
+    operations: [{ path: 'C:\\Target\\unknown.exe', action: 'quarantine', sizeBytes: 1024 }],
+  };
+  render(
+    <ApprovalView
+      plan={standalonePlan}
+      onDecided={(approved) => console.log('Standalone decision:', approved)}
+    />,
+  );
+} else {
+  render(<App />);
+}

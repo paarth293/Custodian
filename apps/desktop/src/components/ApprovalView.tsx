@@ -49,7 +49,7 @@ export default function ApprovalView({ plan, onDecided }: ApprovalViewProps) {
         Approval Required ({plan.riskLevel} risk)
       </h2>
       <p>The AI Agent proposes the following actions:</p>
-      
+
       <ul className="file-operations-list">
         {plan.operations.map((op, idx) => (
           <li key={idx} className={`operation-item op-${op.action}`}>
@@ -61,10 +61,14 @@ export default function ApprovalView({ plan, onDecided }: ApprovalViewProps) {
           </li>
         ))}
       </ul>
-      
+
       <div className="approval-actions">
-        <button className="btn-reject" onClick={handleReject}>Reject</button>
-        <button className="btn-approve" onClick={handleApprove}>Approve Plan</button>
+        <button className="btn-reject" onClick={handleReject}>
+          Reject
+        </button>
+        <button className="btn-approve" onClick={handleApprove}>
+          Approve Plan
+        </button>
       </div>
     </section>
   );

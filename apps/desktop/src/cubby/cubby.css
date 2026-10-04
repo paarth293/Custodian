@@ -1,0 +1,575 @@
+/*
+ * Cubby's palettes and animation. All motion is CSS (compositor-friendly
+ * transforms and opacity), keyed off data attributes set by CubbyCharacter.
+ * Transform origins use the 240×240 art grid (transform-box: view-box).
+ */
+
+.cubby {
+  /* Original Form: Home blue, offline (D-17). */
+  --fur-1: #ffffff;
+  --fur-2: #eef2ff;
+  --fur-3: #c3cff0;
+  --crystal-1: #e6f4ff;
+  --crystal-2: #8cc4ff;
+  --crystal-3: #2f5bd3;
+  --crystal-glow: #6aa6ff;
+  --iris-1: #9fdcff;
+  --iris-2: #2f78ea;
+  --iris-3: #10297a;
+  --eye-dark: #0c1638;
+  --scarf-1: #a7cdff;
+  --scarf-2: #3f73e0;
+  --gem-1: #f2faff;
+  --gem-2: #4f9bff;
+  --orb-1: #ffffff;
+  --orb-2: #a9d8ff;
+  --orb-3: #3a86ff;
+  --paw: #7eaeff;
+  --mouth: #a8324c;
+  --tongue: #ff8ea4;
+  --blush: #ff9cb6;
+  --accent: #5b9dff;
+
+  overflow: visible;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cubby[data-form='special'] {
+  /* Special Form: Signal amber, online (D-17). */
+  --fur-1: #fffaf3;
+  --fur-2: #fcebd6;
+  --fur-3: #ecc79b;
+  --crystal-1: #fff3cf;
+  --crystal-2: #ffc45c;
+  --crystal-3: #e8931e;
+  --crystal-glow: #ffb547;
+  --iris-1: #f0b27a;
+  --iris-2: #9b521f;
+  --iris-3: #4a2108;
+  --eye-dark: #2a1406;
+  --scarf-1: #ffd08f;
+  --scarf-2: #e8851f;
+  --gem-1: #fff6da;
+  --gem-2: #ffab2e;
+  --orb-1: #fffbe8;
+  --orb-2: #ffd977;
+  --orb-3: #ff9a18;
+  --paw: #b8743f;
+  --accent: #e8931e;
+}
+
+/* Smooth morph between forms. */
+.cubby stop {
+  transition: stop-color 600ms ease;
+}
+.cubby [fill^='var('],
+.cubby .cubby-blush {
+  transition: fill 600ms ease;
+}
+
+.cubby * {
+  transform-box: view-box;
+}
+
+/* ---------- Static styling ---------- */
+
+.cubby-shadow {
+  fill: #0b1230;
+  opacity: 0.28;
+}
+.cubby-vein {
+  fill: none;
+  stroke: var(--crystal-1);
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+.cubby-vein.thin {
+  stroke-width: 1.4;
+  opacity: 0.6;
+}
+.cubby-facet {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 0.9;
+  opacity: 0.7;
+}
+.cubby-scarf-fold {
+  fill: none;
+  stroke: var(--scarf-1);
+  stroke-width: 1.6;
+  opacity: 0.7;
+}
+.cubby-stalk {
+  fill: none;
+  stroke: var(--crystal-2);
+  stroke-width: 3.6;
+  stroke-linecap: round;
+}
+.cubby-orb-halo {
+  opacity: 0.55;
+}
+.cubby-blush {
+  fill: var(--blush);
+  opacity: 0.6;
+}
+.cubby-eye-arc,
+.cubby-mouth-line {
+  fill: none;
+  stroke: var(--eye-dark);
+  stroke-width: 4.2;
+  stroke-linecap: round;
+}
+.cubby-mouth-line {
+  stroke: var(--mouth);
+  stroke-width: 3;
+}
+.cubby-mouth {
+  fill: var(--mouth);
+}
+.cubby-tongue {
+  fill: var(--tongue);
+}
+.cubby-pupil {
+  transition: transform 180ms ease-out;
+}
+
+/* Overlays are hidden unless the mood shows them. */
+.cubby-question,
+.cubby-thinking-dots,
+.cubby-zzz,
+.cubby-sparkles,
+.cubby-heart,
+.cubby-laptop {
+  opacity: 0;
+  pointer-events: none;
+}
+.cubby-question {
+  font:
+    800 34px/1 'Segoe UI Rounded',
+    'Segoe UI',
+    system-ui,
+    sans-serif;
+  fill: var(--accent);
+}
+.cubby-thinking-dots circle {
+  fill: var(--accent);
+}
+.cubby-zzz text {
+  font:
+    800 18px/1 'Segoe UI Rounded',
+    'Segoe UI',
+    system-ui,
+    sans-serif;
+  fill: var(--accent);
+}
+.cubby-sparkles path {
+  fill: var(--crystal-glow);
+}
+.cubby-heart {
+  fill: #ff7aa2;
+}
+
+/* ---------- Idle life (always on) ---------- */
+
+.cubby-figure {
+  transform-origin: 120px 230px;
+  animation: cubby-breathe 3.4s ease-in-out infinite;
+}
+.cubby-head {
+  transform-origin: 120px 160px;
+  transition: transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: cubby-head-bob 6s ease-in-out infinite;
+}
+.cubby-ear.left {
+  transform-origin: 80px 100px;
+  animation: cubby-ear-twitch-left 7s ease-in-out infinite;
+}
+.cubby-ear.right {
+  transform-origin: 160px 100px;
+  animation: cubby-ear-twitch-right 9s ease-in-out 1.3s infinite;
+}
+.cubby-antenna {
+  transform-origin: 120px 42px;
+  animation: cubby-sway 4.2s ease-in-out infinite;
+}
+.cubby-orb-halo {
+  transform-origin: 138px 18px;
+  animation: cubby-orb-pulse 2.6s ease-in-out infinite;
+}
+.cubby-tail {
+  transform-origin: 152px 206px;
+  animation: cubby-tail-wag 3.2s ease-in-out infinite;
+}
+.cubby-eye {
+  transition: transform 70ms ease-in;
+}
+.cubby[data-blinking='true'] .cubby-eye {
+  transform: scaleY(0.08);
+}
+
+@keyframes cubby-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  50% {
+    transform: translateY(-1.5px) scale(1.012, 0.992);
+  }
+}
+@keyframes cubby-head-bob {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  50% {
+    rotate: 1.6deg;
+  }
+}
+@keyframes cubby-ear-twitch-left {
+  0%,
+  88%,
+  100% {
+    transform: rotate(0deg);
+  }
+  91% {
+    transform: rotate(-9deg);
+  }
+  94% {
+    transform: rotate(2deg);
+  }
+  97% {
+    transform: rotate(-4deg);
+  }
+}
+@keyframes cubby-ear-twitch-right {
+  0%,
+  88%,
+  100% {
+    transform: rotate(0deg);
+  }
+  91% {
+    transform: rotate(9deg);
+  }
+  94% {
+    transform: rotate(-2deg);
+  }
+  97% {
+    transform: rotate(4deg);
+  }
+}
+@keyframes cubby-sway {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+@keyframes cubby-orb-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.15);
+  }
+}
+@keyframes cubby-tail-wag {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
+
+/* ---------- Moods ---------- */
+
+/* Happy: two little hops and a floating heart. */
+.cubby[data-mood='happy'] .cubby-figure {
+  animation: cubby-hop 1.6s ease-in-out infinite;
+}
+.cubby[data-mood='happy'] .cubby-heart,
+.cubby[data-mood='wink'] .cubby-heart {
+  animation: cubby-float-up 2.4s ease-out infinite;
+}
+
+/* Curious: head tilt and a popping question mark. */
+.cubby[data-mood='curious'] .cubby-head {
+  transform: rotate(-9deg);
+  animation: none;
+}
+.cubby[data-mood='curious'] .cubby-question {
+  animation: cubby-pop 1.8s ease-in-out infinite;
+}
+.cubby[data-mood='curious'] .cubby-ear.left {
+  animation: cubby-ear-perk 1.8s ease-in-out infinite;
+}
+
+/* Thinking: looks up, orb pulses fast, dots bounce. */
+.cubby[data-mood='thinking'] .cubby-head {
+  transform: rotate(4deg);
+  animation: none;
+}
+.cubby[data-mood='thinking'] .cubby-orb-halo {
+  animation-duration: 0.9s;
+}
+.cubby[data-mood='thinking'] .cubby-thinking-dots {
+  opacity: 1;
+}
+.cubby[data-mood='thinking'] .cubby-thinking-dots circle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cubby-dot 1.2s ease-in-out infinite;
+}
+.cubby[data-mood='thinking'] .cubby-thinking-dots circle:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.cubby[data-mood='thinking'] .cubby-thinking-dots circle:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* Working: laptop out, paws tapping, orb busy. */
+.cubby[data-mood='working'] .cubby-laptop {
+  opacity: 1;
+  transition: opacity 250ms ease;
+}
+.cubby[data-mood='working'] .cubby-arm.left {
+  transform-origin: 92px 192px;
+  animation: cubby-tap 0.36s ease-in-out infinite;
+}
+.cubby[data-mood='working'] .cubby-arm.right {
+  transform-origin: 148px 192px;
+  animation: cubby-tap 0.36s ease-in-out 0.18s infinite;
+}
+.cubby[data-mood='working'] .cubby-orb-halo {
+  animation-duration: 1.1s;
+}
+
+/* Excited: bouncing jump with sparkles and perked ears. */
+.cubby[data-mood='excited'] .cubby-figure {
+  animation: cubby-bounce 0.7s cubic-bezier(0.3, 0, 0.3, 1) infinite;
+}
+.cubby[data-mood='excited'] .cubby-sparkles path {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cubby-twinkle 0.9s ease-in-out infinite;
+}
+.cubby[data-mood='excited'] .cubby-sparkles {
+  opacity: 1;
+}
+.cubby[data-mood='excited'] .cubby-sparkles path:nth-child(2n) {
+  animation-delay: 0.3s;
+}
+.cubby[data-mood='excited'] .cubby-ear.left {
+  animation: cubby-ear-perk 0.7s ease-in-out infinite;
+}
+.cubby[data-mood='excited'] .cubby-ear.right {
+  animation: cubby-ear-perk-right 0.7s ease-in-out infinite;
+}
+
+/* Sleeping: slow breath, head down, dim orb, floating Zs. */
+.cubby[data-mood='sleeping'] .cubby-figure {
+  animation-duration: 5.5s;
+}
+.cubby[data-mood='sleeping'] .cubby-head {
+  transform: translateY(5px) rotate(5deg);
+  animation: none;
+}
+.cubby[data-mood='sleeping'] .cubby-antenna {
+  animation-duration: 8s;
+}
+.cubby[data-mood='sleeping'] .cubby-orb-halo {
+  animation-duration: 5s;
+  opacity: 0.2;
+}
+.cubby[data-mood='sleeping'] .cubby-ear,
+.cubby[data-mood='sleeping'] .cubby-tail {
+  animation-duration: 12s;
+}
+.cubby[data-mood='sleeping'] .cubby-zzz {
+  opacity: 1;
+}
+.cubby[data-mood='sleeping'] .cubby-zzz text {
+  opacity: 0;
+  animation: cubby-z 3.6s ease-in infinite;
+}
+.cubby[data-mood='sleeping'] .cubby-zzz text:nth-child(2) {
+  animation-delay: 1.2s;
+}
+.cubby[data-mood='sleeping'] .cubby-zzz text:nth-child(3) {
+  animation-delay: 2.4s;
+}
+
+/* Wink: playful greeting, mostly in the Special Form. */
+.cubby[data-mood='wink'] .cubby-head {
+  transform: rotate(-5deg);
+  animation: none;
+}
+
+/* Held: dangling while being dragged. */
+.cubby[data-mood='held'] .cubby-figure {
+  transform-origin: 120px 60px;
+  animation: cubby-dangle 1.1s ease-in-out infinite;
+}
+.cubby[data-mood='held'] .cubby-foot.left {
+  transform-origin: 102px 214px;
+  animation: cubby-kick 0.5s ease-in-out infinite;
+}
+.cubby[data-mood='held'] .cubby-foot.right {
+  transform-origin: 138px 214px;
+  animation: cubby-kick 0.5s ease-in-out 0.25s infinite;
+}
+.cubby[data-mood='held'] .cubby-shadow {
+  opacity: 0.12;
+}
+
+@keyframes cubby-hop {
+  0%,
+  40%,
+  100% {
+    transform: translateY(0);
+  }
+  10% {
+    transform: translateY(-9px);
+  }
+  20% {
+    transform: translateY(0) scale(1.03, 0.97);
+  }
+  30% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes cubby-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1.04, 0.95);
+  }
+  45% {
+    transform: translateY(-16px) scale(0.98, 1.03);
+  }
+}
+@keyframes cubby-dangle {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
+@keyframes cubby-kick {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
+}
+@keyframes cubby-tap {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+@keyframes cubby-ear-perk {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-8deg);
+  }
+}
+@keyframes cubby-ear-perk-right {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+}
+@keyframes cubby-pop {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.6);
+  }
+  25%,
+  75% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes cubby-dot {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
+}
+@keyframes cubby-twinkle {
+  0%,
+  100% {
+    transform: scale(0.4) rotate(0deg);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.1) rotate(25deg);
+    opacity: 1;
+  }
+}
+@keyframes cubby-z {
+  0% {
+    opacity: 0;
+    transform: translate(0, 8px) scale(0.6);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(10px, -14px) scale(1.15);
+  }
+}
+@keyframes cubby-float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.6);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-22px) scale(1.05);
+  }
+}
+
+/* Respect the user's reduced-motion preference: keep gentle life only. */
+@media (prefers-reduced-motion: reduce) {
+  .cubby * {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+  }
+  .cubby-pupil,
+  .cubby-head {
+    transition: none;
+  }
+}

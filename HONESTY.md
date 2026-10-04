@@ -51,6 +51,15 @@ Placeholders with their final signatures but without the real implementation.
   (`approval_service::sign_approval`) and the approval window are Rust-only by
   design but not yet called by an engine dispatcher; the signature is a tagged
   string, not a real signature.
+- Desktop chat: `send_chat_message` streams an echo of the message instead of
+  calling the agent, and `approve_plan` only logs the approval (no signature or
+  genuine-click check). Cubby's moods follow this flow, so they will reflect
+  real work once the agent is connected.
+- Mode colour: Online mode is never reported because the broker process does
+  not exist yet, so the amber Special Form appears only as a labelled preview
+  (tray or right-click menu).
+- `tools/fetch.ps1` writes a mock `tools/tools.toml` instead of fetching and
+  pinning the sandbox tools.
 
 ## Cut
 

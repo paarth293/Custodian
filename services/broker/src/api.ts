@@ -40,13 +40,15 @@ export class ApiBroker {
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(dataString),
-          'Authorization': `Bearer ${this.apiKey}`
-        }
+          Authorization: `Bearer ${this.apiKey}`,
+        },
       };
 
       const clientReq = https.request(options, (res) => {
         let responseData = '';
-        res.on('data', (chunk) => { responseData += chunk; });
+        res.on('data', (chunk) => {
+          responseData += chunk;
+        });
         res.on('end', () => {
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             resolve({ data: responseData });
@@ -60,7 +62,7 @@ export class ApiBroker {
         // ENOTFOUND, ETIMEDOUT, ECONNREFUSED usually indicate we are offline
         reject(new Error(`Network error (fallback to local): ${err.message}`));
       });
-      
+
       clientReq.on('timeout', () => {
         clientReq.destroy();
         reject(new Error('Network timeout (fallback to local)'));
