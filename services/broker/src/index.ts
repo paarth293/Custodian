@@ -1,3 +1,5 @@
+export * from './api';
+
 export const BROWSER_ACTIONS = [
   'navigate',
   'search',
