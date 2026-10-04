@@ -41,7 +41,6 @@ over HMAC-authenticated IPC frames (`custodian-ipc`).
 | `custodian-parser`   | Sandboxed document parser                                       |
 | `custodian-sandbox`  | Sandbox launcher and declared-effect checks                     |
 | `custodian-elevate`  | Minimal elevation helper with a fixed verb allow-list           |
-| `custodian-agent`    | Tool registry                                                   |
 | `custodian-fixtures` | Generates marker-protected fixture trees                        |
 | `custodian-testkit`  | Test helpers that refuse to touch real user folders             |
 
