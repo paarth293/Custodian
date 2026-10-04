@@ -1,55 +1,52 @@
 use custodian_winsec::safe_place::SafePlace;
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
-use std::io::{self, Read};
 
+/// Moves files into an encrypted vault and restores them on undo.
+///
+/// Placeholder crypto: the payload transform and key material are stand-ins
+/// until the DPAPI-backed implementation lands (see `HONESTY.md`).
 pub struct QuarantineOp {
     vault: SafePlace,
 }
 
 impl QuarantineOp {
     pub fn new(vault_path: PathBuf) -> io::Result<Self> {
-        let vault = SafePlace::new(vault_path)?;
-        Ok(Self { vault })
+        Ok(Self {
+            vault: SafePlace::new(vault_path)?,
+        })
     }
 
     pub fn execute(&self, source: &Path, id: &str) -> io::Result<()> {
-        let mut file = fs::File::open(source)?;
-        let mut data = Vec::new();
-        file.read_to_end(&mut data)?;
+        let mut data = fs::read(source)?;
+        data.reverse();
 
-        let mut encrypted = data.clone();
-        encrypted.reverse();
-
-        let vault_file = id.to_string() + ".bin";
-        let vault_path = self.vault.root().join(&vault_file);
-        fs::write(&vault_path, &encrypted)?;
-
-        let sidecar_file = id.to_string() + ".key";
-        let key_material = b"mock_key_123";
-        self.vault.write_encrypted(&sidecar_file, key_material)?;
-
-        fs::remove_file(source)?;
-        
-        Ok(())
+        fs::write(self.payload_path(id), &data)?;
+        self.vault
+            .write_encrypted(&Self::key_name(id), b"placeholder-key")?;
+        fs::remove_file(source)
     }
 
     pub fn inverse(&self, target: &Path, id: &str) -> io::Result<()> {
-        let sidecar_file = id.to_string() + ".key";
-        let _key = self.vault.read_decrypted(&sidecar_file)?;
+        let key_name = Self::key_name(id);
+        let _key = self.vault.read_decrypted(&key_name)?;
 
-        let vault_file = id.to_string() + ".bin";
-        let vault_path = self.vault.root().join(&vault_file);
-        let mut data = fs::read(&vault_path)?;
-
+        let payload_path = self.payload_path(id);
+        let mut data = fs::read(&payload_path)?;
         data.reverse();
-
         fs::write(target, &data)?;
-        
-        fs::remove_file(&vault_path)?;
-        fs::remove_file(self.vault.root().join(&sidecar_file))?;
-        
-        Ok(())
+
+        fs::remove_file(&payload_path)?;
+        fs::remove_file(self.vault.root().join(key_name))
+    }
+
+    fn payload_path(&self, id: &str) -> PathBuf {
+        self.vault.root().join(format!("{id}.bin"))
+    }
+
+    fn key_name(id: &str) -> String {
+        format!("{id}.key")
     }
 }
 
@@ -58,22 +55,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_quarantine_roundtrip() {
-        let temp_dir = std::env::temp_dir().join("quarantine_test");
-        fs::create_dir_all(&temp_dir).unwrap();
-        
-        let source = temp_dir.join("secret.txt");
+    fn roundtrip() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("secret.txt");
         fs::write(&source, b"confidential data").unwrap();
-        
-        let vault_path = temp_dir.join("vault");
-        let op = QuarantineOp::new(vault_path).unwrap();
-        
+
+        let op = QuarantineOp::new(dir.path().join("vault")).unwrap();
         op.execute(&source, "tx123").unwrap();
         assert!(!source.exists());
-        
+
         op.inverse(&source, "tx123").unwrap();
-        assert!(source.exists());
-        let restored = fs::read(&source).unwrap();
-        assert_eq!(restored, b"confidential data");
+        assert_eq!(fs::read(&source).unwrap(), b"confidential data");
     }
 }

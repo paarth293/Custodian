@@ -1,4 +1,6 @@
-export function classifyAction(actionType: string, _url: string, _payload: unknown) {
-    if (['payment', 'login', 'message'].includes(actionType)) return 'handover';
-    return 'proceed';
+const HANDOVER_ACTIONS = new Set(['payment', 'login', 'message']);
+
+/** Sensitive actions are handed back to the user instead of automated. */
+export function classifyAction(actionType: string): 'handover' | 'proceed' {
+  return HANDOVER_ACTIONS.has(actionType) ? 'handover' : 'proceed';
 }

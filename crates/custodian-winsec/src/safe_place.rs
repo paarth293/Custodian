@@ -1,38 +1,28 @@
 use crate::{protect_data, unprotect_data};
-use std::fs::{self, File};
-use std::io::{self, Read, Write};
-use std::path::PathBuf;
+use std::fs;
+use std::io;
+use std::path::{Path, PathBuf};
 
+/// A directory whose files are stored encrypted for the current user.
 pub struct SafePlace {
     root: PathBuf,
 }
 
 impl SafePlace {
     pub fn new(root: PathBuf) -> io::Result<Self> {
-        if !root.exists() {
-            fs::create_dir_all(&root)?;
-        }
+        fs::create_dir_all(&root)?;
         Ok(Self { root })
     }
 
     pub fn write_encrypted(&self, filename: &str, data: &[u8]) -> io::Result<()> {
-        let encrypted = protect_data(data)?;
-        let path = self.root.join(filename);
-        let mut file = File::create(path)?;
-        file.write_all(&encrypted)?;
-        Ok(())
+        fs::write(self.root.join(filename), protect_data(data)?)
     }
 
     pub fn read_decrypted(&self, filename: &str) -> io::Result<Vec<u8>> {
-        let path = self.root.join(filename);
-        let mut file = File::open(path)?;
-        let mut encrypted = Vec::new();
-        file.read_to_end(&mut encrypted)?;
-        unprotect_data(&encrypted)
+        unprotect_data(&fs::read(self.root.join(filename))?)
     }
 
-    /// Returns a reference to the underlying root path.
-    pub fn root(&self) -> &PathBuf {
+    pub fn root(&self) -> &Path {
         &self.root
     }
 }
@@ -42,14 +32,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_safe_place_roundtrip() {
-        let temp_dir = std::env::temp_dir().join("safe_place_test");
-        let safe_place = SafePlace::new(temp_dir).unwrap();
+    fn roundtrip() {
+        let dir = tempfile::tempdir().unwrap();
+        let place = SafePlace::new(dir.path().join("vault")).unwrap();
 
         let secret = b"my_super_secret_sidecar_data";
-        safe_place.write_encrypted("sidecar.bin", secret).unwrap();
-
-        let decrypted = safe_place.read_decrypted("sidecar.bin").unwrap();
-        assert_eq!(secret.as_slice(), decrypted.as_slice());
+        place.write_encrypted("sidecar.bin", secret).unwrap();
+        assert_eq!(place.read_decrypted("sidecar.bin").unwrap(), secret);
     }
 }

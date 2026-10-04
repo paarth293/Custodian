@@ -1,14 +1,21 @@
 [package]
 name = "custodian-ipc"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
+description = "Length-prefixed, HMAC-SHA256 authenticated IPC framing."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-hmac = "0.12"
-sha2 = "0.10"
-byteorder = "1.5"
-thiserror = "1.0"
-
+byteorder.workspace = true
+hmac.workspace = true
+rand.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true

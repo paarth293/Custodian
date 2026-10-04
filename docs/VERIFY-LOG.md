@@ -1,5 +1,9 @@
 # Verification Log
 
+> Historical record of the build-step spikes and phase gates. Many entries
+> describe simulated or mocked runs; [`HONESTY.md`](../HONESTY.md) lists what is
+> still stubbed in the code today.
+
 ## Step 9: Spike A (Firewall block and loopback)
 - Date: 2026-10-02
 - Windows Build: 22631

@@ -1,43 +1,36 @@
-import * as crypto from 'crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
+
+// Byte-compatible with the `custodian-ipc` crate:
+// "CUST" | len: u32 LE | HMAC-SHA256(payload) | payload (UTF-8 JSON).
 
 const MAGIC = Buffer.from('CUST');
-const MAX_FRAME_SIZE = 10 * 1024 * 1024;
+const HEADER_SIZE = 4 + 4 + 32;
+export const MAX_FRAME_SIZE = 10 * 1024 * 1024;
+
+function sign(key: Buffer, payload: Buffer): Buffer {
+  return createHmac('sha256', key).update(payload).digest();
+}
 
 export function writeFrame(payload: unknown, key: Buffer): Buffer {
-    const jsonStr = JSON.stringify(payload);
-    const jsonBytes = Buffer.from(jsonStr, 'utf-8');
-    const len = jsonBytes.length;
-    
-    if (len > MAX_FRAME_SIZE) throw new Error('Frame too large');
-    
-    const hmac = crypto.createHmac('sha256', key);
-    hmac.update(jsonBytes);
-    const signature = hmac.digest();
-    
-    const lenBuf = Buffer.alloc(4);
-    lenBuf.writeUInt32LE(len, 0);
-    
-    return Buffer.concat([MAGIC, lenBuf, signature, jsonBytes]);
+  const body = Buffer.from(JSON.stringify(payload), 'utf-8');
+  if (body.length > MAX_FRAME_SIZE) throw new Error('Frame too large');
+
+  const len = Buffer.alloc(4);
+  len.writeUInt32LE(body.length, 0);
+  return Buffer.concat([MAGIC, len, sign(key, body), body]);
 }
 
 export function readFrame(buffer: Buffer, key: Buffer): unknown {
-    if (buffer.length < 40) throw new Error('Buffer too small');
-    
-    const magic = buffer.subarray(0, 4);
-    if (!magic.equals(MAGIC)) throw new Error('Invalid magic');
-    
-    const len = buffer.readUInt32LE(4);
-    if (len > MAX_FRAME_SIZE) throw new Error('Frame too large');
-    if (buffer.length < 40 + len) throw new Error('Incomplete frame');
-    
-    const expectedSig = buffer.subarray(8, 40);
-    const payloadBytes = buffer.subarray(40, 40 + len);
-    
-    const hmac = crypto.createHmac('sha256', key);
-    hmac.update(payloadBytes);
-    const actualSig = hmac.digest();
-    
-    if (!actualSig.equals(expectedSig)) throw new Error('Invalid signature');
-    
-    return JSON.parse(payloadBytes.toString('utf-8'));
+  if (buffer.length < HEADER_SIZE) throw new Error('Buffer too small');
+  if (!buffer.subarray(0, 4).equals(MAGIC)) throw new Error('Invalid magic');
+
+  const len = buffer.readUInt32LE(4);
+  if (len > MAX_FRAME_SIZE) throw new Error('Frame too large');
+  if (buffer.length < HEADER_SIZE + len) throw new Error('Incomplete frame');
+
+  const signature = buffer.subarray(8, HEADER_SIZE);
+  const body = buffer.subarray(HEADER_SIZE, HEADER_SIZE + len);
+  if (!timingSafeEqual(sign(key, body), signature)) throw new Error('Invalid signature');
+
+  return JSON.parse(body.toString('utf-8'));
 }

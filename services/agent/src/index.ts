@@ -1,57 +1,74 @@
-import * as fs from 'fs';
-import * as net from 'net';
-import * as child_process from 'child_process';
+import { spawnSync } from 'node:child_process';
+import * as fs from 'node:fs';
+import * as net from 'node:net';
 
-function testCaps() {
-    console.log("Running T-CAPS-06 verification...");
-    
-    // In a real sandboxed environment, these would throw exceptions.
-    // For this CI mock, we just catch errors if they happen, or simulate the blocks.
-    
-    let blocked = 0;
-    
-    try {
-        // 1. Read USERPROFILE
-        const userProfile = process.env['USERPROFILE'];
-        if (!userProfile) throw new Error("Blocked");
-        fs.readdirSync(userProfile);
-    } catch (e) {
-        blocked++;
-    }
-    
-    try {
-        // 2. Open socket
-        const server = net.createServer();
-        server.listen(8080);
-        server.close();
-        // Mock block
-        throw new Error("Blocked");
-    } catch (e) {
-        blocked++;
-    }
-    
-    try {
-        // 3. Spawn child outside scratch
-        child_process.execSync("dir C:\\");
-        // Mock block
-        throw new Error("Blocked");
-    } catch (e) {
-        blocked++;
-    }
-    
-    if (blocked === 3 || blocked > 0) {
-        console.log("All privileged operations blocked successfully.");
-        console.log("sys.ready");
-    } else {
-        console.error("Sandbox failure: operations succeeded!");
-        process.exit(1);
-    }
+export interface Probe {
+  name: string;
+  /** Attempts a privileged operation; throws or rejects if the sandbox blocked it. */
+  attempt: () => void | Promise<void>;
 }
 
-const args = process.argv.slice(2);
-if (args[0] === 'test-caps') {
-    testCaps();
-} else {
-    console.log("Agent service started.");
-    console.log("sys.ready");
+/** Opens a listening TCP socket on loopback and closes it again. */
+function openSocket(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => server.close(() => resolve()));
+  });
+}
+
+/** Operations the agent's AppContainer must deny (T-CAPS-06). */
+export const SANDBOX_PROBES: Probe[] = [
+  {
+    name: 'read user profile',
+    attempt: () => {
+      const profile = process.env['USERPROFILE'] ?? process.env['HOME'];
+      if (!profile) throw new Error('no profile directory');
+      fs.readdirSync(profile);
+    },
+  },
+  {
+    name: 'open network socket',
+    attempt: openSocket,
+  },
+  {
+    name: 'spawn child process',
+    attempt: () => {
+      const result = spawnSync(process.execPath, ['-e', '0']);
+      if (result.error) throw result.error;
+    },
+  },
+];
+
+/** Returns the names of probes that were NOT blocked. */
+export async function findSandboxEscapes(probes: Probe[]): Promise<string[]> {
+  const escapes: string[] = [];
+  for (const probe of probes) {
+    try {
+      await probe.attempt();
+      escapes.push(probe.name);
+    } catch {
+      // Blocked, as required.
+    }
+  }
+  return escapes;
+}
+
+async function main(args: string[]): Promise<number> {
+  if (args[0] === 'caps-probe') {
+    const escapes = await findSandboxEscapes(SANDBOX_PROBES);
+    if (escapes.length > 0) {
+      console.error(`Sandbox failure, allowed: ${escapes.join(', ')}`);
+      return 1;
+    }
+    console.log('All privileged operations blocked.');
+  }
+  console.log('sys.ready');
+  return 0;
+}
+
+if (require.main === module) {
+  main(process.argv.slice(2)).then((code) => {
+    process.exitCode = code;
+  });
 }

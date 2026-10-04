@@ -1,4 +1,6 @@
-// import { proxyActivities } from '@temporalio/workflow';
-export async function fileTaskWorkflow(_plan: unknown): Promise<void> {
-    console.log("FileTaskWorkflow running: shadow -> diff -> approve -> real -> verify");
+import { log } from '@temporalio/workflow';
+
+/** shadow -> diff -> approve -> real -> verify. Placeholder. */
+export async function fileTaskWorkflow(plan: unknown): Promise<void> {
+  log.info('FileTaskWorkflow started', { plan });
 }

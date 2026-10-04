@@ -1,27 +1,44 @@
+<#
+.SYNOPSIS
+    Downloads a GGUF model into models/ and pins its SHA-256 in models/manifest.json.
+
+.EXAMPLE
+    ./scripts/fetch-models.ps1 -Repo your-org/laya -HfToken $env:HF_TOKEN
+
+.EXAMPLE
+    ./scripts/fetch-models.ps1 -Mock   # placeholder file for CI and UI work
+#>
 param (
-    [Parameter(Mandatory=$false)]
-    [string]$HfToken,
-    
-    [Parameter(Mandatory=$false)]
+    [string]$Repo,
+    [string]$File = 'laya.Q4_K_M.gguf',
+    [string]$HfToken = $env:HF_TOKEN,
     [switch]$Mock
 )
 
-$ModelsDir = "models"
+$ErrorActionPreference = 'Stop'
+$modelsDir = Join-Path $PSScriptRoot '..' 'models'
+New-Item -ItemType Directory -Path $modelsDir -Force | Out-Null
+$target = Join-Path $modelsDir $File
 
 if ($Mock) {
-    Write-Host "Creating mock model files for CI..."
-    Set-Content -Path "$ModelsDir\gemma-2b-it-q4_k_m.gguf" -Value "mock_gemma_content"
-    Set-Content -Path "$ModelsDir\gemma-embedding.gguf" -Value "mock_embedding_content"
-    Write-Host "Mock models created."
-    exit 0
+    Set-Content -Path $target -Value 'mock model content' -NoNewline
+    Write-Host "Created placeholder $target"
+} else {
+    if (-not $Repo) { throw '-Repo is required (or use -Mock).' }
+    $headers = @{}
+    if ($HfToken) { $headers['Authorization'] = "Bearer $HfToken" }
+    $url = "https://huggingface.co/$Repo/resolve/main/$File"
+    Write-Host "Downloading $url ..."
+    Invoke-WebRequest -Uri $url -Headers $headers -OutFile $target
 }
 
-if (-not $HfToken) {
-    Write-Error "HfToken is required to download real models from HuggingFace."
-    exit 1
+$manifestPath = Join-Path $modelsDir 'manifest.json'
+$manifest = @{}
+if (Test-Path $manifestPath) {
+    (Get-Content $manifestPath -Raw | ConvertFrom-Json).PSObject.Properties |
+        ForEach-Object { $manifest[$_.Name] = $_.Value }
 }
-
-Write-Host "Downloading models from HuggingFace using provided token..."
-Set-Content -Path "$ModelsDir\gemma-2b-it-q4_k_m.gguf" -Value "mock_gemma_content"
-Set-Content -Path "$ModelsDir\gemma-embedding.gguf" -Value "mock_embedding_content"
-Write-Host "Models downloaded successfully!"
+$hash = (Get-FileHash -Algorithm SHA256 -Path $target).Hash.ToLowerInvariant()
+$manifest[$File] = @{ sha256 = $hash }
+$manifest | ConvertTo-Json -Depth 3 | Set-Content -Path $manifestPath
+Write-Host "Pinned $File ($hash) in $manifestPath"

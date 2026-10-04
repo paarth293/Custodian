@@ -1,42 +1,64 @@
+"""Generates the synthetic fine-tuning dataset for Laya (training/dataset.jsonl).
+
+Uses the same prompt builder as inference so the two cannot drift apart:
+    PYTHONPATH=services/mlhost python training/generate_dataset.py
+"""
+
 import json
 import random
+from pathlib import Path
 
-print("Generating training dataset for Laya...")
+from mlhost.laya import build_prompt
 
-examples = []
+OUTPUT = Path(__file__).resolve().parent / "dataset.jsonl"
+EXAMPLES_PER_CLASS = 30
+SEED = 1337
 
-# Helper function to format the data exactly how Gemma expects it
-def add_example(filename, av_hits, signed, expected_action, reason):
-    user_prompt = f"Analyze file for security decision:\nFilename: {filename}\nAV Hits: {av_hits}\nSigned: {signed}"
-    
-    # Laya must always respond in strict JSON
-    assistant_response = json.dumps({"action": expected_action, "reason": reason})
-    
-    examples.append({
+
+def example(filename: str, av_hits: int, signed: bool, action: str, reason: str) -> dict:
+    return {
         "messages": [
-            {"role": "user", "content": user_prompt},
-            {"role": "model", "content": assistant_response}
+            {"role": "user", "content": build_prompt(filename, av_hits, signed)},
+            {"role": "model", "content": json.dumps({"action": action, "reason": reason})},
         ]
-    })
+    }
 
-# --- Let's generate 90 synthetic examples ---
 
-# 1. SAFE FILES (0 hits, signed) -> approve
-for i in range(30):
-    add_example(f"windows_update_{i}.dll", 0, True, "approve", "Trusted signature and clean scan.")
+def main() -> None:
+    rng = random.Random(SEED)
+    examples = []
+    for i in range(EXAMPLES_PER_CLASS):
+        examples.append(
+            example(
+                f"windows_update_{i}.dll", 0, True, "approve", "Trusted signature and clean scan."
+            )
+        )
+    for i in range(EXAMPLES_PER_CLASS):
+        examples.append(
+            example(
+                f"free_minecraft_hack_{i}.exe",
+                rng.randint(5, 15),
+                False,
+                "delete",
+                "Multiple antivirus engines detected malware.",
+            )
+        )
+    for i in range(EXAMPLES_PER_CLASS):
+        examples.append(
+            example(
+                f"unknown_script_{i}.bat",
+                rng.randint(1, 4),
+                False,
+                "quarantine",
+                "Suspicious heuristics detected, isolating for manual review.",
+            )
+        )
 
-# 2. OBVIOUS MALWARE (5+ hits, unsigned) -> delete
-for i in range(30):
-    add_example(f"free_minecraft_hack_{i}.exe", random.randint(5, 15), False, "delete", "Multiple antivirus engines detected malware.")
+    with OUTPUT.open("w", encoding="utf-8") as f:
+        for ex in examples:
+            f.write(json.dumps(ex) + "\n")
+    print(f"Generated {len(examples)} examples in {OUTPUT}")
 
-# 3. SUSPICIOUS FILES (1-4 hits, or unsigned) -> quarantine
-for i in range(30):
-    add_example(f"unknown_script_{i}.bat", random.randint(1, 4), False, "quarantine", "Suspicious heuristics detected, isolating for manual review.")
 
-# Save to a JSONL file
-output_path = "training/dataset.jsonl"
-with open(output_path, "w") as f:
-    for ex in examples:
-        f.write(json.dumps(ex) + "\n")
-
-print(f"Success! Generated {len(examples)} examples in {output_path}")
+if __name__ == "__main__":
+    main()

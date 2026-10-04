@@ -1,8 +1,12 @@
 [package]
 name = "custodian-elevate"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
+description = "Minimal elevation helper exposing a fixed set of privileged verbs."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
 
-[dependencies]
-
+[lints]
+workspace = true

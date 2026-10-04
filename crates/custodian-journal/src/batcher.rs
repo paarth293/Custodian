@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use tokio::sync::mpsc;
 use tokio::time::{timeout, Duration};
 
+/// Collapses bursts of file-system events into one set of unique paths.
 pub struct JournalBatcher {
     debounce_ms: u64,
 }
@@ -12,17 +13,17 @@ impl JournalBatcher {
         Self { debounce_ms }
     }
 
+    /// Waits for the first event, then keeps collecting until the channel is
+    /// quiet for the debounce window. Returns an empty batch once the channel
+    /// is closed.
     pub async fn process(
         &self,
         rx: &mut mpsc::Receiver<(PathBuf, notify::EventKind)>,
     ) -> Vec<PathBuf> {
-        let mut paths = HashSet::new();
-        
-        if let Some((path, _)) = rx.recv().await {
-            paths.insert(path);
-        } else {
-            return vec![];
-        }
+        let Some((first, _)) = rx.recv().await else {
+            return Vec::new();
+        };
+        let mut paths = HashSet::from([first]);
 
         let window = Duration::from_millis(self.debounce_ms);
         while let Ok(Some((path, _))) = timeout(window, rx.recv()).await {
@@ -39,18 +40,22 @@ mod tests {
     use notify::EventKind;
 
     #[tokio::test]
-    async fn test_debounce() {
+    async fn deduplicates_burst() {
         let (tx, mut rx) = mpsc::channel(100);
         let batcher = JournalBatcher::new(50);
-        
         let path = PathBuf::from("file.txt");
-        
+
         for _ in 0..5 {
             tx.send((path.clone(), EventKind::Any)).await.unwrap();
         }
-        
-        let results = batcher.process(&mut rx).await;
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0], path);
+
+        assert_eq!(batcher.process(&mut rx).await, vec![path]);
+    }
+
+    #[tokio::test]
+    async fn closed_channel_yields_empty_batch() {
+        let (tx, mut rx) = mpsc::channel::<(PathBuf, EventKind)>(1);
+        drop(tx);
+        assert!(JournalBatcher::new(10).process(&mut rx).await.is_empty());
     }
 }

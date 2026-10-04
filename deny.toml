@@ -1,18 +1,22 @@
+[graph]
+all-features = true
+
 [advisories]
 ignore = [
-    "RUSTSEC-2024-0436",  # paste - unmaintained, pulled in by sqlx, no fix available
-    "RUSTSEC-2024-0363",  # sqlx 0.7.x vuln - tracked for upgrade, not exploitable without >4GiB inputs
+    # proc-macro-error is unmaintained (not a vulnerability). It is pulled in
+    # by gtk-rs via Tauri's Linux tray backend and has no upstream fix yet.
+    { id = "RUSTSEC-2024-0370", reason = "transitive via tauri -> gtk; Linux-only, no fix available" },
 ]
 
 [licenses]
 allow = [
     "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
     "MIT",
     "BSD-2-Clause",
     "BSD-3-Clause",
     "ISC",
     "MPL-2.0",
-    "Unicode-DFS-2016",
     "Unicode-3.0",
     "CC0-1.0",
     "Zlib",
@@ -20,7 +24,6 @@ allow = [
 
 [bans]
 multiple-versions = "warn"
-deny = []
 
 [sources]
 unknown-registry = "deny"
