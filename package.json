@@ -12,7 +12,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "tsc -b && npm run build -w apps/desktop",
+    "clean": "npm run clean --workspaces --if-present",
+    "build": "npm run clean && tsc -b && npm run build -w apps/desktop",
     "typecheck": "tsc -b && npm run typecheck -w apps/desktop",
     "lint": "eslint .",
     "format": "prettier --write .",
