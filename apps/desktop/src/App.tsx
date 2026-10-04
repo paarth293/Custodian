@@ -5,6 +5,7 @@ import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } fro
 import './App.css';
 import ApprovalView, { Plan } from './components/ApprovalView';
 import ChatPanel, { Message } from './components/ChatPanel';
+import { appendReply, type ChatEvent } from './chat/events';
 import CubbyCharacter from './cubby/CubbyCharacter';
 import CubbyStage from './cubby/CubbyStage';
 import { showCubbyMenu } from './cubby/contextMenu';
@@ -24,6 +25,7 @@ function App() {
   const [panelSide, setPanelSide] = useState<PanelSide | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isThinking, setIsThinking] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   const [activity, setActivity] = useState<Activity | null>(null);
   const [held, setHeld] = useState(false);
   const [bubble, setBubble] = useState<string | null>("Hi! I'm Cubby.");
@@ -164,63 +166,50 @@ function App() {
     const userMsg: Message = { id: Date.now().toString(), role: 'user', content: text };
     setMessages((prev) => [...prev, userMsg]);
     life.poke();
-
-    // Developer mock: typing "plan" triggers a test plan
-    if (text.toLowerCase() === 'plan') {
-      setPendingPlan({
-        id: 'plan-12345',
-        riskLevel: 'high',
-        operations: [
-          { path: 'C:\\Users\\Downloads\\sus_file.exe', action: 'quarantine', sizeBytes: 154000 },
-          { path: 'C:\\Users\\Downloads\\malware.dll', action: 'delete', sizeBytes: 88000 },
-        ],
-      });
-      return;
-    }
-
     setIsThinking(true);
+    setStatus(null);
     setActivity('thinking');
 
-    const replyId = (Date.now() + 1).toString();
-    let started = false;
-    const channel = new Channel<string>();
-    channel.onmessage = (token: string) => {
-      if (!started) {
-        started = true;
-        setIsThinking(false);
-        setActivity('working');
-        setMessages((prev) => [...prev, { id: replyId, role: 'assistant', content: '' }]);
+    const replyId = `${Date.now()}-reply`;
+    const channel = new Channel<ChatEvent>();
+    channel.onmessage = (event) => {
+      switch (event.kind) {
+        case 'status':
+          setStatus(event.text);
+          setActivity('working');
+          break;
+        case 'text':
+          setMessages((prev) => appendReply(prev, replyId, event.text));
+          break;
+        case 'plan':
+          setPendingPlan(event.plan);
+          break;
+        case 'action':
+          if (event.action === 'sleep') setTimeout(() => life.sleep(), 1500);
+          break;
       }
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === replyId ? { ...msg, content: msg.content + token } : msg)),
-      );
     };
 
     try {
       await invoke('send_chat_message', { message: text, channel });
-      setActivity(null);
       life.react('happy', 1600);
     } catch (err) {
       console.error('Chat error:', err);
-      setActivity(null);
       life.react('curious', 2000);
-      setMessages((prev) => [
-        ...prev,
-        { id: replyId + '-err', role: 'assistant', content: '[Connection error]' },
-      ]);
+      setMessages((prev) =>
+        appendReply(prev, replyId, `Sorry, something went wrong: ${String(err)}`),
+      );
     } finally {
+      setActivity(null);
+      setStatus(null);
       setIsThinking(false);
     }
   };
 
-  const handleApprovalDecided = (approved: boolean) => {
+  const handleApprovalDecided = (approved: boolean, result: string) => {
     setMessages((prev) => [
       ...prev,
-      {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: approved ? 'Plan approved and executed successfully.' : 'Plan was rejected.',
-      },
+      { id: `${Date.now()}-result`, role: 'assistant', content: result },
     ]);
     setPendingPlan(null);
     life.react(approved ? 'excited' : 'happy', 1800);
@@ -250,6 +239,7 @@ function App() {
           <ChatPanel
             messages={messages}
             isThinking={isThinking}
+            status={status}
             onSendMessage={handleSendMessage}
           />
           {pendingPlan && <ApprovalView plan={pendingPlan} onDecided={handleApprovalDecided} />}

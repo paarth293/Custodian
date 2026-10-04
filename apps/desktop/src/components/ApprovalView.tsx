@@ -1,7 +1,10 @@
-import { invoke } from '@tauri-apps/api/core';
+import { useState } from 'react';
+import { call } from '../lib/tauri';
 
 export type FileOperation = {
   path: string;
+  /** The identical copy that stays where it is. */
+  keep?: string;
   action: 'quarantine' | 'delete';
   sizeBytes: number;
 };
@@ -10,64 +13,91 @@ export type Plan = {
   id: string;
   operations: FileOperation[];
   riskLevel: 'low' | 'medium' | 'high';
+  summary?: string;
+  totalBytes?: number;
 };
 
 interface ApprovalViewProps {
   plan: Plan;
-  onDecided: (approved: boolean) => void;
+  /** Called after the decision with the result to show in the chat. */
+  onDecided: (approved: boolean, result: string) => void;
 }
+
+/** Items listed before collapsing the rest into "+N more". */
+const VISIBLE_ITEMS = 50;
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+}
+
+function fileName(path: string) {
+  return path.split(/[\\/]/).pop() ?? path;
 }
 
 /**
- * Read-only approval prompt. Signing happens in Rust after a genuine click is
- * observed by the input hook; this view never receives key material.
+ * The approval card for a clean-up plan. The plan itself lives in Rust; this
+ * view only sends the plan id back, so the webview can never inject paths.
  */
 export default function ApprovalView({ plan, onDecided }: ApprovalViewProps) {
-  const handleApprove = async () => {
-    // Notify Tauri backend that the user clicked approve.
-    // The Rust `input_hook` ensures this was a physical click.
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const total = plan.totalBytes ?? plan.operations.reduce((sum, op) => sum + op.sizeBytes, 0);
+  const hidden = plan.operations.length - VISIBLE_ITEMS;
+
+  const approve = async () => {
+    setBusy(true);
+    setError(null);
     try {
-      await invoke('approve_plan', { planId: plan.id });
-      onDecided(true);
+      const result = await call<string>('approve_plan', { planId: plan.id });
+      onDecided(true, result ?? 'Done.');
     } catch (err) {
-      console.error('Approval failed:', err);
+      setError(String(err));
+      setBusy(false);
     }
   };
 
-  const handleReject = () => {
-    onDecided(false);
+  const reject = async () => {
+    await call('reject_plan', { planId: plan.id }).catch(() => undefined);
+    onDecided(false, "Okay, I won't change anything.");
   };
 
   return (
     <section className="approval-view" aria-labelledby="approval-title">
       <h2 id="approval-title" className={`risk-${plan.riskLevel}`}>
-        Approval Required ({plan.riskLevel} risk)
+        Clean-up plan · {plan.operations.length} {plan.operations.length === 1 ? 'file' : 'files'} ·{' '}
+        {formatBytes(total)}
       </h2>
-      <p>The AI Agent proposes the following actions:</p>
+      {plan.summary && <p>{plan.summary}</p>}
 
       <ul className="file-operations-list">
-        {plan.operations.map((op, idx) => (
-          <li key={idx} className={`operation-item op-${op.action}`}>
-            <span className="op-badge">{op.action}</span>
-            <span className="op-path" title={op.path}>
-              {op.path.length > 50 ? '...' + op.path.slice(-47) : op.path}
-            </span>
+        {plan.operations.slice(0, VISIBLE_ITEMS).map((op) => (
+          <li
+            key={op.path}
+            className={`operation-item op-${op.action}`}
+            title={op.keep ? `${op.path}\nIdentical to (kept): ${op.keep}` : op.path}
+          >
+            <span className="op-badge">{op.action === 'quarantine' ? 'move' : op.action}</span>
+            <span className="op-path">{fileName(op.path)}</span>
             <span className="op-size">{formatBytes(op.sizeBytes)}</span>
           </li>
         ))}
+        {hidden > 0 && <li className="operation-more">+{hidden} more</li>}
       </ul>
 
+      {error && (
+        <p className="approval-error" role="alert">
+          {error}
+        </p>
+      )}
       <div className="approval-actions">
-        <button className="btn-reject" onClick={handleReject}>
-          Reject
+        <button className="btn-reject" onClick={() => void reject()} disabled={busy}>
+          Not now
         </button>
-        <button className="btn-approve" onClick={handleApprove}>
-          Approve Plan
+        <button className="btn-approve" onClick={() => void approve()} disabled={busy}>
+          {busy ? 'Cleaning up…' : 'Approve clean-up'}
         </button>
       </div>
     </section>
