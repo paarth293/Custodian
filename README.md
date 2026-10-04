@@ -88,6 +88,9 @@ CUSTODIAN_IPC_KEY=dev-key PYTHONPATH=services/mlhost python -m mlhost
 npm run fixtures -- --persona demo --out ./fixture   # sample data
 ```
 
+App icons are generated from `apps/desktop/src-tauri/icons/custodian.svg` with
+`npx tauri icon src-tauri/icons/custodian.svg -o src-tauri/icons` (run in `apps/desktop`).
+
 Place model files in `models/` with `scripts/fetch-models.ps1`, which also pins
 their SHA-256 in `models/manifest.json`; unpinned or modified models are refused.
 
