@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as net from 'node:net';
 
 export { getChatSession, chatWithModel } from './llm';
+export * from './tools';
 
 export interface Probe {
   name: string;
