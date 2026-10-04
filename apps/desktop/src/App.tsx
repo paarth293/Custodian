@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { invoke, Channel } from '@tauri-apps/api/core';
+import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
 import './App.css';
 import Cubby from './components/Cubby';
 import ChatPanel, { Message } from './components/ChatPanel';
@@ -12,6 +13,18 @@ function App() {
   
   // Phase 4: Holds the plan awaiting user approval
   const [pendingPlan, setPendingPlan] = useState<Plan | null>(null);
+
+  useEffect(() => {
+    // Resize the Tauri window when toggling the chat panel
+    const appWindow = getCurrentWindow();
+    if (expanded) {
+      // Show Chat Panel (120px for Cubby + 300px for Chat) x (600px height)
+      appWindow.setSize(new LogicalSize(420, 520)).catch(console.error);
+    } else {
+      // Just Cubby
+      appWindow.setSize(new LogicalSize(120, 120)).catch(console.error);
+    }
+  }, [expanded]);
 
   const handleSendMessage = async (text: string) => {
     const userMsg: Message = { id: Date.now().toString(), role: 'user', content: text };
