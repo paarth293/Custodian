@@ -17,7 +17,17 @@ MAX_FRAME_SIZE = 10 * 1024 * 1024
 
 
 class FrameError(ValueError):
-    """Raised for malformed or unauthenticated frames."""
+    """A complete frame was read but is malformed or unauthenticated.
+
+    The stream is still aligned on a frame boundary, so reading may continue.
+    """
+
+
+class StreamDesyncError(FrameError):
+    """The frame header is unusable (bad magic or oversized length).
+
+    The body length cannot be trusted, so the stream must be closed.
+    """
 
 
 def _sign(key: bytes, payload: bytes) -> bytes:
@@ -48,20 +58,29 @@ def read_frame(data: bytes, key: bytes) -> dict[str, Any]:
     if not hmac.compare_digest(_sign(key, body), signature):
         raise FrameError("invalid signature")
 
-    payload = json.loads(body.decode("utf-8"))
+    try:
+        payload = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise FrameError(f"invalid JSON payload: {exc}") from exc
     if not isinstance(payload, dict):
         raise FrameError("payload must be a JSON object")
     return payload
 
 
 def read_frame_from(stream: BinaryIO, key: bytes) -> dict[str, Any] | None:
-    """Reads one frame from ``stream``; returns ``None`` at end of stream."""
+    """Reads one frame from ``stream``; returns ``None`` at end of stream.
+
+    Raises :class:`StreamDesyncError` when the header cannot be trusted and
+    :class:`FrameError` when a complete frame fails validation.
+    """
     header = stream.read(HEADER_SIZE)
     if len(header) < HEADER_SIZE:
         return None
+    if header[:4] != MAGIC:
+        raise StreamDesyncError("invalid magic")
     (length,) = struct.unpack("<I", header[4:8])
     if length > MAX_FRAME_SIZE:
-        raise FrameError("frame too large")
+        raise StreamDesyncError("frame too large")
     body = stream.read(length)
     if len(body) < length:
         return None

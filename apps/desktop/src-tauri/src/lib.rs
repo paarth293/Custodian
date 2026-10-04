@@ -23,6 +23,8 @@ fn get_ledger() -> Vec<String> {
     ]
 }
 
+/// Commands exposed to webviews. Approval signing is intentionally absent:
+/// see `approval_service`.
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
@@ -33,8 +35,6 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             invoke_broker,
             get_ledger,
-            approval_service::sign_approval,
-            approval_window::request_approval,
             clipboard::set_private_text,
             placement::set_calm_mode,
         ])

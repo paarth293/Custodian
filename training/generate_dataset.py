@@ -1,30 +1,24 @@
 """Generates the synthetic fine-tuning dataset for Laya (training/dataset.jsonl).
 
-The prompt format must match ``mlhost.laya.build_prompt``.
+Uses the same prompt builder as inference so the two cannot drift apart:
+    PYTHONPATH=services/mlhost python training/generate_dataset.py
 """
 
 import json
 import random
 from pathlib import Path
 
+from mlhost.laya import build_prompt
+
 OUTPUT = Path(__file__).resolve().parent / "dataset.jsonl"
 EXAMPLES_PER_CLASS = 30
 SEED = 1337
 
 
-def prompt(filename: str, av_hits: int, signed: bool) -> str:
-    return (
-        "Analyze file for security decision:\n"
-        f"Filename: {filename}\n"
-        f"AV Hits: {av_hits}\n"
-        f"Signed: {signed}"
-    )
-
-
 def example(filename: str, av_hits: int, signed: bool, action: str, reason: str) -> dict:
     return {
         "messages": [
-            {"role": "user", "content": prompt(filename, av_hits, signed)},
+            {"role": "user", "content": build_prompt(filename, av_hits, signed)},
             {"role": "model", "content": json.dumps({"action": action, "reason": reason})},
         ]
     }

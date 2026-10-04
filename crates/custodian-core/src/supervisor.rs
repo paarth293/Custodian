@@ -1,9 +1,10 @@
 use std::io;
 use std::time::Duration;
 use tokio::process::Command;
+use tokio::task::JoinSet;
 use tokio::time::sleep;
 
-/// Maximum restarts attempted for a crashing child before giving up.
+/// Restarts allowed for a crashing child after its first launch.
 pub const MAX_RESTARTS: u32 = 3;
 const RESTART_BACKOFF: Duration = Duration::from_millis(10);
 
@@ -13,7 +14,27 @@ struct ChildSpec {
     args: Vec<String>,
 }
 
-/// Starts child processes and restarts them on failure, up to [`MAX_RESTARTS`].
+impl ChildSpec {
+    /// Runs the child until it exits successfully or exhausts its restarts.
+    /// Returns the number of launches.
+    async fn supervise(&self) -> io::Result<u32> {
+        let mut launches = 0;
+        loop {
+            launches += 1;
+            let status = Command::new(&self.exe_path)
+                .args(&self.args)
+                .status()
+                .await?;
+            if status.success() || launches > MAX_RESTARTS {
+                return Ok(launches);
+            }
+            sleep(RESTART_BACKOFF).await;
+        }
+    }
+}
+
+/// Runs child processes concurrently, restarting each on failure up to
+/// [`MAX_RESTARTS`] times.
 #[derive(Debug, Default)]
 pub struct Supervisor {
     children: Vec<ChildSpec>,
@@ -31,25 +52,20 @@ impl Supervisor {
         });
     }
 
-    /// Runs every child to completion and returns how many attempts each took.
+    /// Starts every child at once and waits for all of them to finish.
+    /// Returns the number of launches per child, in registration order.
     pub async fn run(&self) -> io::Result<Vec<u32>> {
-        let mut attempts = Vec::with_capacity(self.children.len());
-        for child in &self.children {
-            let mut attempt = 0;
-            loop {
-                attempt += 1;
-                let status = Command::new(&child.exe_path)
-                    .args(&child.args)
-                    .status()
-                    .await?;
-                if status.success() || attempt >= MAX_RESTARTS {
-                    break;
-                }
-                sleep(RESTART_BACKOFF).await;
-            }
-            attempts.push(attempt);
+        let mut tasks = JoinSet::new();
+        for (index, child) in self.children.iter().cloned().enumerate() {
+            tasks.spawn(async move { (index, child.supervise().await) });
         }
-        Ok(attempts)
+
+        let mut launches = vec![0; self.children.len()];
+        while let Some(joined) = tasks.join_next().await {
+            let (index, result) = joined.map_err(io::Error::other)?;
+            launches[index] = result?;
+        }
+        Ok(launches)
     }
 }
 
@@ -83,6 +99,18 @@ mod tests {
         let (exe, args) = succeeding();
         sup.add_child(exe, args);
 
-        assert_eq!(sup.run().await.unwrap(), vec![MAX_RESTARTS, 1]);
+        assert_eq!(sup.run().await.unwrap(), vec![1 + MAX_RESTARTS, 1]);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn runs_children_concurrently() {
+        let mut sup = Supervisor::new();
+        sup.add_child("sleep", &["0.5"]);
+        sup.add_child("sleep", &["0.5"]);
+
+        let started = std::time::Instant::now();
+        sup.run().await.unwrap();
+        assert!(started.elapsed() < Duration::from_millis(900));
     }
 }
