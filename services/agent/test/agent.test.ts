@@ -129,6 +129,16 @@ describe('supply-chain verification', () => {
     expect(loadPrompt('planner_offline')).toContain('offline planner');
   });
 
+  it('verifies a prompt identically with CRLF and LF line endings', () => {
+    const lf = 'line one\nline two\n';
+    fs.writeFileSync(
+      path.join(tmp, 'manifest.json'),
+      JSON.stringify({ p: { sha256: sha256(lf) } }),
+    );
+    fs.writeFileSync(path.join(tmp, 'p.md'), lf.replace(/\n/g, '\r\n'));
+    expect(loadPrompt('p', tmp)).toBe(lf);
+  });
+
   it('rejects a prompt whose content changed', () => {
     fs.writeFileSync(path.join(tmp, 'p.md'), 'changed');
     fs.writeFileSync(

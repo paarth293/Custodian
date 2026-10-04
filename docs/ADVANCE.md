@@ -451,9 +451,10 @@ other, and they stay up.
 - Give Cubby a consistent personality: warm, brief, plain words, no jargon. Put
   this in a short "voice" section of the prompt, with three or four example
   exchanges.
-- Update `prompts/manifest.json` with the new hashes. **Compute hashes on
-  LF-normalised text**, or a Windows checkout with CRLF line endings produces a
-  different hash (this happened recently and broke CI).
+- Update `prompts/manifest.json` with the new hashes. The loader normalises
+  line endings to LF before hashing, so pin the hash of the LF text
+  (`sha256sum` on a Linux or WSL checkout). Then the same prompt verifies on
+  Windows and Linux.
 - **Prove it:** the prompt-loading test passes, and a dozen conversation
   examples from Phase 6 behave as intended.
 
