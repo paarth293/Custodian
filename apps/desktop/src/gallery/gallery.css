@@ -1,0 +1,39 @@
+.gallery {
+  min-height: 100vh;
+  padding: 24px;
+  color: #e8eeff;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: radial-gradient(circle at 30% 20%, #26345f, #0d1428 70%);
+  overflow: auto;
+}
+.gallery header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.gallery-row {
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.gallery-row.special {
+  background: radial-gradient(circle at 30% 30%, rgba(255, 170, 60, 0.25), rgba(40, 20, 5, 0.4));
+}
+.gallery-hero {
+  display: flex;
+  justify-content: center;
+}
+.gallery-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.gallery-grid figure {
+  margin: 0;
+  text-align: center;
+}
+.gallery-grid figcaption {
+  font-size: 13px;
+  opacity: 0.8;
+}

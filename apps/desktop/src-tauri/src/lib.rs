@@ -1,5 +1,4 @@
 //! Custodian desktop shell: the Cubby window, tray menu and UI commands.
-use tauri::Manager;
 
 mod approval_service;
 mod approval_window;
@@ -7,6 +6,8 @@ mod clipboard;
 mod cubby_window;
 mod hello;
 mod input_hook;
+mod layout;
+mod mode;
 mod placement;
 mod tray;
 
@@ -25,20 +26,20 @@ fn get_ledger() -> Vec<String> {
 }
 
 #[tauri::command]
-fn set_ignore_cursor_events(app: tauri::AppHandle, ignore: bool) -> Result<(), String> {
-    if let Some(window) = app.get_webview_window(cubby_window::CUBBY_LABEL) {
-        window.set_ignore_cursor_events(ignore).map_err(|e| e.to_string())?;
-    }
-    Ok(())
-}
-
-#[tauri::command]
-async fn send_chat_message(message: String, channel: tauri::ipc::Channel<String>) -> Result<(), String> {
+async fn send_chat_message(
+    message: String,
+    channel: tauri::ipc::Channel<String>,
+) -> Result<(), String> {
     // Phase 2.3: Placeholder for Node Agent IPC stream.
     // This perfectly mimics the stream layout until the agent process manager is wired.
-    let reply = format!("Hello! I received your message: \"{}\". I am currently running in offline mode.", message);
+    let reply = format!(
+        "Hello! I received your message: \"{}\". I am currently running in offline mode.",
+        message
+    );
     for word in reply.split_whitespace() {
-        channel.send(format!("{} ", word)).map_err(|e| e.to_string())?;
+        channel
+            .send(format!("{} ", word))
+            .map_err(|e| e.to_string())?;
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
     Ok(())
@@ -55,6 +56,8 @@ fn approve_plan(plan_id: String) -> Result<(), String> {
 /// see `approval_service`.
 pub fn run() {
     tauri::Builder::default()
+        .manage(mode::ModeState::default())
+        .manage(cubby_window::CubbyWindowState::default())
         .setup(|app| {
             cubby_window::create_cubby_window(app.handle())?;
             tray::create_tray(app.handle())?;
@@ -63,12 +66,22 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             invoke_broker,
             get_ledger,
-            set_ignore_cursor_events,
             send_chat_message,
             approve_plan,
             clipboard::set_private_text,
             placement::set_calm_mode,
+            cubby_window::set_panel_open,
+            cubby_window::set_click_through,
+            cubby_window::hide_cubby,
+            cubby_window::quit_app,
+            mode::get_mode,
+            mode::set_demo_mode,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running the Custodian desktop shell");
+        .build(tauri::generate_context!())
+        .expect("error while building the Custodian desktop shell")
+        .run(|app, event| {
+            if let tauri::RunEvent::Exit = event {
+                cubby_window::persist(app);
+            }
+        });
 }

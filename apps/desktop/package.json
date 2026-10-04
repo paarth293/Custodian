@@ -11,16 +11,13 @@
     "typecheck": "tsc",
     "preview": "vite preview",
     "tauri": "tauri",
-    "icons": "node scripts/icons.mjs"
+    "icons": "node scripts/icons.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@rive-app/canvas": "2.44.0",
-    "@rive-app/react-canvas": "^4.36.0",
     "@tauri-apps/api": "^2.12.1",
-    "@tauri-apps/plugin-window": "^2.0.0-alpha.1",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "zustand": "^5.0.15"
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
