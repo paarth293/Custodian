@@ -84,6 +84,7 @@ pytest                                   # Python
 
 ```sh
 npm run tauri -w apps/desktop -- dev     # desktop shell with hot reload
+npm run dev -w apps/desktop              # then open http://localhost:1420/?gallery to preview every Cubby mood
 CUSTODIAN_IPC_KEY=dev-key PYTHONPATH=services/mlhost python -m mlhost
 npm run fixtures -- --persona demo --out ./fixture   # sample data
 ```
