@@ -1,22 +1,30 @@
-import { invoke } from '@tauri-apps/api/core';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import './App.css';
 import Cubby from './components/Cubby';
+import ChatPanel, { Message } from './components/ChatPanel';
 
 function App() {
   const [expanded, setExpanded] = useState(false);
-  const [ledger, setLedger] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isThinking, setIsThinking] = useState(false);
 
-  useEffect(() => {
-    if (!expanded) return;
-    invoke<string[]>('get_ledger')
-      .then((entries) => {
-        setLedger(entries);
-        setError(null);
-      })
-      .catch((err: unknown) => setError(String(err)));
-  }, [expanded]);
+  const handleSendMessage = (text: string) => {
+    // Optimistically add user message
+    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: text };
+    setMessages((prev) => [...prev, userMsg]);
+    setIsThinking(true);
+    
+    // Placeholder for actual LLM call (Step 4 & 5)
+    setTimeout(() => {
+      const replyMsg: Message = { 
+        id: (Date.now() + 1).toString(), 
+        role: 'assistant', 
+        content: `I received your message: "${text}". The AI brain will be wired up soon!` 
+      };
+      setMessages((prev) => [...prev, replyMsg]);
+      setIsThinking(false);
+    }, 1000);
+  };
 
   return (
     <div className={`app-container${expanded ? ' expanded' : ''}`}>
@@ -25,7 +33,7 @@ function App() {
           type="button"
           className="cubby-wrapper"
           aria-expanded={expanded}
-          aria-label={expanded ? 'Hide ledger' : 'Show ledger'}
+          aria-label={expanded ? 'Hide chat' : 'Show chat'}
           onClick={() => setExpanded((value) => !value)}
         >
           <Cubby />
@@ -33,18 +41,11 @@ function App() {
       </div>
 
       {expanded && (
-        <section className="settings-panel" aria-label="Ledger and settings">
-          <h2>Ledger &amp; Settings</h2>
-          {error ? (
-            <p role="alert">Could not load the ledger: {error}</p>
-          ) : (
-            <ul>
-              {ledger.map((entry, index) => (
-                <li key={index}>{entry}</li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <ChatPanel 
+          messages={messages} 
+          isThinking={isThinking} 
+          onSendMessage={handleSendMessage} 
+        />
       )}
     </div>
   );
