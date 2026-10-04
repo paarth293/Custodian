@@ -38,8 +38,10 @@ Placeholders with their final signatures but without the real implementation.
 ### Services
 
 - Agent: no LLM runtime, classifier, search or tool execution yet; only the
-  verification, integrity, IPC and access-control building blocks exist. The
-  offline planner prompt is a one-line placeholder.
+  verification, integrity, IPC and access-control building blocks exist.
+  `readerExtract` flags prompt-injection markers but returns a fixed summary
+  instead of extracting data. The offline planner prompt is a one-line
+  placeholder.
 - Broker: actions are validated but no browser is driven.
 - Orchestrator: workflows log and return; activities do not send IPC.
 - ML host: `extract_embeddings` returns a zero vector; `safety`, `tabpfn_models`

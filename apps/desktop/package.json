@@ -10,7 +10,8 @@
     "build": "tsc && vite build",
     "typecheck": "tsc",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "icons": "node scripts/icons.mjs"
   },
   "dependencies": {
     "@rive-app/canvas": "2.44.0",

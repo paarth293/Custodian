@@ -11,6 +11,12 @@ from mlhost.model_loader import load_model
 ACTIONS = frozenset({"approve", "delete", "quarantine"})
 ABSTAINED = "abstained"
 
+SYSTEM_PROMPT = (
+    "You are Custodian AI. You analyze file metadata and return exactly one action "
+    'in JSON format: {"action": "..."}. The ONLY allowed actions are: "approve", '
+    '"delete", or "quarantine". Do not use any other words.'
+)
+
 
 def build_prompt(filename: str, av_hits: int, signed: bool) -> str:
     """Prompt format Laya was fine-tuned on (see training/generate_dataset.py)."""
@@ -37,14 +43,8 @@ def decide(data: dict[str, Any]) -> str:
         model = load_model()
         response = model.create_chat_completion(
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are Custodian AI. You analyze file metadata and return exactly one action in JSON format: {'action': '...'}. The ONLY allowed actions are: 'approve', 'delete', or 'quarantine'. Do not use any other words."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
             ],
             max_tokens=100,
             temperature=0.1,
