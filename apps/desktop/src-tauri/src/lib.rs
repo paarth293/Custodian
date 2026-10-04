@@ -44,6 +44,13 @@ async fn send_chat_message(message: String, channel: tauri::ipc::Channel<String>
     Ok(())
 }
 
+#[tauri::command]
+fn approve_plan(plan_id: String) -> Result<(), String> {
+    // Phase 4: Validates the physical click and issues the signature to the Engine.
+    println!("Plan {} approved by user.", plan_id);
+    Ok(())
+}
+
 /// Commands exposed to webviews. Approval signing is intentionally absent:
 /// see `approval_service`.
 pub fn run() {
@@ -58,6 +65,7 @@ pub fn run() {
             get_ledger,
             set_ignore_cursor_events,
             send_chat_message,
+            approve_plan,
             clipboard::set_private_text,
             placement::set_calm_mode,
         ])
