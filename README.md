@@ -19,7 +19,7 @@ over HMAC-authenticated IPC frames (`custodian-ipc`).
 | ------------- | ------------------------------------------------ | --------------- | ----------------------------------------------------- |
 | Desktop shell | [`apps/desktop`](apps/desktop)                   | Tauri 2 + React | Cubby window, tray, approvals                         |
 | Core & engine | [`crates/`](crates)                              | Rust            | Supervision, journaled and reversible file operations |
-| Agent         | [`services/agent`](services/agent)               | TypeScript      | Prompt loading, tool schemas, output verification     |
+| Agent         | [`services/agent`](services/agent)               | TypeScript      | Local chat model, prompts, output verification        |
 | Broker        | [`services/broker`](services/broker)             | TypeScript      | Isolated browser actions for online mode              |
 | Orchestrator  | [`services/orchestrator`](services/orchestrator) | TypeScript      | Temporal worker for long-running workflows            |
 | ML host       | [`services/mlhost`](services/mlhost)             | Python          | Local model inference (Laya) over stdio IPC           |
@@ -29,7 +29,7 @@ over HMAC-authenticated IPC frames (`custodian-ipc`).
 
 | Crate                | Purpose                                                         |
 | -------------------- | --------------------------------------------------------------- |
-| `custodian-core`     | Process supervisor, IPC routing policy, install-lab helpers     |
+| `custodian-core`     | Duplicate finder, safe quarantine with undo, supervisor         |
 | `custodian-engine`   | Approval verification, reversible operations, recovery, undo    |
 | `custodian-journal`  | File-system watcher, debouncer, CRC-checked write-ahead journal |
 | `custodian-ledger`   | Hash-chained, tamper-evident transaction ledger                 |
@@ -88,6 +88,31 @@ npm run dev -w apps/desktop              # then open http://localhost:1420/?gall
 CUSTODIAN_IPC_KEY=dev-key PYTHONPATH=services/mlhost python -m mlhost
 npm run fixtures -- --persona demo --out ./fixture   # sample data
 ```
+
+### Talking to Cubby
+
+Click Cubby to open the chat. These requests work without any model:
+
+| Ask                                             | What happens                                                      |
+| ----------------------------------------------- | ----------------------------------------------------------------- |
+| "find duplicates", "duplicates in Pictures"     | Scans your user folders and proposes a clean-up plan for approval |
+| _Approve_ on the plan                           | Moves the extra copies to a quarantine folder, verified by hash   |
+| "undo", "what did you do?"                      | Puts the last clean-up back; lists recent clean-ups               |
+| "biggest files in Downloads", "how much space?" | Lists the largest files; shows free space per drive               |
+| "open notepad", "open downloads", "open myntra" | Opens an allow-listed app, a known folder or a website            |
+| "search cheap flights", "what time is it?"      | Web search in your browser; time and date                         |
+
+Anything else goes to the local language model. To enable it, put a GGUF chat
+model (for example a small instruct model such as Qwen2.5 1.5B Instruct
+Q4_K_M) in `models/` and build the agent once:
+
+```sh
+npm run build                           # creates services/agent/dist/server.js
+```
+
+Optional environment variables: `CUSTODIAN_CHAT_MODEL` (file name in `models/`),
+`CUSTODIAN_MODELS_DIR`, `CUSTODIAN_AGENT_ENTRY` and `CUSTODIAN_NODE` (path to
+`node`). Without a model, Cubby says so and lists what it can already do.
 
 App icons are generated from `apps/desktop/src-tauri/icons/custodian.svg`. After
 editing it, run `npm run icons -w apps/desktop` from the repository root.

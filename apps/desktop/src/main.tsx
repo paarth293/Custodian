@@ -30,7 +30,7 @@ if (import.meta.env.DEV && params.has('gallery')) {
   render(
     <ApprovalView
       plan={standalonePlan}
-      onDecided={(approved) => console.log('Standalone decision:', approved)}
+      onDecided={(approved, result) => console.log('Standalone decision:', approved, result)}
     />,
   );
 } else {
