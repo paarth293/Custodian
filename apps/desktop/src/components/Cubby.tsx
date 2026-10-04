@@ -2,6 +2,7 @@ import riveWasmUrl from '@rive-app/canvas/rive.wasm?url';
 import { RuntimeLoader, useRive, useStateMachineInput } from '@rive-app/react-canvas';
 import { useState, useEffect } from 'react';
 import { useCubbyStore } from '../state/cubby';
+import { invoke } from '@tauri-apps/api/core';
 
 RuntimeLoader.setWasmUrl(riveWasmUrl);
 
@@ -40,8 +41,13 @@ export default function Cubby() {
     if (reducedMotionInput) reducedMotionInput.value = reduced_motion;
   }, [reduced_motion, reducedMotionInput]);
 
+  // Toggle click-through: ignore cursor when NOT hovering the Cubby
   return (
-    <div className="cubby">
+    <div 
+      className="cubby"
+      onPointerEnter={() => invoke('set_ignore_cursor_events', { ignore: false })}
+      onPointerLeave={() => invoke('set_ignore_cursor_events', { ignore: true })}
+    >
       {failed ? <div className="cubby-fallback" aria-hidden /> : <RiveComponent />}
       
       {/* Dev-only controls for testing the Rive state machine bindings */}

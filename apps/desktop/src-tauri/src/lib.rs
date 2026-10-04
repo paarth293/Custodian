@@ -1,4 +1,5 @@
 //! Custodian desktop shell: the Cubby window, tray menu and UI commands.
+use tauri::Manager;
 
 mod approval_service;
 mod approval_window;
@@ -23,6 +24,14 @@ fn get_ledger() -> Vec<String> {
     ]
 }
 
+#[tauri::command]
+fn set_ignore_cursor_events(app: tauri::AppHandle, ignore: bool) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window(cubby_window::CUBBY_LABEL) {
+        window.set_ignore_cursor_events(ignore).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 /// Commands exposed to webviews. Approval signing is intentionally absent:
 /// see `approval_service`.
 pub fn run() {
@@ -35,6 +44,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             invoke_broker,
             get_ledger,
+            set_ignore_cursor_events,
             clipboard::set_private_text,
             placement::set_calm_mode,
         ])
