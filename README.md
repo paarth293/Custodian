@@ -110,6 +110,7 @@ CI runs the same commands on every pull request:
 - [Master document](docs/design/CUSTODIAN_MASTER_DOCUMENT.md): what we build and why
 - [Architecture](docs/design/CUSTODIAN_ARCHITECTURE.md): how it is built
 - [Build plan](docs/design/CUSTODIAN_BUILD_PLAN.md): the ordered build steps
+- [Roadmap to the real product](docs/ADVANCE.md): current status and step-by-step phases
 - [Verification log](docs/VERIFY-LOG.md) and [component versions](docs/VERSIONS.md)
 
 ## Contributing and security
