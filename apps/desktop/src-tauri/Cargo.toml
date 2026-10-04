@@ -20,7 +20,17 @@ workspace = true
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+chrono.workspace = true
+custodian-core.workspace = true
+custodian-ipc.workspace = true
+rand.workspace = true
 serde.workspace = true
+thiserror.workspace = true
 serde_json.workspace = true
 tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-opener = "2"
+sysinfo.workspace = true
 tokio.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
