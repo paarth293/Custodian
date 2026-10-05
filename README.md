@@ -93,26 +93,49 @@ npm run fixtures -- --persona demo --out ./fixture   # sample data
 
 Click Cubby to open the chat. These requests work without any model:
 
-| Ask                                             | What happens                                                      |
-| ----------------------------------------------- | ----------------------------------------------------------------- |
-| "find duplicates", "duplicates in Pictures"     | Scans your user folders and proposes a clean-up plan for approval |
-| _Approve_ on the plan                           | Moves the extra copies to a quarantine folder, verified by hash   |
-| "undo", "what did you do?"                      | Puts the last clean-up back; lists recent clean-ups               |
-| "biggest files in Downloads", "how much space?" | Lists the largest files; shows free space per drive               |
-| "open notepad", "open downloads", "open myntra" | Opens an allow-listed app, a known folder or a website            |
-| "search cheap flights", "what time is it?"      | Web search in your browser; time and date                         |
+| Ask                                                     | What happens                                                                       |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| "where's my resume?", "open my resume"                  | Finds files by name in your folders; opens documents and media (never programs)    |
+| "open spotify", "open downloads", "open myntra"         | Opens any Start-menu app, a known folder or a website                              |
+| "close notepad", "what's open?"                         | Asks an app to close, as its X button does; lists open apps                        |
+| "remind me to call mom at 5pm", "add milk to my list"   | Reminders and a to-do list, sealed on this PC; "what's on my list?", "mark 1 done" |
+| "any suggestions?", "is my PC slow?", "how much space?" | A quick check-up with what to do next; CPU, memory, battery; free space per drive  |
+| "find duplicates", "duplicates in Pictures"             | Proposes moving extra copies to the safe place (never inside OneDrive)             |
+| "clean temp files"                                      | Proposes deleting temporary files older than a week                                |
+| _Approve_ on a plan                                     | Confirmed with Windows Hello, then carried out and recorded                        |
+| "undo", "what did you do?", "empty the safe place"      | Puts the last clean-up back; lists clean-ups; frees the safe place's space now     |
+| "is my data safe?"                                      | Shows how Cubby protects your data, as it stands on this PC                        |
+| "search cheap flights", "what time is it?"              | Web search in your browser; time and date                                          |
 
-Anything else goes to the local language model. To enable it, put a GGUF chat
-model (for example a small instruct model such as Qwen2.5 1.5B Instruct
-Q4_K_M) in `models/` and build the agent once:
+Copies moved to the safe place stay there for 30 days, then their space is
+freed after each copy is checked against its original. When the AI asks to
+do something that sends data off the PC or changes something, Cubby shows a
+card and waits for your click. Press **Stop** to end any scan or answer.
 
-```sh
+Anything else goes to the local language model. To enable it, fetch a chat
+model into `models/` (which pins its SHA-256) and build the agent once. Qwen3 4B
+Instruct 2507 runs on the graphics card when there is one; Qwen2.5 1.5B Instruct
+stands in for it on PCs without one, where the 4B model would take most of a
+minute per answer:
+
+```powershell
+./scripts/fetch-models.ps1 -Repo unsloth/Qwen3-4B-Instruct-2507-GGUF -File Qwen3-4B-Instruct-2507-Q4_K_M.gguf -Default
+./scripts/fetch-models.ps1 -Repo Qwen/Qwen2.5-1.5B-Instruct-GGUF -File qwen2.5-1.5b-instruct-q4_k_m.gguf
 npm run build                           # creates services/agent/dist/server.js
 ```
 
-Optional environment variables: `CUSTODIAN_CHAT_MODEL` (file name in `models/`),
-`CUSTODIAN_MODELS_DIR`, `CUSTODIAN_AGENT_ENTRY` and `CUSTODIAN_NODE` (path to
-`node`). Without a model, Cubby says so and lists what it can already do.
+Optional environment variables: `CUSTODIAN_CHAT_MODEL` (file name in `models/`;
+always used when set), `CUSTODIAN_MODELS_DIR`, `CUSTODIAN_AGENT_ENTRY`,
+`CUSTODIAN_NODE` (path to `node`) and `CUSTODIAN_LLAMA_GPU` (`cuda`, `vulkan`,
+`metal`, or `off` for the CPU; by default the first GPU that works is used).
+Without a GPU, the smallest pinned chat model is used in place of a default over
+1.5 GB. Without a model, Cubby says so and lists what it can already do.
+
+On Windows the AI runs inside an AppContainer: no network, and read access only
+to Node, the agent's code and packages, and `models/`. The first start grants
+that read access (about 15 seconds for `node_modules`). If the model cannot load
+inside the container, the agent runs normally and "is my data safe?" says so;
+`CUSTODIAN_AGENT_SANDBOX=0` turns the container off.
 
 App icons are generated from `apps/desktop/src-tauri/icons/custodian.svg`. After
 editing it, run `npm run icons -w apps/desktop` from the repository root.

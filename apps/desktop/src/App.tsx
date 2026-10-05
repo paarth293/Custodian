@@ -5,7 +5,7 @@ import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } fro
 import './App.css';
 import ApprovalView, { Plan } from './components/ApprovalView';
 import ChatPanel, { Message } from './components/ChatPanel';
-import { appendReply, type ChatEvent } from './chat/events';
+import { appendReply, bubbleText, decideCard, type ChatEvent } from './chat/events';
 import CubbyCharacter from './cubby/CubbyCharacter';
 import CubbyStage from './cubby/CubbyStage';
 import { showCubbyMenu } from './cubby/contextMenu';
@@ -104,6 +104,22 @@ function App() {
     const pending = listen('cubby-open-panel', () => void setPanel(true));
     return () => void pending.then((unlisten) => unlisten());
   }, [setPanel]);
+  // Something Cubby noticed on its own (e.g. space freed after 30 days):
+  // a speech bubble now, and a line in the chat for later.
+  const onNotice = useEffectEvent((text: string) => {
+    life.poke();
+    life.react('happy', 1600);
+    say(bubbleText(text), 9000);
+    setMessages((prev) => [
+      ...prev,
+      { id: `${Date.now()}-notice`, role: 'assistant', content: text },
+    ]);
+  });
+  useEffect(() => {
+    if (!inTauri) return;
+    const pending = listen<string>('cubby-notice', (event) => onNotice(event.payload));
+    return () => void pending.then((unlisten) => unlisten());
+  }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && panelOpen) void setPanel(false);
@@ -170,7 +186,16 @@ function App() {
     setStatus(null);
     setActivity('thinking');
 
-    const replyId = `${Date.now()}-reply`;
+    // Text streams into the current reply bubble. A tool result or a card
+    // stands on its own, and text after it starts a new bubble, so the AI's
+    // words never mix with what Cubby's code found.
+    const base = `${Date.now()}-reply`;
+    let part = 0;
+    let replyId = base;
+    const addBlock = (block: Message) => {
+      setMessages((prev) => [...prev, block]);
+      replyId = `${base}-${++part}`;
+    };
     const channel = new Channel<ChatEvent>();
     channel.onmessage = (event) => {
       switch (event.kind) {
@@ -178,8 +203,21 @@ function App() {
           setStatus(event.text);
           setActivity('working');
           break;
-        case 'text':
-          setMessages((prev) => appendReply(prev, replyId, event.text));
+        case 'text': {
+          const id = replyId;
+          setMessages((prev) => appendReply(prev, id, event.text));
+          break;
+        }
+        case 'result':
+          addBlock({
+            id: `${base}-r${part}`,
+            role: 'assistant',
+            content: event.text,
+            result: true,
+          });
+          break;
+        case 'confirm':
+          addBlock({ id: event.card.id, role: 'assistant', content: '', card: event.card });
           break;
         case 'plan':
           setPendingPlan(event.plan);
@@ -196,14 +234,35 @@ function App() {
     } catch (err) {
       console.error('Chat error:', err);
       life.react('curious', 2000);
-      setMessages((prev) =>
-        appendReply(prev, replyId, `Sorry, something went wrong: ${String(err)}`),
-      );
+      const id = replyId;
+      setMessages((prev) => appendReply(prev, id, `Sorry, something went wrong: ${String(err)}`));
     } finally {
       setActivity(null);
       setStatus(null);
       setIsThinking(false);
     }
+  };
+
+  const handleStop = () => {
+    void call('cancel_chat').catch(() => undefined);
+  };
+
+  /** Sends the person's answer to a card; Rust runs what it stored for it. */
+  const handleDecideCard = async (messageId: string, allow: boolean) => {
+    setMessages((prev) => decideCard(prev, messageId, allow ? 'allowed' : 'declined'));
+    let answer: string;
+    try {
+      answer = (await call<string>('decide_action', { actionId: messageId, allow })) ?? '';
+    } catch (err) {
+      answer = String(err);
+    }
+    if (answer) {
+      setMessages((prev) => [
+        ...prev,
+        { id: `${messageId}-answer`, role: 'assistant', content: answer },
+      ]);
+    }
+    if (allow) life.react('happy', 1400);
   };
 
   const handleApprovalDecided = (approved: boolean, result: string) => {
@@ -241,6 +300,8 @@ function App() {
             isThinking={isThinking}
             status={status}
             onSendMessage={handleSendMessage}
+            onStop={handleStop}
+            onDecideCard={(id, allow) => void handleDecideCard(id, allow)}
           />
           {pendingPlan && <ApprovalView plan={pendingPlan} onDecided={handleApprovalDecided} />}
         </div>

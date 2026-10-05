@@ -824,10 +824,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "custodian-approval"
+version = "0.1.0"
+dependencies = [
+ "custodian-winsec",
+ "ed25519-dalek",
+ "rand 0.8.8",
+ "tempfile",
+ "thiserror 1.0.69",
+ "zeroize",
+]
+
+[[package]]
 name = "custodian-core"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "custodian-approval",
  "custodian-winsec",
  "serde",
  "serde_json",
@@ -842,8 +855,11 @@ name = "custodian-desktop"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "custodian-approval",
  "custodian-core",
  "custodian-ipc",
+ "custodian-ledger",
+ "custodian-winsec",
  "rand 0.8.8",
  "serde",
  "serde_json",
@@ -874,6 +890,8 @@ version = "0.1.0"
 name = "custodian-engine"
 version = "0.1.0"
 dependencies = [
+ "blake3",
+ "custodian-approval",
  "custodian-digest",
  "custodian-journal",
  "custodian-proto",
@@ -926,6 +944,7 @@ name = "custodian-ledger"
 version = "0.1.0"
 dependencies = [
  "crc32fast",
+ "custodian-winsec",
  "sha2",
  "tempfile",
  "thiserror 1.0.69",
@@ -971,8 +990,12 @@ dependencies = [
 name = "custodian-winsec"
 version = "0.1.0"
 dependencies = [
+ "serde_json",
  "tempfile",
  "thiserror 1.0.69",
+ "windows",
+ "windows-future",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2754,6 +2777,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ntapi"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3b335231dfd352ffb0f8017f3b6027a4917f7df785ea2143d8af2adc66980ae"
+dependencies = [
+ "winapi",
+]
+
+[[package]]
 name = "num-bigint-dig"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4452,6 +4484,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2071df9448915b71c4fe6d25deaf1c22f12bd234f01540b77312bb8e41361e6"
 dependencies = [
  "libc",
+ "memchr",
+ "ntapi",
  "objc2-core-foundation",
  "objc2-io-kit",
  "windows",

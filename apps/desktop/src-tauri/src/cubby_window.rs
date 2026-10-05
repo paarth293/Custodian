@@ -93,6 +93,9 @@ pub fn create_cubby_window(app: &AppHandle) -> tauri::Result<()> {
         .resizable(false)
         .shadow(false)
         .focusable(false)
+        // Hidden from screen sharing and screenshots (SR-F7); the tray can
+        // allow it for an hour for a demo.
+        .content_protected(true)
         .visible(false)
         .build()?;
 
@@ -176,6 +179,9 @@ pub fn set_panel_open(app: AppHandle, open: bool) -> Result<PanelSide, String> {
     let err = |e: tauri::Error| e.to_string();
 
     if open {
+        // Load the language model in the background while the person types.
+        let warm = app.clone();
+        std::thread::spawn(move || crate::assistant::prewarm(&warm));
         if let Some((_, _, side)) = inner.expanded {
             return Ok(side);
         }

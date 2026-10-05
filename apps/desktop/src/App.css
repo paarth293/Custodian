@@ -272,6 +272,34 @@ body,
   color: var(--text-dim);
   font-style: italic;
 }
+/* What a tool found (written by Cubby's code, not the AI). */
+.chat-message.result .chat-content {
+  border-left: 3px solid var(--accent);
+  background: rgba(255, 255, 255, 0.05);
+}
+.action-card {
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 16px;
+  border-bottom-left-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.action-card h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+.action-card p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-dim);
+  word-break: break-word;
+}
+.action-card .action-card-decided {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text);
+}
 
 .chat-input-form {
   display: flex;
@@ -306,6 +334,10 @@ body,
 .chat-input-form button:disabled {
   opacity: 0.45;
   cursor: default;
+}
+.chat-input-form button.chat-stop {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 /* ---------- Approval card ---------- */

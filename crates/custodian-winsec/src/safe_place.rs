@@ -31,6 +31,7 @@ impl SafePlace {
 mod tests {
     use super::*;
 
+    #[cfg(windows)]
     #[test]
     fn roundtrip() {
         let dir = tempfile::tempdir().unwrap();
@@ -38,6 +39,8 @@ mod tests {
 
         let secret = b"my_super_secret_sidecar_data";
         place.write_encrypted("sidecar.bin", secret).unwrap();
+        let on_disk = fs::read(place.root().join("sidecar.bin")).unwrap();
+        assert!(!on_disk.windows(secret.len()).any(|w| w == secret));
         assert_eq!(place.read_decrypted("sidecar.bin").unwrap(), secret);
     }
 }

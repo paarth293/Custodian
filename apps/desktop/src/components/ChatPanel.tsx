@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ActionCard } from '../chat/events';
 
 export type Message = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  /** A tool's result, written by Cubby's own code rather than the AI. */
+  result?: boolean;
+  /** Something the AI asked for that waits for the person's click. */
+  card?: ActionCard;
+  /** The person's answer to `card`. */
+  decided?: 'allowed' | 'declined';
 };
 
 export interface ChatPanelProps {
@@ -13,16 +20,67 @@ export interface ChatPanelProps {
   /** Live progress line, e.g. "Scanning… 12,000 files". */
   status?: string | null;
   onSendMessage: (text: string) => void;
+  /** Stops the answer or scan in progress. */
+  onStop?: () => void;
+  /** The person's answer to the card in message `messageId`. */
+  onDecideCard?: (messageId: string, allow: boolean) => void;
 }
 
 const SUGGESTIONS = [
   'Find duplicate files',
   'Biggest files in Downloads',
   'How much free space?',
+  'Is my PC slow?',
   'What can you do?',
 ];
 
-export default function ChatPanel({ messages, isThinking, status, onSendMessage }: ChatPanelProps) {
+function CardView({
+  message,
+  onDecide,
+}: {
+  message: Message & { card: ActionCard };
+  onDecide?: (messageId: string, allow: boolean) => void;
+}) {
+  const { card, decided } = message;
+  return (
+    <div className="chat-message assistant">
+      <span className="chat-role">Cubby asks</span>
+      <section className="action-card" aria-label={card.title}>
+        <h3>{card.title}</h3>
+        <p>{card.detail}</p>
+        {decided ? (
+          <p className="action-card-decided">{decided === 'allowed' ? 'Allowed' : 'Not now'}</p>
+        ) : (
+          <div className="approval-actions">
+            <button
+              type="button"
+              className="btn-reject"
+              onClick={() => onDecide?.(message.id, false)}
+            >
+              Not now
+            </button>
+            <button
+              type="button"
+              className="btn-approve"
+              onClick={() => onDecide?.(message.id, true)}
+            >
+              {card.confirm}
+            </button>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+export default function ChatPanel({
+  messages,
+  isThinking,
+  status,
+  onSendMessage,
+  onStop,
+  onDecideCard,
+}: ChatPanelProps) {
   const [input, setInput] = useState('');
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,12 +116,23 @@ export default function ChatPanel({ messages, isThinking, status, onSendMessage 
             </div>
           </div>
         ) : (
-          messages.map((msg) => (
-            <div key={msg.id} className={`chat-message ${msg.role}`}>
-              <span className="chat-role">{msg.role === 'user' ? 'You' : 'Cubby'}</span>
-              <p className="chat-content">{msg.content}</p>
-            </div>
-          ))
+          messages.map((msg) =>
+            msg.card ? (
+              <CardView
+                key={msg.id}
+                message={msg as Message & { card: ActionCard }}
+                onDecide={onDecideCard}
+              />
+            ) : (
+              <div
+                key={msg.id}
+                className={`chat-message ${msg.role}${msg.result ? ' result' : ''}`}
+              >
+                <span className="chat-role">{msg.role === 'user' ? 'You' : 'Cubby'}</span>
+                <p className="chat-content">{msg.content}</p>
+              </div>
+            ),
+          )
         )}
         {isThinking && (
           <div className="chat-message assistant thinking" aria-live="polite">
@@ -89,10 +158,17 @@ export default function ChatPanel({ messages, isThinking, status, onSendMessage 
           placeholder="Ask Cubby something..."
           disabled={isThinking}
           aria-label="Chat input"
+          maxLength={2000}
         />
-        <button type="submit" disabled={!input.trim() || isThinking}>
-          Send
-        </button>
+        {isThinking ? (
+          <button type="button" className="chat-stop" onClick={() => onStop?.()}>
+            Stop
+          </button>
+        ) : (
+          <button type="submit" disabled={!input.trim()}>
+            Send
+          </button>
+        )}
       </form>
     </section>
   );

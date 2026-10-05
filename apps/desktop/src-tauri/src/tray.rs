@@ -6,14 +6,21 @@ use tauri::{AppHandle, Emitter, Manager, Wry};
 /// Event the frontend listens to for "open the chat panel".
 pub const OPEN_PANEL_EVENT: &str = "cubby-open-panel";
 
-/// Keeps the tray's demo check item in sync with the Cubby menu.
+/// Keeps the tray's check items in sync with the Cubby menu.
 pub struct TrayItems {
     demo: CheckMenuItem<Wry>,
+    capture: CheckMenuItem<Wry>,
 }
 
 pub fn sync_demo_check(app: &AppHandle, enabled: bool) {
     if let Some(items) = app.try_state::<TrayItems>() {
         let _ = items.demo.set_checked(enabled);
+    }
+}
+
+pub fn sync_capture_check(app: &AppHandle, allowed: bool) {
+    if let Some(items) = app.try_state::<TrayItems>() {
+        let _ = items.capture.set_checked(allowed);
     }
 }
 
@@ -30,10 +37,24 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
         false,
         None::<&str>,
     )?;
+    let capture = CheckMenuItem::with_id(
+        app,
+        "capture",
+        "Show Cubby in screenshots (1 hour)",
+        true,
+        false,
+        None::<&str>,
+    )?;
     let separator = PredefinedMenuItem::separator(app)?;
     let quit = MenuItem::with_id(app, "quit", "Quit Custodian", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&talk, &show, &hide, &demo, &separator, &quit])?;
-    app.manage(TrayItems { demo: demo.clone() });
+    let menu = Menu::with_items(
+        app,
+        &[&talk, &show, &hide, &demo, &capture, &separator, &quit],
+    )?;
+    app.manage(TrayItems {
+        demo: demo.clone(),
+        capture: capture.clone(),
+    });
 
     let mut builder = TrayIconBuilder::new()
         .tooltip("Custodian")
@@ -60,6 +81,10 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 "demo" => {
                     let enabled = demo.is_checked().unwrap_or(false);
                     crate::mode::apply_demo(app, enabled);
+                }
+                "capture" => {
+                    let allowed = capture.is_checked().unwrap_or(false);
+                    crate::capture::set_capture_allowed(app, allowed);
                 }
                 "quit" => {
                     crate::cubby_window::persist(app);

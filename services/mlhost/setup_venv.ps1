@@ -6,7 +6,7 @@ $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
 python -m venv .venv
-$python = Join-Path '.venv' 'Scripts' 'python.exe'
+$python = Join-Path (Join-Path '.venv' 'Scripts') 'python.exe'
 & $python -m pip install --upgrade pip
 & $python -m pip install -r requirements.txt
 if ($WithModel) { & $python -m pip install -r requirements-model.txt }

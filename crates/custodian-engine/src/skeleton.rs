@@ -1,113 +1,58 @@
-use ed25519_dalek::{Signature, VerifyingKey};
-use std::collections::HashSet;
-use std::sync::Mutex;
-use std::time::{SystemTime, UNIX_EPOCH};
-use thiserror::Error;
+//! The Engine's approval gate (build plan step 56, T-J2): nothing runs unless
+//! it carries an approval signed over exactly this plan, unexpired and unused.
 
-#[derive(Debug, Error, PartialEq)]
-pub enum ApprovalError {
-    #[error("E_AUTH")]
-    Auth,
-    #[error("E_EXPIRED")]
-    Expired,
-    #[error("E_NONCE")]
-    NonceReused,
-    #[error("E_STALE")]
-    StaleFacts,
-}
+pub use custodian_approval::ApprovalError;
+use custodian_approval::{Approval, PlanHash, Verifier};
+use ed25519_dalek::VerifyingKey;
 
 pub struct EngineSkeleton {
-    public_key: VerifyingKey,
-    used_nonces: Mutex<HashSet<String>>,
+    verifier: Verifier,
 }
 
 impl EngineSkeleton {
     pub fn new(public_key: VerifyingKey) -> Self {
         Self {
-            public_key,
-            used_nonces: Mutex::new(HashSet::new()),
+            verifier: Verifier::new(public_key),
         }
     }
 
     pub fn verify_approval(
         &self,
-        plan_hash: &[u8],
-        signature_bytes: &[u8; 64],
-        expiry_ts: u64,
-        nonce: &str,
+        plan_hash: &PlanHash,
+        approval: &Approval,
+        now_unix: u64,
     ) -> Result<(), ApprovalError> {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-
-        if now > expiry_ts {
-            return Err(ApprovalError::Expired);
-        }
-
-        let mut nonces = self.used_nonces.lock().unwrap();
-        if nonces.contains(nonce) {
-            return Err(ApprovalError::NonceReused);
-        }
-
-        let signature = Signature::from_bytes(signature_bytes);
-        if self
-            .public_key
-            .verify_strict(plan_hash, &signature)
-            .is_err()
-        {
-            return Err(ApprovalError::Auth);
-        }
-
-        nonces.insert(nonce.to_string());
-        Ok(())
+        self.verifier.verify(plan_hash, approval, now_unix)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ed25519_dalek::{Signer, SigningKey};
-    use rand::rngs::OsRng;
+    use custodian_approval::ApprovalKey;
 
     #[test]
     fn test_t_j2_approval_verification() {
-        let mut csprng = OsRng;
-        let signing_key = SigningKey::generate(&mut csprng);
-        let public_key = signing_key.verifying_key();
+        let key = ApprovalKey::generate();
+        let engine = EngineSkeleton::new(key.verifying_key());
+        let plan = [1u8; 32];
+        let now = 1_800_000_000;
+        let approval = key.sign(&plan, now, 600);
 
-        let engine = EngineSkeleton::new(public_key);
-
-        let plan_hash = b"valid_plan_hash";
-        let signature = signing_key.sign(plan_hash);
-
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-        let valid_expiry = now + 600; // 10 mins
-
-        // 1. Accepted, then no-op (nonce recorded)
+        // Accepted once, then the nonce is spent.
+        assert_eq!(engine.verify_approval(&plan, &approval, now), Ok(()));
         assert_eq!(
-            engine.verify_approval(plan_hash, &signature.to_bytes(), valid_expiry, "nonce1"),
-            Ok(())
-        );
-
-        // 2. Reused nonce -> E_NONCE
-        assert_eq!(
-            engine.verify_approval(plan_hash, &signature.to_bytes(), valid_expiry, "nonce1"),
+            engine.verify_approval(&plan, &approval, now),
             Err(ApprovalError::NonceReused)
         );
-
-        // 3. Tampered plan -> E_AUTH
+        // A tampered plan, and an expired approval.
+        let fresh = key.sign(&plan, now, 600);
         assert_eq!(
-            engine.verify_approval(b"tampered", &signature.to_bytes(), valid_expiry, "nonce2"),
+            engine.verify_approval(&[2u8; 32], &fresh, now),
             Err(ApprovalError::Auth)
         );
-
-        // 4. Expired approval -> E_EXPIRED
         assert_eq!(
-            engine.verify_approval(plan_hash, &signature.to_bytes(), now - 10, "nonce3"),
+            engine.verify_approval(&plan, &fresh, now + 601),
             Err(ApprovalError::Expired)
         );
     }

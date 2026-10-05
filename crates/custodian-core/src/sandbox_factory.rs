@@ -1,4 +1,5 @@
-use custodian_winsec::{apply_job_limits, spawn_in_appcontainer};
+use custodian_winsec::job::{Job, JobLimits};
+use custodian_winsec::spawn_in_appcontainer;
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -26,12 +27,19 @@ impl SandboxFactory {
         }
     }
 
-    /// Copies `original_exe` into the sandbox location and runs it there.
+    /// Copies `original_exe` into the sandbox location and runs it there,
+    /// under a job with the factory's memory and CPU limits, until it exits.
     pub fn spawn_agent(&self, original_exe: &Path, target_exe: &Path) -> Result<(), SandboxError> {
         fs::copy(original_exe, target_exe)?;
-        spawn_in_appcontainer(&target_exe.to_string_lossy(), &[], &self.profile_name)?;
-        // Placeholder: the real PID comes from CreateProcessAsUserW.
-        apply_job_limits(0, self.memory_mb, self.cpu_rate)?;
+        let job = Job::new(JobLimits {
+            memory_mb: Some(self.memory_mb),
+            cpu_percent: Some(self.cpu_rate),
+            below_normal_priority: true,
+        })?;
+        let mut child =
+            spawn_in_appcontainer(&target_exe.to_string_lossy(), &[], &self.profile_name)?;
+        job.assign(&child)?;
+        child.wait()?;
         Ok(())
     }
 }

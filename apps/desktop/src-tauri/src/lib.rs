@@ -4,9 +4,10 @@ mod agent;
 mod approval_service;
 mod approval_window;
 mod assistant;
+mod capture;
 mod clipboard;
 mod cubby_window;
-mod hello;
+mod history_ledger;
 mod input_hook;
 mod layout;
 mod mode;
@@ -19,7 +20,8 @@ fn invoke_broker(action: String) -> String {
 }
 
 /// Commands exposed to webviews. Approval signing is intentionally absent:
-/// see `approval_service`.
+/// `approve_plan` asks with Windows Hello (or a native dialog) and signs in Rust (see
+/// `approval_service`).
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -28,6 +30,10 @@ pub fn run() {
         .manage(cubby_window::CubbyWindowState::default())
         .setup(|app| {
             cubby_window::create_cubby_window(app.handle())?;
+            assistant::start_idle_unloader(app.handle().clone());
+            assistant::start_safe_place_keeper(app.handle().clone());
+            assistant::start_reminders(app.handle().clone());
+            assistant::start_nudges(app.handle().clone());
             tray::create_tray(app.handle())?;
             Ok(())
         })
@@ -37,6 +43,8 @@ pub fn run() {
             assistant::send_chat_message,
             assistant::approve_plan,
             assistant::reject_plan,
+            assistant::decide_action,
+            assistant::cancel_chat,
             clipboard::set_private_text,
             placement::set_calm_mode,
             cubby_window::set_panel_open,

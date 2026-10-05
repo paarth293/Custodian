@@ -8,11 +8,45 @@ license.workspace = true
 repository.workspace = true
 publish.workspace = true
 
-[lints]
-workspace = true
+# The one crate allowed to contain `unsafe` (build plan step 15): it is denied
+# by default, allowed only on the Win32 modules, and every block must carry a
+# `// SAFETY:` comment. Every other crate forbids it through the workspace.
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+undocumented_unsafe_blocks = "deny"
 
 [dependencies]
+serde_json.workspace = true
 thiserror.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = [
+  "Foundation",
+  "Security_Credentials_UI",
+  "Win32_Foundation",
+  "Win32_System_WinRT",
+] }
+windows-future.workspace = true
+windows-sys = { workspace = true, features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Dwm",
+  "Win32_Security_Authorization",
+  "Win32_Security_Cryptography",
+  "Win32_Security_Isolation",
+  "Win32_Security",
+  "Win32_Storage_FileSystem",
+  "Win32_System_JobObjects",
+  "Win32_System_Pipes",
+  "Win32_System_Power",
+  "Win32_System_Registry",
+  "Win32_System_Threading",
+  "Win32_UI_Shell",
+  "Win32_UI_WindowsAndMessaging",
+] }
 
 [dev-dependencies]
 tempfile.workspace = true

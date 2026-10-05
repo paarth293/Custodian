@@ -2,9 +2,19 @@ import { spawn } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFrame, writeFrame } from '../src/ipc';
-import { findChatModel, type ChatEngine } from '../src/llm';
+import { sha256 } from '../src/integrity';
+import {
+  CPU_MODEL_BYTES,
+  createLlamaEngine,
+  findChatModel,
+  findSmallChatModel,
+  llamaGpu,
+  modelForDevice,
+  prepareGpu,
+  type ChatEngine,
+} from '../src/llm';
 import { createHandler, FrameReader, type Reply } from '../src/server';
 
 const key = Buffer.from('test-key');
@@ -80,13 +90,164 @@ describe('createHandler', () => {
 });
 
 describe('findChatModel', () => {
+  /** Writes `content` to `dir/name` and pins its digest in `dir/manifest.json`. */
+  const addPinned = (dir: string, name: string, content: string) => {
+    fs.writeFileSync(path.join(dir, name), content);
+    const manifestPath = path.join(dir, 'manifest.json');
+    const manifest = fs.existsSync(manifestPath)
+      ? (JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Record<string, unknown>)
+      : {};
+    manifest[name] = { sha256: sha256(content) };
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+  };
+  const modelAt = (dir: string, name: string) => ({
+    path: path.join(dir, name),
+    sha256: sha256('GGUF'),
+  });
+
   it('prefers chat models over the Laya classifier', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'models-'));
-    fs.writeFileSync(path.join(dir, 'laya.Q4_K_M.gguf'), '');
-    expect(findChatModel(dir)).toBe(path.join(dir, 'laya.Q4_K_M.gguf'));
-    fs.writeFileSync(path.join(dir, 'gemma-2b-it.Q4_K_M.gguf'), '');
-    expect(findChatModel(dir)).toBe(path.join(dir, 'gemma-2b-it.Q4_K_M.gguf'));
+    addPinned(dir, 'laya.Q4_K_M.gguf', 'GGUF');
+    expect(findChatModel(dir)).toEqual(modelAt(dir, 'laya.Q4_K_M.gguf'));
+    addPinned(dir, 'gemma-2b-it.Q4_K_M.gguf', 'GGUF');
+    expect(findChatModel(dir)).toEqual(modelAt(dir, 'gemma-2b-it.Q4_K_M.gguf'));
+    expect(findChatModel(dir, 'laya.Q4_K_M.gguf')).toEqual(modelAt(dir, 'laya.Q4_K_M.gguf'));
     expect(findChatModel(dir, 'missing.gguf')).toBeNull();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('uses the model the manifest marks as default', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'models-'));
+    addPinned(dir, 'a-small.gguf', 'GGUF');
+    addPinned(dir, 'b-better.gguf', 'GGUF');
+    expect(findChatModel(dir)).toEqual(modelAt(dir, 'a-small.gguf'));
+    const manifestPath = path.join(dir, 'manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Record<
+      string,
+      Record<string, unknown>
+    >;
+    manifest['b-better.gguf']!['default'] = true;
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+    expect(findChatModel(dir)).toEqual(modelAt(dir, 'b-better.gguf'));
+    // A default that is not a real model is passed over.
+    manifest['c-broken.gguf'] = { sha256: sha256('x'), default: true };
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+    fs.writeFileSync(path.join(dir, 'c-broken.gguf'), 'x');
+    expect(findChatModel(dir)).toEqual(modelAt(dir, 'b-better.gguf'));
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('skips placeholders and embedding models', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'models-'));
+    addPinned(dir, 'a-chat.gguf', 'mock_gemma_content');
+    addPinned(dir, 'b-embedding.gguf', 'GGUF');
+    expect(findChatModel(dir)).toBeNull();
+    expect(findChatModel(dir, 'a-chat.gguf')).toBeNull();
+    addPinned(dir, 'laya.Q4_K_M.gguf', 'GGUF');
+    expect(findChatModel(dir)).toEqual(modelAt(dir, 'laya.Q4_K_M.gguf'));
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('never picks a model that is not pinned in the manifest', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'models-'));
+    fs.writeFileSync(path.join(dir, 'gemma-2b-it.Q4_K_M.gguf'), 'GGUF');
+    expect(findChatModel(dir)).toBeNull();
+    expect(findChatModel(dir, 'gemma-2b-it.Q4_K_M.gguf')).toBeNull();
+    addPinned(dir, 'laya.Q4_K_M.gguf', 'GGUF');
+    expect(findChatModel(dir)).toEqual(modelAt(dir, 'laya.Q4_K_M.gguf'));
+    fs.writeFileSync(path.join(dir, 'manifest.json'), '{ not json');
+    expect(findChatModel(dir)).toBeNull();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe('llamaGpu', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('reads CUSTODIAN_LLAMA_GPU and uses a GPU when one works if it is unset', () => {
+    vi.stubEnv('CUSTODIAN_LLAMA_GPU', undefined);
+    expect(llamaGpu()).toBe('auto');
+    vi.stubEnv('CUSTODIAN_LLAMA_GPU', 'vulkan');
+    expect(llamaGpu()).toBe('vulkan');
+  });
+
+  it('runs on the CPU when asked for anything but a known GPU backend', () => {
+    expect(llamaGpu('')).toBe('auto');
+    expect(llamaGpu('  ')).toBe('auto');
+    expect(llamaGpu('off')).toBe(false);
+    expect(llamaGpu('cpu')).toBe(false);
+    expect(llamaGpu('opencl')).toBe(false);
+    expect(llamaGpu(' CUDA ')).toBe('cuda');
+    expect(llamaGpu('auto')).toBe('auto');
+    expect(llamaGpu('vulkan')).toBe('vulkan');
+  });
+});
+
+describe('prepareGpu', () => {
+  it('turns off the AMD layer that hides discrete GPUs, unless told otherwise', () => {
+    const env: NodeJS.ProcessEnv = {};
+    prepareGpu(env);
+    expect(env['DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1']).toBe('1');
+    const chosen: NodeJS.ProcessEnv = { DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1: '0' };
+    prepareGpu(chosen);
+    expect(chosen['DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1']).toBe('0');
+  });
+});
+
+describe('findSmallChatModel and modelForDevice', () => {
+  /** A pinned file of `size` bytes that starts like a GGUF model. */
+  const addModel = (dir: string, name: string, size: number, extra: object = {}) => {
+    fs.writeFileSync(path.join(dir, name), 'GGUF'.padEnd(size, '.'));
+    const manifestPath = path.join(dir, 'manifest.json');
+    const manifest = fs.existsSync(manifestPath)
+      ? (JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Record<string, unknown>)
+      : {};
+    manifest[name] = { sha256: 'ab'.repeat(32), ...extra };
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+  };
+  /** Bytes a model may have to run on the CPU, in these tests. */
+  const limit = 1500;
+
+  it('picks the smallest pinned chat model, never Laya or an embedder', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'models-'));
+    expect(findSmallChatModel(dir)).toBeNull();
+    addModel(dir, 'b-big.gguf', 4000, { default: true });
+    addModel(dir, 'laya.Q4_K_M.gguf', 10);
+    addModel(dir, 'a-embedding.gguf', 10);
+    expect(findSmallChatModel(dir)?.path).toBe(path.join(dir, 'b-big.gguf'));
+    addModel(dir, 'c-small.gguf', 2000);
+    expect(findSmallChatModel(dir)?.path).toBe(path.join(dir, 'c-small.gguf'));
+    // Unpinned files are never used.
+    fs.writeFileSync(path.join(dir, 'd-tiny.gguf'), 'GGUF');
+    expect(findSmallChatModel(dir)?.path).toBe(path.join(dir, 'c-small.gguf'));
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('swaps in the small model only on the CPU, and only for a big model', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'models-'));
+    addModel(dir, 'a-4b.gguf', 2000, { default: true });
+    addModel(dir, 'b-1.5b.gguf', 1000);
+    const model = findChatModel(dir)!;
+    const small = findSmallChatModel(dir)!;
+    expect(model.path).toBe(path.join(dir, 'a-4b.gguf'));
+    expect(modelForDevice(model, small, true, limit)).toBe(model);
+    expect(modelForDevice(model, small, false, limit)).toBe(small);
+    expect(modelForDevice(model, null, false, limit)).toBe(model);
+    // A model small enough for the CPU is kept.
+    expect(modelForDevice(small, model, false, limit)).toBe(small);
+    expect(modelForDevice(model, small, false)).toBe(model);
+    expect(CPU_MODEL_BYTES).toBeGreaterThan(2000);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe('createLlamaEngine', () => {
+  it('refuses a model whose contents no longer match its pin', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'models-'));
+    const file = path.join(dir, 'chat.gguf');
+    fs.writeFileSync(file, 'GGUF tampered');
+    const engine = createLlamaEngine({ path: file, sha256: sha256('GGUF original') });
+    await expect(engine.chat('hi', () => {})).rejects.toThrow('integrity check');
     fs.rmSync(dir, { recursive: true, force: true });
   });
 });

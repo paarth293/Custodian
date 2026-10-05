@@ -12,10 +12,12 @@ publish = false
 
 [workspace.dependencies]
 # Internal crates
+custodian-approval = { path = "crates/custodian-approval" }
 custodian-core = { path = "crates/custodian-core" }
 custodian-digest = { path = "crates/custodian-digest" }
 custodian-ipc = { path = "crates/custodian-ipc" }
 custodian-journal = { path = "crates/custodian-journal" }
+custodian-ledger = { path = "crates/custodian-ledger" }
 custodian-proto = { path = "crates/custodian-proto" }
 custodian-store = { path = "crates/custodian-store" }
 custodian-winsec = { path = "crates/custodian-winsec" }
@@ -40,6 +42,10 @@ tempfile = "3.10"
 thiserror = "1.0"
 tokio = { version = "1.0", features = ["full"] }
 uuid = { version = "1.8", features = ["v4"] }
+windows = "0.62"
+windows-future = "0.3"
+windows-sys = "0.61"
+zeroize = "1.8"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

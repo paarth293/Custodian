@@ -1,20 +1,53 @@
-import { DEFAULT_MODELS_DIR, createLlamaEngine, findChatModel, type ChatEngine } from './llm';
+import {
+  DEFAULT_MODELS_DIR,
+  createLlamaEngine,
+  findChatModel,
+  findSmallChatModel,
+  type ChatEngine,
+} from './llm';
 import { MAX_FRAME_SIZE, readFrame, writeFrame } from './ipc';
+import type { ToolRunner } from './tools';
 
 const HEADER_SIZE = 4 + 4 + 32;
 
-/** Requests the desktop app sends. */
+/** A message to answer, from the desktop app. */
 export interface ChatRequest {
   type: 'chat';
   id: number;
   message: string;
 }
 
-/** Frames the agent sends back. */
+/** The desktop app's answer to a `tool` frame. */
+export interface ToolResult {
+  type: 'tool_result';
+  id: number;
+  call: number;
+  result: string;
+}
+
+/** The person pressed Stop: end the answer to chat `id` now. */
+export interface CancelRequest {
+  type: 'cancel';
+  id: number;
+}
+
+/** "Can you work?": answered at once with a `pong`, before any chat. */
+export interface PingRequest {
+  type: 'ping';
+  id: number;
+}
+
+/** Frames the agent sends back. A `tool` frame asks the desktop to run a tool. */
 export type Reply =
   | { type: 'token'; id: number; text: string }
   | { type: 'done'; id: number }
-  | { type: 'error'; id: number; error: string };
+  | { type: 'error'; id: number; error: string }
+  | { type: 'tool'; id: number; call: number; name: string; args: Record<string, unknown> }
+  /** `ready` is false when the model runtime or file cannot be used here. */
+  | { type: 'pong'; id: number; ready: boolean; error?: string };
+
+/** How long to wait for the desktop to run one tool (a full scan can take minutes). */
+export const TOOL_TIMEOUT_MS = 10 * 60 * 1000;
 
 /**
  * Splits a byte stream into authenticated frames. A frame whose signature
@@ -52,29 +85,123 @@ function isChatRequest(value: unknown): value is ChatRequest {
   return !!v && v.type === 'chat' && typeof v.id === 'number' && typeof v.message === 'string';
 }
 
+function isToolResult(value: unknown): value is ToolResult {
+  const v = value as Partial<ToolResult> | null;
+  return (
+    !!v &&
+    v.type === 'tool_result' &&
+    typeof v.id === 'number' &&
+    typeof v.call === 'number' &&
+    typeof v.result === 'string'
+  );
+}
+
+function isCancelRequest(value: unknown): value is CancelRequest {
+  const v = value as Partial<CancelRequest> | null;
+  return !!v && v.type === 'cancel' && typeof v.id === 'number';
+}
+
+function isPingRequest(value: unknown): value is PingRequest {
+  const v = value as Partial<PingRequest> | null;
+  return !!v && v.type === 'ping' && typeof v.id === 'number';
+}
+
 /**
  * Answers chat requests one at a time with `engine`, or explains why no
- * model is available when `engine` is null.
+ * model is available when `engine` is null. Tools the model calls are sent to
+ * the desktop as `tool` frames; their `tool_result` frames are handled at
+ * once, not queued, because the chat that asked for them is still running.
+ * A `cancel` frame stops that chat's answer (or skips it if it has not
+ * started), and the chat still ends with `done`.
  */
 export function createHandler(
   engine: ChatEngine | null,
   unavailable: string,
   send: (reply: Reply) => void,
+  toolTimeoutMs = TOOL_TIMEOUT_MS,
 ) {
   let queue = Promise.resolve();
+  const waiting = new Map<string, (result: string) => void>();
+  const stops = new Map<number, AbortController>();
+
   return (request: unknown): Promise<void> => {
+    if (isToolResult(request)) {
+      const key = `${request.id}:${request.call}`;
+      const resolve = waiting.get(key);
+      waiting.delete(key);
+      resolve?.(request.result);
+      return Promise.resolve();
+    }
+    if (isCancelRequest(request)) {
+      stops.get(request.id)?.abort();
+      return Promise.resolve();
+    }
+    if (isPingRequest(request)) {
+      const { id } = request;
+      if (!engine) {
+        send({ type: 'pong', id, ready: false, error: unavailable });
+        return Promise.resolve();
+      }
+      return (engine.check?.() ?? Promise.resolve(null)).then(
+        (problem) =>
+          send(
+            problem
+              ? { type: 'pong', id, ready: false, error: problem }
+              : { type: 'pong', id, ready: true },
+          ),
+        (err: unknown) =>
+          send({
+            type: 'pong',
+            id,
+            ready: false,
+            error: err instanceof Error ? err.message : String(err),
+          }),
+      );
+    }
     if (!isChatRequest(request)) return queue;
     const { id, message } = request;
+    const stop = new AbortController();
+    stops.set(id, stop);
+    let calls = 0;
+    const runTool: ToolRunner = (name, args) =>
+      new Promise((resolve) => {
+        const call = ++calls;
+        const key = `${id}:${call}`;
+        const timer = setTimeout(() => {
+          waiting.delete(key);
+          resolve('The PC did not answer in time.');
+        }, toolTimeoutMs);
+        waiting.set(key, (result) => {
+          clearTimeout(timer);
+          resolve(result);
+        });
+        send({ type: 'tool', id, call, name, args });
+      });
+
     queue = queue.then(async () => {
-      if (!engine) {
-        send({ type: 'error', id, error: unavailable });
-        return;
-      }
       try {
-        await engine.chat(message, (text) => send({ type: 'token', id, text }));
+        if (stop.signal.aborted) {
+          send({ type: 'done', id });
+          return;
+        }
+        if (!engine) {
+          send({ type: 'error', id, error: unavailable });
+          return;
+        }
+        await engine.chat(
+          message,
+          (text) => {
+            if (!stop.signal.aborted) send({ type: 'token', id, text });
+          },
+          runTool,
+          stop.signal,
+        );
         send({ type: 'done', id });
       } catch (err) {
-        send({ type: 'error', id, error: err instanceof Error ? err.message : String(err) });
+        if (stop.signal.aborted) send({ type: 'done', id });
+        else send({ type: 'error', id, error: err instanceof Error ? err.message : String(err) });
+      } finally {
+        stops.delete(id);
       }
     });
     return queue;
@@ -89,10 +216,19 @@ function main(): void {
   }
   const key = Buffer.from(keyText, 'utf-8');
   const modelsDir = process.env['CUSTODIAN_MODELS_DIR'] ?? DEFAULT_MODELS_DIR;
-  const modelPath = findChatModel(modelsDir, process.env['CUSTODIAN_CHAT_MODEL']);
-  const engine = modelPath ? createLlamaEngine(modelPath) : null;
-  const unavailable = `no chat model found in ${modelsDir}; add a GGUF chat model there`;
-  console.error(modelPath ? `[agent] chat model: ${modelPath}` : `[agent] ${unavailable}`);
+  const named = process.env['CUSTODIAN_CHAT_MODEL'];
+  const model = findChatModel(modelsDir, named);
+  // A model asked for by name is always used; otherwise, without a GPU, the
+  // smallest chat model stands in for one too big to answer quickly.
+  const small = named ? null : findSmallChatModel(modelsDir);
+  const engine = model ? createLlamaEngine(model, small) : null;
+  const unavailable = `no chat model found in ${modelsDir}; add a pinned GGUF chat model with scripts/fetch-models.ps1`;
+  console.error(model ? `[agent] chat model: ${model.path}` : `[agent] ${unavailable}`);
+  // Load the model now, so it is ready by the time the first message arrives.
+  // A failure here is reported again, to the person, on that message.
+  engine?.warmUp?.().catch((err: unknown) => {
+    console.error(`[agent] warm-up failed: ${err instanceof Error ? err.message : String(err)}`);
+  });
 
   const handle = createHandler(engine, unavailable, (reply) =>
     process.stdout.write(writeFrame(reply, key)),

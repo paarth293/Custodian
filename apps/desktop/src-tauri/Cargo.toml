@@ -21,15 +21,18 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 chrono.workspace = true
+custodian-approval.workspace = true
 custodian-core.workspace = true
 custodian-ipc.workspace = true
+custodian-ledger.workspace = true
+custodian-winsec.workspace = true
 rand.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 serde_json.workspace = true
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-opener = "2"
-sysinfo.workspace = true
+sysinfo = { workspace = true, features = ["system"] }
 tokio.workspace = true
 
 [dev-dependencies]

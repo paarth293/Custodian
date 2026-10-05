@@ -1,3 +1,4 @@
+use crate::anchor::Anchor;
 use crc32fast::Hasher as Crc32;
 use sha2::{Digest, Sha256};
 use std::fs::{File, OpenOptions};
@@ -5,7 +6,7 @@ use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use thiserror::Error;
 
-type Hash = [u8; 32];
+pub type Hash = [u8; 32];
 
 const HEADER_LEN: usize = 32 + 4 + 4;
 
@@ -27,10 +28,11 @@ pub enum LedgerError {
 /// [`Ledger::append_record`] leaves behind, so opening the ledger truncates it
 /// and reports it through [`Ledger::recovered_bytes`]. Removing whole records
 /// from the end is only detectable against an external anchor
-/// (see [`crate::anchor`]).
+/// (see [`crate::anchor`] and [`Ledger::verify_anchor`]).
 pub struct Ledger {
     file: File,
     last_hash: Hash,
+    height: u64,
     recovered_bytes: u64,
 }
 
@@ -62,6 +64,7 @@ impl Ledger {
         let mut ledger = Self {
             file,
             last_hash: [0u8; 32],
+            height: 0,
             recovered_bytes: 0,
         };
 
@@ -71,6 +74,7 @@ impl Ledger {
             match ledger.read_record()? {
                 ReadOutcome::Record(record) => {
                     ledger.last_hash = record.hash;
+                    ledger.height += 1;
                     good_len = ledger.file.stream_position()?;
                 }
                 ReadOutcome::End => break,
@@ -91,6 +95,19 @@ impl Ledger {
         self.recovered_bytes
     }
 
+    /// Number of records in the ledger.
+    pub fn height(&self) -> u64 {
+        self.height
+    }
+
+    /// The anchor to save after an append.
+    pub fn anchor(&self) -> Anchor {
+        Anchor {
+            height: self.height,
+            head: self.last_hash,
+        }
+    }
+
     pub fn append_record(&mut self, data: &[u8]) -> Result<(), LedgerError> {
         let len = u32::try_from(data.len()).map_err(|_| LedgerError::RecordTooLarge)?;
         let hash = chain_hash(&self.last_hash, data);
@@ -106,13 +123,33 @@ impl Ledger {
         self.file.sync_all()?;
 
         self.last_hash = hash;
+        self.height += 1;
         Ok(())
     }
 
     /// Re-validates every record from the start of the file.
     pub fn verify(&mut self) -> Result<(), LedgerError> {
+        self.scan(0).map(|_| ())
+    }
+
+    /// Verifies the chain and that the record the anchor names is still
+    /// there, unchanged. This catches records removed from the end, which
+    /// the chain alone cannot.
+    pub fn verify_anchor(&mut self, anchor: &Anchor) -> Result<(), LedgerError> {
+        match self.scan(anchor.height)? {
+            _ if anchor.height == 0 => Ok(()),
+            Some(hash) if hash == anchor.head => Ok(()),
+            _ => Err(LedgerError::TamperDetected),
+        }
+    }
+
+    /// Validates every record and returns the chain hash of record number
+    /// `at` (1-based), if it exists.
+    fn scan(&mut self, at: u64) -> Result<Option<Hash>, LedgerError> {
         self.file.seek(SeekFrom::Start(0))?;
         let mut prev = [0u8; 32];
+        let mut index = 0;
+        let mut found = None;
 
         loop {
             match self.read_record()? {
@@ -122,9 +159,13 @@ impl Ledger {
                     {
                         return Err(LedgerError::TamperDetected);
                     }
+                    index += 1;
+                    if index == at {
+                        found = Some(record.hash);
+                    }
                     prev = record.hash;
                 }
-                ReadOutcome::End => return Ok(()),
+                ReadOutcome::End => return Ok(found),
                 ReadOutcome::Torn => return Err(LedgerError::TamperDetected),
             }
         }
@@ -261,5 +302,46 @@ mod tests {
             .unwrap();
 
         assert!(matches!(ledger.verify(), Err(LedgerError::TamperDetected)));
+    }
+
+    #[test]
+    fn anchor_detects_records_removed_from_the_end() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("ledger.bin");
+        let mut ledger = Ledger::new(&path).unwrap();
+        ledger.append_record(b"tx1").unwrap();
+        let after_one = fs::metadata(&path).unwrap().len();
+        ledger.append_record(b"tx2").unwrap();
+        let anchor = ledger.anchor();
+        assert_eq!(anchor.height, 2);
+        ledger.verify_anchor(&anchor).unwrap();
+
+        // Cleanly cut the last record: the chain still verifies, the anchor does not.
+        drop(ledger);
+        OpenOptions::new()
+            .write(true)
+            .open(&path)
+            .unwrap()
+            .set_len(after_one)
+            .unwrap();
+        let mut ledger = Ledger::new(&path).unwrap();
+        assert_eq!(ledger.height(), 1);
+        ledger.verify().unwrap();
+        assert!(matches!(
+            ledger.verify_anchor(&anchor),
+            Err(LedgerError::TamperDetected)
+        ));
+    }
+
+    #[test]
+    fn anchor_accepts_a_ledger_that_grew() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut ledger = Ledger::new(dir.path().join("ledger.bin")).unwrap();
+        let empty = ledger.anchor();
+        ledger.verify_anchor(&empty).unwrap();
+        ledger.append_record(b"tx1").unwrap();
+        let anchor = ledger.anchor();
+        ledger.append_record(b"tx2").unwrap();
+        ledger.verify_anchor(&anchor).unwrap();
     }
 }

@@ -15,6 +15,8 @@ export type Plan = {
   riskLevel: 'low' | 'medium' | 'high';
   summary?: string;
   totalBytes?: number;
+  /** Every file in the plan; `operations` may list only the first of them. */
+  fileCount?: number;
 };
 
 interface ApprovalViewProps {
@@ -45,7 +47,10 @@ export default function ApprovalView({ plan, onDecided }: ApprovalViewProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const total = plan.totalBytes ?? plan.operations.reduce((sum, op) => sum + op.sizeBytes, 0);
-  const hidden = plan.operations.length - VISIBLE_ITEMS;
+  const files = plan.fileCount ?? plan.operations.length;
+  const hidden = files - Math.min(plan.operations.length, VISIBLE_ITEMS);
+  const deletes =
+    plan.operations.length > 0 && plan.operations.every((op) => op.action === 'delete');
 
   const approve = async () => {
     setBusy(true);
@@ -67,8 +72,7 @@ export default function ApprovalView({ plan, onDecided }: ApprovalViewProps) {
   return (
     <section className="approval-view" aria-labelledby="approval-title">
       <h2 id="approval-title" className={`risk-${plan.riskLevel}`}>
-        Clean-up plan · {plan.operations.length} {plan.operations.length === 1 ? 'file' : 'files'} ·{' '}
-        {formatBytes(total)}
+        Clean-up plan · {files} {files === 1 ? 'file' : 'files'} · {formatBytes(total)}
       </h2>
       {plan.summary && <p>{plan.summary}</p>}
 
@@ -97,7 +101,13 @@ export default function ApprovalView({ plan, onDecided }: ApprovalViewProps) {
           Not now
         </button>
         <button className="btn-approve" onClick={() => void approve()} disabled={busy}>
-          {busy ? 'Cleaning up…' : 'Approve clean-up'}
+          {busy
+            ? deletes
+              ? 'Deleting…'
+              : 'Cleaning up…'
+            : deletes
+              ? `Delete ${files === 1 ? 'file' : 'files'}`
+              : 'Approve clean-up'}
         </button>
       </div>
     </section>
