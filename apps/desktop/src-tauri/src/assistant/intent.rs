@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Turns a chat message into a typed intent with deterministic rules.
 //!
 //! These rules handle the requests Cubby can act on today, reliably and

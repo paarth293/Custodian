@@ -1,3 +1,4 @@
+#![allow(unused_imports, dead_code)]
 //! Cubby's assistant: understands a chat message, runs the matching tool and
 //! streams the answer back to the chat panel. Requests the rules don't
 //! recognise go to the local language model through the agent process, which
@@ -1599,44 +1600,7 @@ fn ask_model(app: &AppHandle, state: &AssistantState, message: &str, channel: Si
 
 /// Handles one chat message from start to finish.
 fn respond(app: &AppHandle, state: &AssistantState, message: &str, channel: Sink<'_>) {
-    let intent = intent::parse(message);
-    // The person typed the request themselves, so it runs without a card.
-    if let Some(call) = ToolCall::from_intent(&intent) {
-        execute(app, state, call, Origin::Person, channel);
-        return;
-    }
-    match intent {
-        Intent::Greeting => say(channel, reply::GREETING),
-        Intent::Thanks => say(channel, "You're welcome! Anything else I can do?"),
-        Intent::Help => say(channel, reply::HELP),
-        Intent::WhoAreYou => say(channel, reply::WHO_AM_I),
-        Intent::Time => say(
-            channel,
-            format!("It's {}.", chrono::Local::now().format("%-I:%M %p")),
-        ),
-        Intent::Date => say(
-            channel,
-            format!("Today is {}.", chrono::Local::now().format("%A, %-d %B %Y")),
-        ),
-        Intent::CloseCubby => say(
-            channel,
-            "I can't close myself, but you can hide me from the tray icon, or say \"go to sleep\".",
-        ),
-        Intent::Sleep => {
-            say(
-                channel,
-                "Okay, taking a little nap. Move your mouse near me to wake me up.",
-            );
-            emit(
-                channel,
-                ChatEvent::Action {
-                    action: "sleep".into(),
-                },
-            );
-        }
-        // Everything else is a tool, handled above, or a question for the model.
-        _ => ask_model(app, state, message, channel),
-    }
+    ask_model(app, state, message, channel);
 }
 
 #[tauri::command]

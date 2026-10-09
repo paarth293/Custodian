@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! The tools Cubby can run, whether a rule or the language model chose them
 //! (mirrors `services/agent/src/tools.ts`, §40).
 //!

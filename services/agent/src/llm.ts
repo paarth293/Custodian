@@ -248,6 +248,7 @@ async function loadModel(
   try {
     const context = await loaded.createContext({
       contextSize: { min: MIN_CONTEXT_TOKENS, max: CONTEXT_TOKENS },
+      flashAttention: true,
     });
     return { model: loaded, context };
   } catch (err) {

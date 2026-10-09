@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Wording of Cubby's replies. Pure functions, so every message is testable.
 
 use super::apps::OpenApp;
