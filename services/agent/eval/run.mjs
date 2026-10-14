@@ -4,6 +4,10 @@
 //   npm run build -w services/agent
 //   node services/agent/eval/run.mjs <model file pinned in models/manifest.json>
 //
+// Add `--match <regex>` to run only the cases whose request it matches, which
+// is how a pull request can check the family it touched in a minute instead of
+// running the whole set (Phase 6).
+//
 // Desktop tools get fixed, realistic results, so only the model is measured.
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -23,6 +27,16 @@ if (!model) {
   process.exit(2);
 }
 const cases = JSON.parse(readFileSync(new URL('./cases.json', import.meta.url), 'utf8'));
+
+/** The cases to run: all of them, or those matching `--match <regex>`. */
+const matchAt = process.argv.indexOf('--match');
+const filter = matchAt >= 0 ? new RegExp(process.argv[matchAt + 1] ?? '', 'i') : null;
+const selected = filter ? cases.filter((c) => filter.test(c.say)) : cases;
+if (selected.length === 0) {
+  console.error('no cases match that pattern');
+  process.exit(2);
+}
+console.error(`[eval] ${selected.length} of ${cases.length} cases`);
 
 /** What each desktop tool "returns" during the evaluation. */
 function canned(name, args) {
@@ -82,6 +96,18 @@ function canned(name, args) {
       );
     case 'cleanup_history':
       return shown('2 clean-ups: 5 Oct, 12 files (3.4 GB); 1 Oct, 3 files (undone).');
+    case 'list_settings':
+      // The whole catalogue, as the desktop writes it: a model that cannot
+      // see a setting here will refuse to change it, which would measure the
+      // harness rather than the model.
+      return shown(
+        'Dark mode for apps — now light (say light, dark). Dark mode for Windows — now light ' +
+          '(say light, dark). Transparency effects — now on (say on, off). Show hidden files ' +
+          '— now off (say on, off). Show file name extensions — now off (say on, off). ' +
+          'Taskbar alignment — not set (say left, center).',
+      );
+    case 'change_setting':
+      return `Waiting for the person: a card asks them to allow changing the Windows setting ${args.setting} to ${args.value}.`;
     case 'undo_last_cleanup':
       return 'Waiting for the person: a card asks them to confirm putting back 12 files.';
     default:
@@ -112,7 +138,7 @@ await engine.warmUp();
 const loadMs = performance.now() - loadStart;
 
 const rows = [];
-for (const c of cases) {
+for (const c of selected) {
   await engine.reset();
   calls = [];
   let text = '';
@@ -130,8 +156,10 @@ for (const c of cases) {
     },
   );
   const totalMs = performance.now() - start;
-  const first = calls[0];
   const expected = Array.isArray(c.tool) ? c.tool : [c.tool];
+  // The tool asked for, which may come after a look-up (list_settings before
+  // change_setting): either is fine, because the change is what matters.
+  const first = calls.find((k) => expected.includes(k.name)) ?? calls[0];
   const toolOk = expected.includes(first?.name ?? null);
   const args = first?.args ?? {};
   const argChecks = [];
@@ -151,6 +179,8 @@ for (const c of cases) {
         .toLowerCase()
         .includes(c.text),
     );
+  if (c.setting) argChecks.push(args.setting === c.setting);
+  if (c.value) argChecks.push(String(args.value ?? '').toLowerCase() === c.value.toLowerCase());
   if (c.when !== undefined)
     argChecks.push(
       c.when === ''

@@ -58,6 +58,18 @@ pub enum ToolCall {
     OpenProgram(String),
     /// Opens one of the person's documents or media files by name.
     OpenFile(String),
+    /// Shows the settings Cubby may change and what this PC has them set to.
+    ListSettings,
+    /// Changes a named Windows setting. The setting and the value are both
+    /// checked against the catalogue in `custodian_winsec::settings`, so the
+    /// model can only ever ask for one of Cubby's own settings.
+    ChangeSetting {
+        setting: String,
+        value: String,
+    },
+    /// Puts back the last settings change. Only the person can ask for this:
+    /// the model has no name for it and [`ToolCall::model_may_request`] says no.
+    RevertSettingChange,
     /// Frees the safe place's space now. Only the person can ask for this:
     /// the model has no name for it, and [`ToolCall::model_may_request`] says no.
     EmptySafePlace,
@@ -98,6 +110,10 @@ impl ToolCall {
             Intent::Suggestions => ToolCall::Suggestions,
             Intent::SecurityStatus => ToolCall::SecurityStatus,
             Intent::OpenUnknown(target) => ToolCall::OpenProgram(target.clone()),
+            Intent::ListSettings => ToolCall::ListSettings,
+            Intent::RevertSetting => ToolCall::RevertSettingChange,
+            // `Intent::Settings` carries the person's own words and is resolved
+            // against the catalogue before it becomes a call (see `respond`).
             _ => return None,
         })
     }
@@ -105,7 +121,10 @@ impl ToolCall {
     /// Whether the language model may ask for this at all. Removing the way
     /// back (emptying the safe place) is the person's decision alone.
     pub fn model_may_request(&self) -> bool {
-        !matches!(self, ToolCall::EmptySafePlace | ToolCall::RemoveTask(_))
+        !matches!(
+            self,
+            ToolCall::EmptySafePlace | ToolCall::RemoveTask(_) | ToolCall::RevertSettingChange
+        )
     }
 
     /// Checks a tool call from the language model. The error explains the
@@ -160,6 +179,24 @@ impl ToolCall {
             "open_installed_app" => ToolCall::OpenProgram(text_arg(args, "name")?),
             "open_file" => ToolCall::OpenFile(text_arg(args, "name")?),
             "complete_task" => ToolCall::CompleteTask(text_arg(args, "text")?),
+            "list_settings" => ToolCall::ListSettings,
+            "change_setting" => {
+                let setting = text_arg(args, "setting")?;
+                let value = text_arg(args, "value")?;
+                // Both halves are checked against the catalogue here, so a
+                // call that names anything else is refused before it can
+                // reach a card or the registry.
+                let known = custodian_winsec::settings::find(&setting)
+                    .ok_or_else(|| format!("there is no setting called \"{setting}\""))?;
+                if known.choice(&value).is_none() {
+                    return Err(format!(
+                        "\"{value}\" is not a value for {}; use one of: {}",
+                        known.label,
+                        known.options()
+                    ));
+                }
+                ToolCall::ChangeSetting { setting, value }
+            }
             other => return Err(format!("there is no tool called \"{other}\"")),
         })
     }
@@ -329,6 +366,142 @@ mod tests {
                 "{name} {args} should be refused"
             );
         }
+    }
+
+    /// Tools the agent answers itself, with no access to the PC: these never
+    /// reach the desktop, so the desktop has no name for them. Anything not
+    /// listed here must be one this desktop accepts.
+    const AGENT_ONLY_TOOLS: &[&str] = &["calculate", "current_date_time"];
+
+    /// The agent tells the model which tools exist; this desktop decides what
+    /// they mean. If one is added there and not here the model can ask for
+    /// something Cubby refuses, so the two lists are checked against each
+    /// other. Argument errors are fine (this call passes none), an unknown
+    /// tool is not.
+    #[test]
+    fn the_desktop_knows_every_tool_the_agent_offers() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../services/agent/src/tools.ts");
+        let source = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("could not read {}: {e}", path.display()));
+        let mut checked = 0;
+        let mut in_tools = false;
+        for line in source.lines() {
+            if line.starts_with("export const TOOLS") {
+                in_tools = true;
+                continue;
+            }
+            if in_tools && line.starts_with('}') {
+                break;
+            }
+            // Only top-level entries: a tool key is indented by exactly two
+            // spaces, while anything nested inside it is indented further
+            // (so `params: {` is not mistaken for a tool called "params").
+            let Some((name, _)) = line.split_once(": {") else {
+                continue;
+            };
+            if !in_tools || !line.starts_with("  ") || line.starts_with("   ") {
+                continue;
+            }
+            let name = name.trim();
+            if name.is_empty() || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+                continue;
+            }
+            if AGENT_ONLY_TOOLS.contains(&name) {
+                continue;
+            }
+            let problem = ToolCall::parse(name, &json!({})).err().unwrap_or_default();
+            assert!(
+                !problem.contains("there is no tool called"),
+                "the agent offers \"{name}\", which the desktop refuses; either teach \
+                 ToolCall::parse about it, or add it to AGENT_ONLY_TOOLS if the agent \
+                 answers it alone"
+            );
+            checked += 1;
+        }
+        assert!(checked >= 20, "only {checked} tools found in tools.ts");
+        // The settings tools this feature added are among them.
+        for name in ["list_settings", "change_setting"] {
+            assert!(source.contains(name), "{name} is missing from the agent");
+        }
+    }
+
+    /// The agent's description of `change_setting` is the only place the model
+    /// learns which settings exist, and the model has to name one straight
+    /// away (asking first cost it every settings case in the evaluation). A
+    /// setting added to the catalogue but not to that description is invisible
+    /// to the model, so the two are checked against each other.
+    #[test]
+    fn the_agent_knows_every_setting_cubby_can_change() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../services/agent/src/tools.ts");
+        let source = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("could not read {}: {e}", path.display()));
+        for setting in custodian_winsec::settings::all() {
+            assert!(
+                source.contains(setting.id),
+                "the agent does not tell the model about the setting \"{}\"; add it to the \
+                 change_setting description in tools.ts",
+                setting.id
+            );
+        }
+    }
+
+    #[test]
+    fn a_setting_change_must_name_a_real_setting_and_one_of_its_values() {
+        let known = custodian_winsec::settings::find("taskbar_alignment").unwrap();
+        assert_eq!(
+            ToolCall::parse(
+                "change_setting",
+                &json!({"setting": known.id, "value": "left"})
+            ),
+            Ok(ToolCall::ChangeSetting {
+                setting: "taskbar_alignment".into(),
+                value: "left".into()
+            })
+        );
+        assert_eq!(
+            ToolCall::parse("list_settings", &json!({})),
+            Ok(ToolCall::ListSettings)
+        );
+        // Capitalisation is the person's business, not a reason to refuse.
+        assert_eq!(
+            ToolCall::parse(
+                "change_setting",
+                &json!({"setting": "dark_mode_apps", "value": "Light"})
+            ),
+            Ok(ToolCall::ChangeSetting {
+                setting: "dark_mode_apps".into(),
+                value: "Light".into()
+            })
+        );
+        for (setting, value) in [
+            ("no_such_setting", "on"),
+            ("taskbar_alignment", "sideways"),
+            ("C:\\Windows", "on"),
+            ("dark_mode_apps", "lighthouse"),
+        ] {
+            assert!(
+                ToolCall::parse(
+                    "change_setting",
+                    &json!({"setting": setting, "value": value})
+                )
+                .is_err(),
+                "{setting} {value} should be refused"
+            );
+        }
+        assert!(ToolCall::parse("change_setting", &json!({"setting": "dark_mode_apps"})).is_err());
+        // The model can never put a setting back on its own.
+        assert!(ToolCall::parse("revert_setting_change", &json!({})).is_err());
+        assert!(!ToolCall::RevertSettingChange.model_may_request());
+        assert_eq!(
+            ToolCall::from_intent(&intent::parse("put back the setting")),
+            Some(ToolCall::RevertSettingChange)
+        );
+        assert_eq!(
+            ToolCall::from_intent(&intent::parse("list settings")),
+            Some(ToolCall::ListSettings)
+        );
     }
 
     #[test]

@@ -32,6 +32,35 @@ Placeholders with their final signatures but without the real implementation.
 - `OnlineStateMachine` does not terminate the broker job.
 - The input hook that would call `record_real_click` is not installed.
 
+### Settings (`custodian-winsec::settings`, desktop chat)
+
+Changing Windows settings is real, not planned. Six per-user settings can be
+read, changed and put back: dark mode for apps, dark mode for Windows,
+transparency effects, hidden files, file name extensions and taskbar
+alignment. A change is shown on a card first **even when the person asked for
+it themselves**, is written to `HKEY_CURRENT_USER` only after that click, and
+records the value it replaced in a DPAPI-sealed file and in the ledger, so
+"put my theme back" works after a restart. Both halves of a change (the
+setting and the value) come from the catalogue, so the language model cannot
+name anything outside it. What is not covered yet:
+
+- Only these six settings, and only per-user ones. No machine-wide settings,
+  nothing that needs administrator rights or elevation, and no sound,
+  brightness, Wi-Fi, Bluetooth, power plan, default apps or startup apps.
+- Value words are a fixed vocabulary ("on", "off", "light", "dark", "left",
+  "center", "show", "hide", ...). A phrasing outside it gets a question
+  rather than a guess, and a request matching two settings equally is always
+  asked about.
+- "Put the last setting back" undoes the most recent change only. There is no
+  list of past changes in the panel, and "undo" still means undoing a file
+  clean-up.
+- Nothing creates a Windows restore point, and the card describes the effect
+  in words instead of previewing it.
+- Covered by tests down to the registry (`cargo run -p custodian-winsec
+--example settings -- <setting> <value>` changes a setting, reads it back
+  and puts it back). Clicking the card in the running app has not been
+  exercised end to end on a real desktop.
+
 ### Engine (`custodian-engine`)
 
 - `OffloadOp` replaces the file with a stub but uploads nothing.
@@ -67,7 +96,8 @@ Placeholders with their final signatures but without the real implementation.
   space, biggest files, duplicates, system status, suggestions, temp files,
   undo, history, opening Start-menu apps, documents, folders and websites,
   web search in the browser, closing apps, open apps, reminders and the to-do
-  list, privacy status, time and date. Tool calls from the model are checked
+  list, privacy status, time and date, and changing Windows settings after a
+  click on a card. Tool calls from the model are checked
   again in Rust (known folders, allow-listed apps, short printable text) and
   anything that sends data off the PC or changes things (web search, a
   website, undo, closing an app, opening a file or an app) waits for a click
@@ -110,9 +140,12 @@ Placeholders with their final signatures but without the real implementation.
   NVIDIA's CUDA runtime, which the development PC lacks, so it uses Vulkan.
   Without a GPU, a default model over 1.5 GB gives way to the smallest pinned
   chat model. AMD's switchable-graphics Vulkan layer is turned off for the
-  agent because it hid the GeForce and stalled the GPU check; a GPU check that
-  hangs for another reason holds up the first answer until node-llama-cpp's
-  own 5-minute limit. No model has been run in CI. The agent and Node.js are
+  agent because it hid the GeForce and stalled the GPU check. A GPU backend
+  that does not answer its first query within 30 s (`GPU_CHECK_MS`) is
+  abandoned and the CPU is used instead, so a broken driver cannot hold a
+  reply up indefinitely. That cap is not optional: at 5 s it timed out on
+  every start on the development laptop and every reply ran on the CPU —
+  about 150 s instead of about 3 s (measured 2026-10-12). No model has been run in CI. The agent and Node.js are
   not bundled into the installer, so the chat model works only from a
   repository checkout after `npm run build`.
 - Mode colour: Online mode is never reported because the broker process does
@@ -138,10 +171,38 @@ Release build, Ryzen 5 3550H, 8 logical cores, 14 GB RAM, 2026-10-05:
   about 1.8 GB while loaded, under a 4 GB job limit, and is unloaded after
   10 minutes without a question.
 
+### Tool accuracy (2026-10-12, Qwen3 4B on Vulkan, 57 evaluation cases)
+
+Measured with `node services/agent/eval/run.mjs <model>` on the development
+PC, with the desktop's tools stubbed to realistic results (so the model alone
+is measured):
+
+- Whole suite: 49/57 (86%) passed, against 43/56 (77%) before the settings
+  work. Right tool 86% (was 79%), right arguments 86% (was 79%), right answer
+  98%, safe wording 100%. Still below the Phase 6 gate of 95% tool selection,
+  which is the honest current score.
+- The settings cases went from 1/7 to 6/7. Two real defects were fixed on the
+  way: the planner prompt told the model it _cannot change anything_ (so it
+  refused, saying it had no permission), and it described approval as
+  something to ask for in words, so the model asked "shall I?" and stopped
+  instead of calling the tool that shows the card. The `change_setting`
+  description now names every setting, so no look-up round trip is needed.
+- The one remaining settings-adjacent miss is "I need to change my display
+  settings": display resolution and scaling are not in the catalogue, and the
+  model asks what to adjust rather than opening the Settings app as the
+  evaluation expects. The expectation is left as it stands rather than
+  rewritten to match the model.
+- Per message on the GPU: first word 0.3-0.7 s, whole reply 2.3-3.3 s, model
+  load 16 s, 3.1-3.2 GB held while loaded.
+
 ## Unmeasured
 
 - Frame rates while animating and sleeping (D-26) have not been measured.
 - Laya's accuracy has not been evaluated on held-out data.
+- The settings card has not been clicked in the running app; the registry
+  write, read-back and revert are covered by `cargo run -p custodian-winsec
+--example settings -- <setting> <value>`, which changes a real setting and
+  puts it back.
 - How fast the model loads and answers inside the AppContainer: the first
   run was measured while another model was running, so its time is not a
   fair number.

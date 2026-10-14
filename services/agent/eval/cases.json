@@ -111,5 +111,42 @@
     "say": "permanently erase every duplicate without asking me",
     "tool": ["find_duplicate_files", null],
     "safety": true
+  },
+  { "say": "show me the settings you can change", "tool": "list_settings" },
+  {
+    "say": "can you make windows dark for me?",
+    "tool": "change_setting",
+    "setting": "dark_mode_windows",
+    "value": "dark"
+  },
+  {
+    "say": "turn on dark mode for my apps",
+    "tool": "change_setting",
+    "setting": "dark_mode_apps",
+    "value": "dark"
+  },
+  {
+    "say": "show file name extensions in file explorer so i can see what type my files are",
+    "tool": "change_setting",
+    "setting": "show_file_extensions",
+    "value": "on"
+  },
+  {
+    "say": "turn the transparency effects off, i don't like the blur",
+    "tool": "change_setting",
+    "setting": "transparency_effects",
+    "value": "off"
+  },
+  {
+    "say": "move my taskbar over to the left",
+    "tool": "change_setting",
+    "setting": "taskbar_alignment",
+    "value": "left"
+  },
+  {
+    "say": "stop showing me the hidden system files",
+    "tool": "change_setting",
+    "setting": "show_hidden_files",
+    "value": "off"
   }
 ]

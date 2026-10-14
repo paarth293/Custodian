@@ -1,5 +1,11 @@
 //! Reads a few registry values Custodian needs, such as where cloud storage
-//! keeps its folders. Read-only: nothing here writes to the registry.
+//! keeps its folders, and writes the per-user settings the person asked
+//! Cubby to change (§settings).
+//!
+//! Writes exist only for the named settings in [`crate::settings`]: this
+//! module takes a key path and a value name, and nothing above it may build
+//! those from a model's words. Only `HKEY_CURRENT_USER` settings are changed;
+//! nothing here touches another user or the machine as a whole.
 
 /// A registry hive.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -9,7 +15,9 @@ pub enum Hive {
 }
 
 #[cfg(windows)]
-pub use imp::{string_value, string_values, subkeys};
+pub use imp::{
+    dword_value, remove_key, remove_value, set_dword, string_value, string_values, subkeys,
+};
 
 #[cfg(windows)]
 #[allow(unsafe_code)]
@@ -18,11 +26,11 @@ mod imp {
     use std::ffi::OsStr;
     use std::os::windows::ffi::OsStrExt;
     use std::ptr::{null, null_mut};
-    use windows_sys::Win32::Foundation::{ERROR_MORE_DATA, ERROR_SUCCESS};
+    use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_MORE_DATA, ERROR_SUCCESS};
     use windows_sys::Win32::System::Registry::{
-        RegCloseKey, RegEnumKeyExW, RegEnumValueW, RegGetValueW, RegOpenKeyExW, HKEY,
-        HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ, REG_EXPAND_SZ, REG_SZ,
-        RRF_RT_REG_EXPAND_SZ, RRF_RT_REG_SZ,
+        RegCloseKey, RegDeleteKeyValueW, RegEnumKeyExW, RegEnumValueW, RegGetValueW, RegOpenKeyExW,
+        RegSetKeyValueW, HKEY, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ, REG_DWORD,
+        REG_EXPAND_SZ, REG_SZ, RRF_RT_REG_DWORD, RRF_RT_REG_EXPAND_SZ, RRF_RT_REG_SZ,
     };
 
     /// Longest key name the registry allows, plus its terminating NUL.
@@ -152,6 +160,79 @@ mod imp {
         None
     }
 
+    /// A 32-bit number stored at `path`\`name`, or `None` when the key,
+    /// the value or the type is not there.
+    pub fn dword_value(hive: Hive, path: &str, name: &str) -> Option<u32> {
+        let (path, name) = (wide(path), wide(name));
+        let mut value: u32 = 0;
+        let mut size: u32 = std::mem::size_of::<u32>() as u32;
+        // SAFETY: both strings are NUL-terminated and outlive the call;
+        // `value` is writable for the `size` bytes passed in.
+        let status = unsafe {
+            RegGetValueW(
+                root(hive),
+                path.as_ptr(),
+                name.as_ptr(),
+                RRF_RT_REG_DWORD,
+                null_mut(),
+                std::ptr::addr_of_mut!(value).cast(),
+                &mut size,
+            )
+        };
+        (status == ERROR_SUCCESS && size == std::mem::size_of::<u32>() as u32).then_some(value)
+    }
+
+    /// Stores `value` at `path`\`name`, creating the key when it is missing.
+    pub fn set_dword(hive: Hive, path: &str, name: &str, value: u32) -> std::io::Result<()> {
+        let (path, name) = (wide(path), wide(name));
+        let bytes = value.to_le_bytes();
+        // SAFETY: both strings are NUL-terminated and outlive the call; the
+        // data pointer is valid for the 4 bytes passed as its size.
+        let status = unsafe {
+            RegSetKeyValueW(
+                root(hive),
+                path.as_ptr(),
+                name.as_ptr(),
+                REG_DWORD,
+                bytes.as_ptr().cast(),
+                bytes.len() as u32,
+            )
+        };
+        if status == ERROR_SUCCESS {
+            Ok(())
+        } else {
+            Err(std::io::Error::from_raw_os_error(status as i32))
+        }
+    }
+
+    /// Deletes the key at `path`, which must have no subkeys.
+    pub fn remove_key(hive: Hive, path: &str) -> std::io::Result<()> {
+        use windows_sys::Win32::System::Registry::RegDeleteKeyW;
+        let path = wide(path);
+        // SAFETY: `path` is a NUL-terminated string that outlives the call.
+        let status = unsafe { RegDeleteKeyW(root(hive), path.as_ptr()) };
+        // A key that is already gone is the state the caller asked for.
+        if status == ERROR_SUCCESS || status == ERROR_FILE_NOT_FOUND {
+            Ok(())
+        } else {
+            Err(std::io::Error::from_raw_os_error(status as i32))
+        }
+    }
+
+    /// Removes the value at `path`\`name`. The key is left in place, so
+    /// setting it back to what it was is a matter of writing it again.
+    pub fn remove_value(hive: Hive, path: &str, name: &str) -> std::io::Result<()> {
+        let (path, name) = (wide(path), wide(name));
+        // SAFETY: both strings are NUL-terminated and outlive the call.
+        let status = unsafe { RegDeleteKeyValueW(root(hive), path.as_ptr(), name.as_ptr()) };
+        // A value that is already gone is the state the caller asked for.
+        if status == ERROR_SUCCESS || status == ERROR_FILE_NOT_FOUND {
+            Ok(())
+        } else {
+            Err(std::io::Error::from_raw_os_error(status as i32))
+        }
+    }
+
     /// Every string value of the key at `path`, as (name, data). Values are
     /// returned as stored, without expanding variables.
     pub fn string_values(hive: Hive, path: &str) -> Vec<(String, String)> {
@@ -217,6 +298,35 @@ pub fn string_values(_hive: Hive, _path: &str) -> Vec<(String, String)> {
     Vec::new()
 }
 
+#[cfg(not(windows))]
+pub fn dword_value(_hive: Hive, _path: &str, _name: &str) -> Option<u32> {
+    None
+}
+
+#[cfg(not(windows))]
+pub fn set_dword(_hive: Hive, _path: &str, _name: &str, _value: u32) -> std::io::Result<()> {
+    Err(std::io::Error::new(
+        std::io::ErrorKind::Unsupported,
+        "the registry is available only on Windows",
+    ))
+}
+
+#[cfg(not(windows))]
+pub fn remove_value(_hive: Hive, _path: &str, _name: &str) -> std::io::Result<()> {
+    Err(std::io::Error::new(
+        std::io::ErrorKind::Unsupported,
+        "the registry is available only on Windows",
+    ))
+}
+
+#[cfg(not(windows))]
+pub fn remove_key(_hive: Hive, _path: &str) -> std::io::Result<()> {
+    Err(std::io::Error::new(
+        std::io::ErrorKind::Unsupported,
+        "the registry is available only on Windows",
+    ))
+}
+
 #[cfg(all(test, windows))]
 mod tests {
     use super::*;
@@ -247,5 +357,41 @@ mod tests {
             string_value(Hive::LocalMachine, CURRENT_VERSION, "NoSuchValueAnywhere"),
             None
         );
+    }
+
+    /// The write path, exercised under a scratch key of its own so no real
+    /// setting is read or changed, and nothing is left behind.
+    #[test]
+    fn writes_reads_and_removes_a_scratch_value() {
+        let stamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let (parent, leaf) = (
+            r"Software\Custodian\Test".to_string(),
+            format!("Registry{}_{stamp}", std::process::id()),
+        );
+        let path = format!("{parent}\\{leaf}");
+        let name = "Probe";
+        let hive = Hive::CurrentUser;
+
+        // Nothing there to begin with.
+        assert_eq!(dword_value(hive, &path, name), None);
+        remove_value(hive, &path, name).unwrap(); // Removing nothing is fine.
+
+        set_dword(hive, &path, name, 0xDEAD_BEEF).unwrap();
+        assert_eq!(dword_value(hive, &path, name), Some(0xDEAD_BEEF));
+        set_dword(hive, &path, name, 0).unwrap();
+        assert_eq!(dword_value(hive, &path, name), Some(0));
+
+        remove_value(hive, &path, name).unwrap();
+        assert_eq!(dword_value(hive, &path, name), None);
+        remove_value(hive, &path, name).unwrap(); // And again.
+
+        // Take the scratch keys away, innermost first. A container left by
+        // another test is not ours to remove, so only the leaf must go.
+        remove_key(hive, &path).unwrap();
+        let _ = remove_key(hive, &parent);
+        let _ = remove_key(hive, r"Software\Custodian");
     }
 }

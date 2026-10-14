@@ -46,6 +46,9 @@ describe('TOOLS', () => {
       const props = (tool.params as { properties?: Record<string, unknown> } | undefined)
         ?.properties;
       for (const key of Object.keys(props ?? {})) {
+        // Every parameter the model may write is one of these. "setting" and
+        // "value" are free text like "name", and are checked just as hard:
+        // the desktop refuses anything outside its own settings catalogue.
         expect([
           'folders',
           'folder',
@@ -56,10 +59,25 @@ describe('TOOLS', () => {
           'expression',
           'text',
           'when',
+          'setting',
+          'value',
         ]).toContain(key);
       }
       expect(name).toMatch(/^[a-z_]+$/);
     }
+  });
+
+  it('uses the setting parameters on the settings tool alone', () => {
+    for (const [name, tool] of Object.entries(TOOLS)) {
+      const props = (tool.params as { properties?: Record<string, unknown> } | undefined)
+        ?.properties;
+      const keys = Object.keys(props ?? {});
+      for (const key of ['setting', 'value']) {
+        expect(keys.includes(key)).toBe(name === 'change_setting');
+      }
+    }
+    // The model can never put a setting back on its own: there is no tool for it.
+    expect(TOOLS['revert_setting_change']).toBeUndefined();
   });
 
   it('caps every free-text parameter', () => {

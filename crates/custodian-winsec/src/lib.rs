@@ -15,6 +15,7 @@ pub mod job;
 pub mod power;
 pub mod registry;
 pub mod safe_place;
+pub mod settings;
 pub mod shell;
 pub mod sync_roots;
 

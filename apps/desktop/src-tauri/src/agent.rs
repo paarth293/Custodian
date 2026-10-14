@@ -239,6 +239,15 @@ impl AgentProcess {
         if let Some(dir) = models_dir {
             command.env("CUSTODIAN_MODELS_DIR", dir);
         }
+        if std::env::var_os("CUSTODIAN_LLAMA_GPU").is_none() {
+            command.env("CUSTODIAN_LLAMA_GPU", "vulkan");
+        }
+        command.env("DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1", "1");
+        for name in PASSED_THROUGH {
+            if let Some(value) = std::env::var_os(name) {
+                command.env(name, value);
+            }
+        }
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
@@ -282,6 +291,13 @@ impl AgentProcess {
         if let Some(dir) = models_dir {
             env.push(("CUSTODIAN_MODELS_DIR", dir.as_os_str().to_owned()));
         }
+        if std::env::var_os("CUSTODIAN_LLAMA_GPU").is_none() {
+            env.push(("CUSTODIAN_LLAMA_GPU", OsString::from("off")));
+        }
+        env.push((
+            "DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1",
+            OsString::from("1"),
+        ));
         for name in PASSED_THROUGH {
             if let Some(value) = std::env::var_os(name) {
                 env.push((name, value));

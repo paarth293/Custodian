@@ -93,19 +93,21 @@ npm run fixtures -- --persona demo --out ./fixture   # sample data
 
 Click Cubby to open the chat. These requests work without any model:
 
-| Ask                                                     | What happens                                                                       |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| "where's my resume?", "open my resume"                  | Finds files by name in your folders; opens documents and media (never programs)    |
-| "open spotify", "open downloads", "open myntra"         | Opens any Start-menu app, a known folder or a website                              |
-| "close notepad", "what's open?"                         | Asks an app to close, as its X button does; lists open apps                        |
-| "remind me to call mom at 5pm", "add milk to my list"   | Reminders and a to-do list, sealed on this PC; "what's on my list?", "mark 1 done" |
-| "any suggestions?", "is my PC slow?", "how much space?" | A quick check-up with what to do next; CPU, memory, battery; free space per drive  |
-| "find duplicates", "duplicates in Pictures"             | Proposes moving extra copies to the safe place (never inside OneDrive)             |
-| "clean temp files"                                      | Proposes deleting temporary files older than a week                                |
-| _Approve_ on a plan                                     | Confirmed with Windows Hello, then carried out and recorded                        |
-| "undo", "what did you do?", "empty the safe place"      | Puts the last clean-up back; lists clean-ups; frees the safe place's space now     |
-| "is my data safe?"                                      | Shows how Cubby protects your data, as it stands on this PC                        |
-| "search cheap flights", "what time is it?"              | Web search in your browser; time and date                                          |
+| Ask                                                     | What happens                                                                                     |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| "where's my resume?", "open my resume"                  | Finds files by name in your folders; opens documents and media (never programs)                  |
+| "open spotify", "open downloads", "open myntra"         | Opens any Start-menu app, a known folder or a website                                            |
+| "close notepad", "what's open?"                         | Asks an app to close, as its X button does; lists open apps                                      |
+| "remind me to call mom at 5pm", "add milk to my list"   | Reminders and a to-do list, sealed on this PC; "what's on my list?", "mark 1 done"               |
+| "make windows dark", "show file extensions"             | A card shows exactly what will change and how to put it back; nothing is written until you click |
+| "what settings can you change?", "put my theme back"    | Lists the settings Cubby may change on this PC, and puts back the last change it made            |
+| "any suggestions?", "is my PC slow?", "how much space?" | A quick check-up with what to do next; CPU, memory, battery; free space per drive                |
+| "find duplicates", "duplicates in Pictures"             | Proposes moving extra copies to the safe place (never inside OneDrive)                           |
+| "clean temp files"                                      | Proposes deleting temporary files older than a week                                              |
+| _Approve_ on a plan                                     | Confirmed with Windows Hello, then carried out and recorded                                      |
+| "undo", "what did you do?", "empty the safe place"      | Puts the last clean-up back; lists clean-ups; frees the safe place's space now                   |
+| "is my data safe?"                                      | Shows how Cubby protects your data, as it stands on this PC                                      |
+| "search cheap flights", "what time is it?"              | Web search in your browser; time and date                                                        |
 
 Copies moved to the safe place stay there for 30 days, then their space is
 freed after each copy is checked against its original. When the AI asks to

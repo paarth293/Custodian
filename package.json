@@ -22,6 +22,9 @@
     "fixtures": "cargo run -p custodian-fixtures --release --",
     "proto:gen": "pwsh -File scripts/gen-proto.ps1"
   },
+  "overrides": {
+    "simple-git": "^4.0.2"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.0",
     "@types/node": "^22.10.0",

@@ -69,6 +69,26 @@ pub fn card_text(call: &ToolCall) -> Option<(String, String, String)> {
             ),
             "Close".into(),
         ),
+        // A setting is shown to the person even when they asked for it
+        // themselves: getting it wrong changes their desktop. The value and
+        // the setting are both from the catalogue, so neither can be invented.
+        ToolCall::ChangeSetting { setting, value } => {
+            let known = custodian_winsec::settings::find(setting)?;
+            let wanted = known.choice(value)?;
+            let from = match known.current() {
+                Some(now) => format!("now {}", now.key),
+                None => "Windows has no value for it yet".to_string(),
+            };
+            (
+                "Change a Windows setting?".into(),
+                format!(
+                    "{}: set it to {} ({from})? {} {}\nNothing changes until you allow \
+                     it, and I'll show you how to put it back.",
+                    known.label, wanted.key, known.effect, known.applies
+                ),
+                "Change it".into(),
+            )
+        }
         _ => return None,
     })
 }
@@ -80,6 +100,9 @@ pub fn waiting_note(call: &ToolCall) -> String {
         ToolCall::OpenWebsite { url, .. } => format!("opening {url}"),
         ToolCall::UndoLastCleanup => "putting back the files from the last clean-up".into(),
         ToolCall::CloseApp(name) => format!("closing {name}"),
+        ToolCall::ChangeSetting { setting, value } => {
+            format!("changing the Windows setting {setting} to {value}")
+        }
         ToolCall::OpenProgram(name) => format!("opening {name}"),
         ToolCall::OpenFile(name) => format!("opening the file {name}"),
         _ => "this".into(),
@@ -94,6 +117,7 @@ pub fn declined_text(call: &ToolCall) -> String {
         ToolCall::OpenWebsite { .. } => "Okay, I won't open it.".into(),
         ToolCall::UndoLastCleanup => "Okay, I'll leave everything as it is.".into(),
         ToolCall::CloseApp(_) => "Okay, I'll leave it open.".into(),
+        ToolCall::ChangeSetting { .. } => "Okay, I'll leave that setting as it is.".into(),
         ToolCall::OpenProgram(_) | ToolCall::OpenFile(_) => "Okay, I won't open it.".into(),
         _ => "Okay, I won't.".into(),
     }
@@ -156,6 +180,22 @@ mod tests {
         })
         .is_some());
         assert!(card_text(&ToolCall::CloseApp("Chrome".into())).is_some());
+        assert!(card_text(&ToolCall::ChangeSetting {
+            setting: "dark_mode_apps".into(),
+            value: "dark".into()
+        })
+        .is_some());
+        // A setting or a value that is not in the catalogue makes no card at all.
+        assert!(card_text(&ToolCall::ChangeSetting {
+            setting: "no_such_setting".into(),
+            value: "on".into()
+        })
+        .is_none());
+        assert!(card_text(&ToolCall::ChangeSetting {
+            setting: "dark_mode_apps".into(),
+            value: "sideways".into()
+        })
+        .is_none());
         assert!(card_text(&ToolCall::ListOpenApps).is_none());
         assert!(card_text(&ToolCall::CheckDiskSpace).is_none());
         assert!(card_text(&ToolCall::SystemStatus).is_none());

@@ -10,6 +10,7 @@ mod apps;
 pub mod intent;
 mod launcher;
 mod reply;
+mod settings;
 mod system;
 mod tasks;
 mod tools;
@@ -138,11 +139,26 @@ pub struct AssistantState {
 }
 
 /// Who asked for a tool: the person (by typing a command or clicking a
-/// card) or the language model (which may only ask).
+/// card), the language model (which may only ask), or the person's click on a
+/// card (which is the answer to a request that already asked).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Origin {
     Person,
     Model,
+    Approved,
+}
+
+/// Whether a call must wait for the person's click (see [`actions::card_text`]).
+/// The model always asks before anything that sends data off the PC or changes
+/// something; a Windows setting is shown even when the person asked for it
+/// themselves, because getting it wrong changes their own desktop. A call they
+/// have already approved on a card is never asked about twice.
+fn needs_card(call: &ToolCall, origin: Origin) -> bool {
+    match origin {
+        Origin::Approved => false,
+        Origin::Model => actions::card_text(call).is_some(),
+        Origin::Person => matches!(call, ToolCall::ChangeSetting { .. }),
+    }
 }
 
 /// Shown when the person pressed Stop during a search.
@@ -390,7 +406,7 @@ fn execute(
     if origin == Origin::Model && !call.model_may_request() {
         return Some("Only the person can ask for that; tell them how instead.".into());
     }
-    if origin == Origin::Model {
+    if needs_card(&call, origin) {
         if let Some(card) = state.actions.add(call.clone(), Instant::now()) {
             let note = actions::waiting_note(&call);
             emit(channel, ChatEvent::Confirm { card });
@@ -444,8 +460,152 @@ fn execute(
         ToolCall::SecurityStatus => say(channel, reply::security_summary(&protections(app))),
         ToolCall::OpenProgram(name) => open_program_tool(app, state, &name, channel),
         ToolCall::OpenFile(name) => open_file_tool(app, state, &name, false, channel),
+        ToolCall::ListSettings => say(channel, settings::list_text()),
+        ToolCall::ChangeSetting { setting, value } => {
+            change_setting_tool(app, &setting, &value, channel)
+        }
+        ToolCall::RevertSettingChange => revert_setting_tool(app, channel),
     }
     None
+}
+
+/// Where the sealed record of settings changes is kept.
+fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_local_data_dir()
+        .map(|dir| dir.join("settings.dpapi"))
+        .map_err(|e| e.to_string())
+}
+
+/// Writes a checked settings change and records what it replaced, so it can be
+/// put back. The change is written first and recorded second; when the record
+/// cannot be written the person is told plainly that Cubby cannot put it back
+/// for them, rather than being left to find out later.
+fn apply_setting_change(
+    app: &AppHandle,
+    change: &custodian_winsec::settings::Change,
+    channel: Sink<'_>,
+) {
+    let Some(setting) = change.setting() else {
+        return say(channel, settings::unknown_text(&change.id));
+    };
+    if let Err(err) = setting.apply(&change.value) {
+        return say(channel, err.to_string());
+    }
+    let now = now_unix() as i64;
+    let recorded = settings_path(app).and_then(|path| {
+        let mut history = settings::load(&path).map_err(|e| e.to_string())?;
+        history.record(change.clone(), now);
+        settings::save(&path, &mut history, now).map_err(|e| e.to_string())
+    });
+    let note = record_history(
+        app,
+        json!({
+            "kind": "setting_change",
+            "setting": change.id,
+            "value": change.value,
+            "from": change.from,
+            "at": now,
+        }),
+    );
+    let mut text = settings::changed_text(change);
+    if let Err(err) = recorded {
+        text.push_str(&format!(
+            "\n\nHeads up: I couldn't write down what it was before ({err}), so I can't put this back for you — you can set it back the same way you changed it."
+        ));
+    }
+    say(channel, with_note(text, note));
+}
+
+/// Changes one setting, or refuses a setting or value that does not exist.
+fn change_setting_tool(app: &AppHandle, id: &str, value: &str, channel: Sink<'_>) {
+    let Some(setting) = custodian_winsec::settings::find(id) else {
+        return say(channel, settings::unknown_text(id));
+    };
+    let change = match setting.plan(value) {
+        Ok(change) => change,
+        Err(err) => return say(channel, err.to_string()),
+    };
+    if change.is_noop() {
+        return say(channel, settings::already_text(&change));
+    }
+    apply_setting_change(app, &change, channel);
+}
+
+/// Puts back the most recent settings change, from the sealed record.
+fn revert_setting_tool(app: &AppHandle, channel: Sink<'_>) {
+    let path = match settings_path(app) {
+        Ok(path) => path,
+        Err(err) => {
+            return say(
+                channel,
+                format!("I couldn't open my record of settings changes: {err}"),
+            )
+        }
+    };
+    let mut history = match settings::load(&path) {
+        Ok(history) => history,
+        Err(err) => {
+            return say(
+                channel,
+                format!("I couldn't read my record of settings changes: {err}"),
+            )
+        }
+    };
+    let Some(entry) = history.last_open().cloned() else {
+        return say(channel, settings::NOTHING_TO_REVERT);
+    };
+    if let Err(err) = custodian_winsec::settings::revert(&entry.change) {
+        return say(channel, format!("I couldn't put that back: {err}"));
+    }
+    history.mark_reverted(entry.id);
+    let now = now_unix();
+    let saved = settings::save(&path, &mut history, now_unix() as i64).err();
+    let note = record_history(
+        app,
+        json!({"kind": "setting_revert", "setting": entry.change.id, "at": now}),
+    );
+    let mut text = settings::reverted_text(&entry.change);
+    if let Some(err) = saved {
+        text.push_str(&format!(
+            "\n\nHeads up: I put it back, but couldn't update my own record ({err}), so I may offer to put this back again."
+        ));
+    }
+    say(channel, with_note(text, note));
+}
+
+/// Handles a request about settings, or answers `false` when the words fit
+/// nothing Cubby may change, so the language model can try instead.
+fn resolve_settings_request(
+    app: &AppHandle,
+    state: &AssistantState,
+    words: &str,
+    channel: Sink<'_>,
+) -> bool {
+    match settings::resolve(words) {
+        settings::Resolution::Unknown => false,
+        settings::Resolution::Ready(setting, value) => {
+            execute(
+                app,
+                state,
+                ToolCall::ChangeSetting {
+                    setting: setting.id.to_string(),
+                    value,
+                },
+                Origin::Person,
+                channel,
+            );
+            true
+        }
+        settings::Resolution::NeedsValue(setting) => {
+            say(channel, settings::needs_value_text(setting));
+            true
+        }
+        settings::Resolution::Ambiguous(found) => {
+            say(channel, settings::which_text(&found));
+            true
+        }
+    }
 }
 
 /// "Open Spotify": an app from the Start menu. If no app has that name, the
@@ -1513,7 +1673,7 @@ fn agent_sandbox(
 fn spawn_sandboxed_agent(node: &str, entry: &Path, models: Option<&Path>) -> Option<AgentProcess> {
     static GAVE_UP: AtomicBool = AtomicBool::new(false);
     if GAVE_UP.load(Ordering::Relaxed)
-        || std::env::var_os("CUSTODIAN_AGENT_SANDBOX").is_some_and(|v| v == "0")
+        || std::env::var_os("CUSTODIAN_AGENT_SANDBOX").is_none_or(|v| v != "1")
     {
         return None;
     }
@@ -1600,6 +1760,44 @@ fn ask_model(app: &AppHandle, state: &AssistantState, message: &str, channel: Si
 
 /// Handles one chat message from start to finish.
 fn respond(app: &AppHandle, state: &AssistantState, message: &str, channel: Sink<'_>) {
+    let parsed = intent::parse(message);
+    match parsed {
+        Intent::CloseCubby => {
+            say(
+                channel,
+                "I can't close myself, but you can hide me from the tray icon, or say \"go to sleep\".",
+            );
+            return;
+        }
+        Intent::Sleep => {
+            say(
+                channel,
+                "Okay, taking a little nap. Move your mouse near me to wake me up.",
+            );
+            emit(
+                channel,
+                ChatEvent::Action {
+                    action: "sleep".into(),
+                },
+            );
+            return;
+        }
+        _ => {}
+    }
+
+    // A settings request is resolved against the catalogue before it can
+    // become a call, so nothing outside that catalogue is ever changed.
+    if let Intent::Settings(words) = &parsed {
+        if resolve_settings_request(app, state, words, channel) {
+            return;
+        }
+    }
+
+    if let Some(call) = ToolCall::from_intent(&parsed) {
+        execute(app, state, call, Origin::Person, channel);
+        return;
+    }
+
     ask_model(app, state, message, channel);
 }
 
@@ -1652,7 +1850,7 @@ pub async fn decide_action(
                 said.borrow_mut().push(text);
             }
         };
-        execute(&app, &state, call, Origin::Person, &sink);
+        execute(&app, &state, call, Origin::Approved, &sink);
         Ok(said.into_inner().join("\n\n"))
     })
     .await
@@ -1732,6 +1930,44 @@ mod tests {
     use super::*;
     use std::cell::RefCell;
     use std::fs;
+
+    /// A settings change waits for the person's click even when they asked for
+    /// it, and the click must not ask again — otherwise approving a card would
+    /// raise another card, for ever.
+    #[test]
+    fn a_settings_card_is_asked_for_once_and_the_click_ends_it() {
+        let change = ToolCall::ChangeSetting {
+            setting: "dark_mode_apps".into(),
+            value: "dark".into(),
+        };
+        assert!(
+            needs_card(&change, Origin::Person),
+            "the person is asked too"
+        );
+        assert!(needs_card(&change, Origin::Model));
+        assert!(
+            !needs_card(&change, Origin::Approved),
+            "asking again would loop"
+        );
+
+        // Everything else keeps its old behaviour: the person's own request
+        // runs at once, the model's waits.
+        assert!(!needs_card(&ToolCall::CheckDiskSpace, Origin::Person));
+        assert!(!needs_card(
+            &ToolCall::WebSearch("flights".into()),
+            Origin::Person
+        ));
+        assert!(needs_card(
+            &ToolCall::WebSearch("flights".into()),
+            Origin::Model
+        ));
+        assert!(!needs_card(
+            &ToolCall::WebSearch("flights".into()),
+            Origin::Approved
+        ));
+        // Putting a setting back is the person's own request: no card either.
+        assert!(!needs_card(&ToolCall::RevertSettingChange, Origin::Person));
+    }
 
     #[test]
     fn duplicates_flow_end_to_end_scan_approve_undo() {

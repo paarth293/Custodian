@@ -93,9 +93,10 @@ pub fn create_cubby_window(app: &AppHandle) -> tauri::Result<()> {
         .resizable(false)
         .shadow(false)
         .focusable(false)
-        // Hidden from screen sharing and screenshots (SR-F7); the tray can
-        // allow it for an hour for a demo.
-        .content_protected(true)
+        // Hidden from screen sharing and screenshots (SR-F7) in release builds;
+        // disabled in dev so developers can screenshot Cubby.
+        // The tray "Show Cubby in screenshots" can lift it for an hour in release.
+        .content_protected(cfg!(not(debug_assertions)))
         .visible(false)
         .build()?;
 

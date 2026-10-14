@@ -191,12 +191,92 @@ pub enum Intent {
     Suggestions,
     /// "Is my data safe?": how Cubby protects it, as it stands on this PC.
     SecurityStatus,
+    /// "What settings can you change?": the settings Cubby may change, with
+    /// what this PC has them set to now.
+    ListSettings,
+    /// "Make windows dark", "show file extensions": the person's own words,
+    /// resolved against the settings catalogue by [`super::settings`].
+    Settings(String),
+    /// "Put the setting back": undo the most recent settings change.
+    RevertSetting,
     Undo,
     History,
     Sleep,
     /// "open something" that matched no app, folder or site.
     OpenUnknown(String),
     Unknown,
+}
+
+/// The subjects the settings catalogue knows, as words people use for them.
+/// A request needs one of these *and* a verb from [`SETTING_VERBS`] before it
+/// is read as a change, so a request that merely mentions settings — "I need
+/// to change my display settings" — is left to the language model (which opens
+/// the Settings app) instead of changing something behind the person's back.
+const SETTING_WORDS: &[&str] = &[
+    "dark mode",
+    "dark theme",
+    "light mode",
+    "light theme",
+    "night mode",
+    "day mode",
+    "dark",
+    "light",
+    "theme",
+    "transparency",
+    "transparency effects",
+    "file extension",
+    "file extensions",
+    "hidden file",
+    "hidden files",
+    "taskbar",
+];
+
+/// Verbs that make a request an action rather than a question. "find hidden
+/// files" is a search, so "find" is deliberately not here.
+const SETTING_VERBS: &[&str] = &[
+    "make", "set", "turn", "switch", "change", "enable", "disable", "show", "hide", "move", "put",
+    "want", "prefer", "use", "stop", "start",
+];
+
+/// Words that ask for something to be put back. "back" on its own is enough
+/// next to a settings word: "put my theme back" is a revert, while "put my
+/// taskbar on the left" has no "back" in it and is a change.
+const PUT_BACK_WORDS: &[&str] = &["back", "revert", "undo", "restore"];
+
+/// Reads a request about Windows settings, or `None` when it is not one.
+/// What the person meant is worked out by [`super::settings::resolve`], which
+/// refuses to guess between two settings.
+fn settings_intent(text: &str) -> Option<Intent> {
+    if has_any(
+        text,
+        &[
+            "what settings can you change",
+            "which settings can you change",
+            "settings can you change",
+            "settings you can change",
+            "what settings do you have",
+            "which settings do you have",
+            "what can you change",
+            "list settings",
+            "show settings",
+            "change my settings",
+            "settings list",
+        ],
+    ) {
+        return Some(Intent::ListSettings);
+    }
+    // Putting one back also covers the bare word "setting", which the change
+    // rule deliberately does not accept: "change my display settings" is about
+    // the Settings app, not about changing something behind the person's back.
+    if has_any(text, PUT_BACK_WORDS)
+        && (has_any(text, SETTING_WORDS) || has_any(text, &["setting", "settings"]))
+    {
+        return Some(Intent::RevertSetting);
+    }
+    if wants_action(text) && has_any(text, SETTING_WORDS) && has_any(text, SETTING_VERBS) {
+        return Some(Intent::Settings(text.to_string()));
+    }
+    None
 }
 
 fn normalise(text: &str) -> String {
@@ -877,6 +957,11 @@ pub fn parse(message: &str) -> Intent {
     }
     // Tasks first: "remind me to put back the chairs" is not an undo.
     if let Some(intent) = task_intent(message, &text) {
+        return intent;
+    }
+    // Settings next: "put my taskbar back" is not undoing a clean-up, and
+    // "make it dark" is not a file search.
+    if let Some(intent) = settings_intent(&text) {
         return intent;
     }
     let act = wants_action(&text);
@@ -1570,6 +1655,51 @@ mod tests {
             assert_eq!(parse(message), Intent::CleanTempFiles, "{message}");
         }
         assert_ne!(parse("what are temp files?"), Intent::CleanTempFiles);
+    }
+
+    #[test]
+    fn recognises_settings_requests_and_how_to_put_them_back() {
+        assert_eq!(parse("what settings can you change"), Intent::ListSettings);
+        assert_eq!(parse("list settings"), Intent::ListSettings);
+        assert_eq!(
+            parse("make windows dark"),
+            Intent::Settings("make windows dark".into())
+        );
+        assert_eq!(
+            parse("show file extensions"),
+            Intent::Settings("show file extensions".into())
+        );
+        assert_eq!(
+            parse("put my taskbar on the left"),
+            Intent::Settings("put my taskbar on the left".into())
+        );
+        assert_eq!(parse("put back the setting"), Intent::RevertSetting);
+        assert_eq!(parse("put my theme back"), Intent::RevertSetting);
+        assert_eq!(parse("undo the taskbar change"), Intent::RevertSetting);
+
+        // A question about a setting is answered, not changed.
+        assert_ne!(parse("what is my taskbar alignment"), Intent::RevertSetting);
+        assert!(!matches!(parse("what is dark mode"), Intent::Settings(_))); // A request about settings in general is not a change to one of them.
+        for words in [
+            "I need to change my display settings",
+            "open windows settings",
+        ] {
+            assert!(
+                !matches!(
+                    parse(words),
+                    Intent::Settings(_) | Intent::RevertSetting | Intent::ListSettings
+                ),
+                "{words}"
+            );
+        }
+        // Undoing a clean-up is still undoing a clean-up.
+        assert_eq!(parse("put back the files you moved"), Intent::Undo);
+        assert_eq!(parse("undo"), Intent::Undo);
+        // Searching for hidden files is a search.
+        assert!(!matches!(
+            parse("find my hidden files"),
+            Intent::Settings(_)
+        ));
     }
 
     #[test]

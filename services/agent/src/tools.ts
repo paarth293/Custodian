@@ -186,6 +186,28 @@ export const TOOLS: Record<string, ToolDefinition> = {
   cleanup_history: {
     description: 'Lists Cubby’s recent clean-ups.',
   },
+  list_settings: {
+    description:
+      'The Windows settings Cubby may change, and what this PC has them set to now. ' +
+      'Use it when the person asks what you can change, or before changing one.',
+  },
+  change_setting: {
+    description:
+      'Changes one Windows setting for the person. "setting" must be one of these: ' +
+      'dark_mode_apps or dark_mode_windows (value light or dark), transparency_effects ' +
+      '(on or off), show_hidden_files (on or off), show_file_extensions (on or off), ' +
+      'taskbar_alignment (left or center). You already know all of them: call this straight ' +
+      'away when they ask, do not look them up first, do not say you are not allowed, and do ' +
+      'not ask whether to go ahead — the card is where they allow it. Say what it will do, ' +
+      'and do not say it is done until the tool result says so.',
+    params: {
+      type: 'object',
+      properties: {
+        setting: shortText('A setting name from list_settings, for example "dark_mode_apps".'),
+        value: shortText('One of that setting’s own values, for example "dark" or "on".'),
+      },
+    },
+  },
   undo_last_cleanup: {
     description:
       'Offers to put back the files from the most recent clean-up. The person confirms it.',
