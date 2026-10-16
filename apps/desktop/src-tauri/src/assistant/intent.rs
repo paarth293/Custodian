@@ -57,12 +57,19 @@ impl KnownFolder {
     }
 }
 
-/// Which folders a search covers.
+/// Which folders or storage locations a search covers.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Scope {
-    /// All the user's personal folders (what "my system" means here).
+    /// All the user's personal folders.
     UserFolders,
+    /// Specific known user folders.
     Folders(Vec<KnownFolder>),
+    /// All fixed local drives ("all drives", "whole system", "entire pc", "my system").
+    AllDrives,
+    /// A specific drive, e.g. "C:\", "D:\".
+    Drive(String),
+    /// A custom folder or directory path.
+    Custom(std::path::PathBuf),
 }
 
 /// Apps Cubby may launch. A fixed allow-list: never an arbitrary command.
@@ -153,7 +160,10 @@ pub enum Intent {
     Date,
     DiskSpace,
     FindDuplicates(Scope),
-    LargestFiles(Scope),
+    LargestFiles {
+        scope: Scope,
+        count: usize,
+    },
     OpenWebsite {
         name: String,
         url: String,
@@ -204,6 +214,20 @@ pub enum Intent {
     Sleep,
     /// "open something" that matched no app, folder or site.
     OpenUnknown(String),
+    MoveFile {
+        source: String,
+        destination: String,
+    },
+    CopyFile {
+        source: String,
+        destination: String,
+    },
+    RenameFile {
+        path: String,
+        new_name: String,
+    },
+    CreateFolder(String),
+    GetFileInfo(String),
     Unknown,
 }
 
@@ -309,19 +333,166 @@ fn contains_word(text: &str, phrase: &str) -> bool {
     })
 }
 
-fn scope_of(text: &str) -> Scope {
+/// Scope for duplicate scanning. Because duplicate cleanup is a mutable/quarantine
+/// operation (F41: "Separate read-only discovery policy from write/cleanup eligibility"),
+/// whole-system requests are safely confined to user personal folders unless specific
+/// folders or drives are explicitly requested.
+fn duplicate_scope_of(text: &str) -> Scope {
     let folders: Vec<KnownFolder> = text.split(' ').filter_map(KnownFolder::from_word).collect();
-    if folders.is_empty() {
-        Scope::UserFolders
-    } else {
+    if !folders.is_empty() {
         let mut unique = Vec::new();
         for f in folders {
             if !unique.contains(&f) {
                 unique.push(f);
             }
         }
-        Scope::Folders(unique)
+        return Scope::Folders(unique);
     }
+    Scope::UserFolders
+}
+
+fn scope_of(text: &str) -> Scope {
+    // 3. Whole-system / all-drives requests (F41: "find largest file on my system" inspects all drives)
+    if has_any(
+        text,
+        &[
+            "all drives",
+            "every drive",
+            "all disks",
+            "whole system",
+            "entire system",
+            "whole pc",
+            "entire pc",
+            "my system",
+            "the system",
+            "across all drives",
+            "across the pc",
+            "across my pc",
+            "across my system",
+            "on my pc",
+            "on my computer",
+            "in my pc",
+            "in my computer",
+            "on my system",
+            "whole computer",
+            "entire computer",
+            "this pc",
+            "this computer",
+        ],
+    ) {
+        return Scope::AllDrives;
+    }
+
+    // 2. Drive letter specifications (e.g. "C:\", "D:", "drive c", "d drive")
+    for word in text.split_whitespace() {
+        let clean = word.trim_matches(|c| c == '\'' || c == '"' || c == ',' || c == '.');
+        if clean.len() >= 2
+            && clean.len() <= 3
+            && clean.as_bytes()[1] == b':'
+            && clean.as_bytes()[0].is_ascii_alphabetic()
+        {
+            let letter = (clean.as_bytes()[0] as char).to_ascii_uppercase();
+            return Scope::Drive(format!("{letter}:\\"));
+        }
+    }
+    let words: Vec<&str> = text.split_whitespace().collect();
+    for i in 0..words.len() {
+        if words[i] == "drive" && i + 1 < words.len() {
+            let next = words[i + 1].trim_matches(|c| c == '\'' || c == '"' || c == ',' || c == '.');
+            if next.len() == 1 && next.chars().next().unwrap().is_ascii_alphabetic() {
+                let letter = next.to_ascii_uppercase();
+                return Scope::Drive(format!("{letter}:\\"));
+            }
+        }
+        if (words[i] == "drive" || words[i] == "disk") && i > 0 {
+            let prev = words[i - 1].trim_matches(|c| c == '\'' || c == '"' || c == ',' || c == '.');
+            if prev.len() == 1 && prev.chars().next().unwrap().is_ascii_alphabetic() {
+                let letter = prev.to_ascii_uppercase();
+                return Scope::Drive(format!("{letter}:\\"));
+            }
+        }
+    }
+
+    // 1. Specific known folders named in the request
+    let folders: Vec<KnownFolder> = text.split(' ').filter_map(KnownFolder::from_word).collect();
+    if !folders.is_empty() {
+        let mut unique = Vec::new();
+        for f in folders {
+            if !unique.contains(&f) {
+                unique.push(f);
+            }
+        }
+        return Scope::Folders(unique);
+    }
+
+    Scope::AllDrives
+}
+
+/// Preserve explicitly quoted local paths before normalisation removes backslashes.
+pub(super) fn read_scope_for(message: &str) -> Scope {
+    explicit_read_scope(message).unwrap_or_else(|| scope_of(&normalise(message)))
+}
+
+fn explicit_read_scope(message: &str) -> Option<Scope> {
+    for quoted in message.split('"').skip(1).step_by(2) {
+        let path = std::path::PathBuf::from(quoted);
+        if path.is_absolute() {
+            return Some(Scope::Custom(path));
+        }
+    }
+    for word in message.split_whitespace().rev() {
+        let path = std::path::PathBuf::from(word.trim_end_matches(['?', '!']));
+        if path.is_absolute() {
+            return Some(Scope::Custom(path));
+        }
+    }
+    None
+}
+
+fn count_of_largest(text: &str) -> usize {
+    let words: Vec<&str> = text.split_whitespace().collect();
+    for (i, w) in words.iter().enumerate() {
+        let clean = w.trim_matches(|c: char| !c.is_alphanumeric());
+        if let Ok(n) = clean.parse::<usize>() {
+            if n > 0 {
+                if i > 0 && ["top", "first", "best"].contains(&words[i - 1]) {
+                    return n.clamp(1, 100);
+                }
+                if i + 1 < words.len()
+                    && [
+                        "largest", "biggest", "large", "big", "huge", "files", "file",
+                    ]
+                    .contains(&words[i + 1])
+                {
+                    return n.clamp(1, 100);
+                }
+                if i > 0 && ["largest", "biggest", "find"].contains(&words[i - 1]) {
+                    return n.clamp(1, 100);
+                }
+            }
+        }
+        match *w {
+            "one" | "single" => return 1,
+            "two" => return 2,
+            "three" => return 3,
+            "four" => return 4,
+            "five" => return 5,
+            "ten" => return 10,
+            _ => {}
+        }
+    }
+    // Check if singular ("file" and not "files")
+    if contains_word(text, "file") && !contains_word(text, "files") {
+        return 1;
+    }
+    if contains_word(text, "the largest") && !contains_word(text, "largest files") {
+        return 1;
+    }
+    if contains_word(text, "the biggest") && !contains_word(text, "biggest files") {
+        return 1;
+    }
+    // Plural default is 10
+    10
 }
 
 /// A well-known site name ("youtube") or a domain ("example.org") as
@@ -519,9 +690,38 @@ fn find_target(text: &str) -> Option<(String, Scope)> {
         "search my files for ",
         "search for my ",
     ];
-    let rest = PREFIXES.iter().find_map(|p| text.strip_prefix(p))?;
+    let mut rest = PREFIXES.iter().find_map(|p| text.strip_prefix(p))?;
+    for suffix in [
+        " across all local drives",
+        " across all drives",
+        " on all drives",
+        " in my system",
+        " on my system",
+        " across my system",
+        " on my pc",
+        " in my pc",
+        " on my computer",
+        " in my computer",
+        " on this pc",
+        " on this computer",
+    ] {
+        if let Some(query) = rest.strip_suffix(suffix) {
+            rest = query;
+            break;
+        }
+    }
+    let mut explicit_drive = None;
+    for separator in [" on ", " in ", " from "] {
+        if let Some((query, location)) = rest.rsplit_once(separator) {
+            if let Scope::Drive(drive) = scope_of(location) {
+                explicit_drive = Some(Scope::Drive(drive));
+                rest = query;
+                break;
+            }
+        }
+    }
     let mut words: Vec<&str> = rest.split(' ').filter(|w| !w.is_empty()).collect();
-    let mut scope = Scope::UserFolders;
+    let mut scope = explicit_drive.unwrap_or(Scope::AllDrives);
     // A trailing "in documents" / "on desktop" names the folder to search.
     if words.len() >= 3 && ["in", "on", "from"].contains(&words[words.len() - 2]) {
         if let Some(folder) = KnownFolder::from_word(words[words.len() - 1]) {
@@ -949,6 +1149,91 @@ fn about_system(text: &str) -> bool {
         && has_any(text, &["pc", "computer", "laptop", "system", "it"]))
 }
 
+fn file_mutation_intent(message: &str) -> Option<Intent> {
+    let trimmed = message.trim();
+    let lower = trimmed.to_lowercase();
+    if lower.starts_with("create folder ")
+        || lower.starts_with("make folder ")
+        || lower.starts_with("new folder ")
+    {
+        let path = if lower.starts_with("create folder ") {
+            &trimmed["create folder ".len()..]
+        } else if lower.starts_with("make folder ") {
+            &trimmed["make folder ".len()..]
+        } else {
+            &trimmed["new folder ".len()..]
+        };
+        let path = path.trim().trim_matches('"').trim_matches('\'').trim();
+        if !path.is_empty() {
+            return Some(Intent::CreateFolder(path.to_string()));
+        }
+    }
+    if lower.starts_with("rename ") {
+        let rest = &trimmed["rename ".len()..];
+        if let Some((path, new_name)) = rest.split_once(" to ") {
+            let path = path.trim().trim_matches('"').trim_matches('\'').trim();
+            let new_name = new_name.trim().trim_matches('"').trim_matches('\'').trim();
+            if !path.is_empty() && !new_name.is_empty() {
+                return Some(Intent::RenameFile {
+                    path: path.to_string(),
+                    new_name: new_name.to_string(),
+                });
+            }
+        }
+    }
+    if lower.starts_with("move ") {
+        let rest = &trimmed["move ".len()..];
+        if let Some((source, dest)) = rest.split_once(" to ") {
+            let source = source.trim().trim_matches('"').trim_matches('\'').trim();
+            let dest = dest.trim().trim_matches('"').trim_matches('\'').trim();
+            if !source.is_empty() && !dest.is_empty() {
+                return Some(Intent::MoveFile {
+                    source: source.to_string(),
+                    destination: dest.to_string(),
+                });
+            }
+        }
+    }
+    if lower.starts_with("copy ") {
+        let rest = &trimmed["copy ".len()..];
+        if let Some((source, dest)) = rest.split_once(" to ") {
+            let source = source.trim().trim_matches('"').trim_matches('\'').trim();
+            let dest = dest.trim().trim_matches('"').trim_matches('\'').trim();
+            if !source.is_empty() && !dest.is_empty() {
+                return Some(Intent::CopyFile {
+                    source: source.to_string(),
+                    destination: dest.to_string(),
+                });
+            }
+        }
+    }
+    for prefix in [
+        "file info for ",
+        "file info ",
+        "file details for ",
+        "file details ",
+        "inspect file ",
+        "inspect ",
+        "properties of ",
+        "file size of ",
+        "how big is ",
+    ] {
+        if lower.starts_with(prefix) {
+            let path = &trimmed[prefix.len()..];
+            let path = path.trim().trim_end_matches(['?', '.', '!']).trim();
+            let path = path
+                .strip_prefix("the file ")
+                .or_else(|| path.strip_prefix("file "))
+                .unwrap_or(path);
+            let path = path.trim().trim_matches('"').trim_matches('\'').trim();
+            if !path.is_empty() {
+                return Some(Intent::GetFileInfo(path.to_string()));
+            }
+        }
+    }
+    None
+}
+
 /// Classifies a chat message.
 pub fn parse(message: &str) -> Intent {
     let text = normalise(message);
@@ -962,6 +1247,10 @@ pub fn parse(message: &str) -> Intent {
     // Settings next: "put my taskbar back" is not undoing a clean-up, and
     // "make it dark" is not a file search.
     if let Some(intent) = settings_intent(&text) {
+        return intent;
+    }
+    // File operations (move, copy, rename, create folder)
+    if let Some(intent) = file_mutation_intent(message) {
         return intent;
     }
     let act = wants_action(&text);
@@ -981,7 +1270,7 @@ pub fn parse(message: &str) -> Intent {
         )
         && (about_files(&text) || words <= 3)
     {
-        return Intent::FindDuplicates(scope_of(&text));
+        return Intent::FindDuplicates(duplicate_scope_of(&text));
     }
     if act
         && about_files(&text)
@@ -1001,7 +1290,10 @@ pub fn parse(message: &str) -> Intent {
             ],
         )
     {
-        return Intent::LargestFiles(scope_of(&text));
+        return Intent::LargestFiles {
+            scope: explicit_read_scope(message).unwrap_or_else(|| scope_of(&text)),
+            count: count_of_largest(&text),
+        };
     }
     let disk_phrase = has_any(
         &text,
@@ -1113,10 +1405,23 @@ pub fn parse(message: &str) -> Intent {
     {
         return Intent::History;
     }
-    if let Some((name, scope)) = find_target(&text) {
+    let mut find_text = text.clone();
+    let mut path_scope = None;
+    let lower_message = message.to_ascii_lowercase();
+    for separator in [" in ", " on ", " from "] {
+        if let Some(index) = lower_message.rfind(separator) {
+            if let Some(scope) = explicit_read_scope(&message[index + separator.len()..]) {
+                find_text = normalise(&message[..index]);
+                path_scope = Some(scope);
+                break;
+            }
+        }
+    }
+    if let Some((name, scope)) = find_target(&find_text) {
+        let scope = path_scope.unwrap_or(scope);
         // "where is my downloads folder?" means the folder itself.
         let folder_word = name.strip_suffix(" folder").unwrap_or(&name);
-        if let (Some(folder), Scope::UserFolders) = (KnownFolder::from_word(folder_word), &scope) {
+        if let (Some(folder), Scope::AllDrives) = (KnownFolder::from_word(folder_word), &scope) {
             return Intent::OpenFolder(folder);
         }
         return Intent::FindFiles { name, scope };
@@ -1261,7 +1566,10 @@ mod tests {
         assert_eq!(parse("what did you do?"), Intent::History);
         assert_eq!(
             parse("biggest files in Downloads"),
-            Intent::LargestFiles(Scope::Folders(vec![KnownFolder::Downloads]))
+            Intent::LargestFiles {
+                scope: Scope::Folders(vec![KnownFolder::Downloads]),
+                count: 10,
+            }
         );
         assert_eq!(parse("how much space?"), Intent::DiskSpace);
         assert_eq!(parse("how much free space?"), Intent::DiskSpace);
@@ -1288,7 +1596,10 @@ mod tests {
         );
         assert_eq!(
             parse("show the biggest files on desktop"),
-            Intent::LargestFiles(Scope::Folders(vec![KnownFolder::Desktop]))
+            Intent::LargestFiles {
+                scope: Scope::Folders(vec![KnownFolder::Desktop]),
+                count: 10,
+            }
         );
     }
 
@@ -1402,11 +1713,17 @@ mod tests {
     fn questions_about_the_persons_own_files_still_act() {
         assert_eq!(
             parse("what are the largest files?"),
-            Intent::LargestFiles(Scope::UserFolders)
+            Intent::LargestFiles {
+                scope: Scope::AllDrives,
+                count: 10,
+            }
         );
         assert_eq!(
             parse("What are the biggest files in my Downloads?"),
-            Intent::LargestFiles(Scope::Folders(vec![KnownFolder::Downloads]))
+            Intent::LargestFiles {
+                scope: Scope::Folders(vec![KnownFolder::Downloads]),
+                count: 10,
+            }
         );
         assert_eq!(
             parse("how do I find duplicates in my pictures"),
@@ -1421,19 +1738,91 @@ mod tests {
     }
 
     #[test]
+    fn parses_whole_system_and_drive_largest_files() {
+        assert_eq!(
+            parse("find the largest file on my system"),
+            Intent::LargestFiles {
+                scope: Scope::AllDrives,
+                count: 1,
+            }
+        );
+        assert_eq!(
+            parse("what is the biggest file on my pc?"),
+            Intent::LargestFiles {
+                scope: Scope::AllDrives,
+                count: 1,
+            }
+        );
+        assert_eq!(
+            parse("top 5 largest files on drive D:"),
+            Intent::LargestFiles {
+                scope: Scope::Drive("D:\\".into()),
+                count: 5,
+            }
+        );
+        assert_eq!(
+            parse("find 3 biggest files across all drives"),
+            Intent::LargestFiles {
+                scope: Scope::AllDrives,
+                count: 3,
+            }
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn explicit_search_paths_preserve_spaces_and_are_not_personal_folder_aliases() {
+        assert_eq!(
+            parse("find the largest file in \"D:\\Work Projects\\Archive\""),
+            Intent::LargestFiles {
+                scope: Scope::Custom("D:\\Work Projects\\Archive".into()),
+                count: 1
+            }
+        );
+        assert_eq!(
+            parse("find my resume in \"D:\\Work Projects\""),
+            Intent::FindFiles {
+                name: "resume".into(),
+                scope: Scope::Custom("D:\\Work Projects".into())
+            }
+        );
+        assert_eq!(
+            parse("find the largest file in Downloads on my system"),
+            Intent::LargestFiles {
+                scope: Scope::AllDrives,
+                count: 1
+            }
+        );
+        assert_eq!(
+            parse("find my resume across all local drives"),
+            Intent::FindFiles {
+                name: "resume".into(),
+                scope: Scope::AllDrives
+            }
+        );
+        assert_eq!(
+            parse("find my resume on drive D"),
+            Intent::FindFiles {
+                name: "resume".into(),
+                scope: Scope::Drive("D:\\".into())
+            }
+        );
+    }
+
+    #[test]
     fn finds_files_by_name() {
         assert_eq!(
             parse("where is my resume?"),
             Intent::FindFiles {
                 name: "resume".into(),
-                scope: Scope::UserFolders
+                scope: Scope::AllDrives
             }
         );
         assert_eq!(
             parse("find my tax documents"),
             Intent::FindFiles {
                 name: "tax".into(),
-                scope: Scope::UserFolders
+                scope: Scope::AllDrives
             }
         );
         assert_eq!(
@@ -1447,7 +1836,7 @@ mod tests {
             parse("search my pc for holiday photos"),
             Intent::FindFiles {
                 name: "holiday photos".into(),
-                scope: Scope::UserFolders
+                scope: Scope::AllDrives
             }
         );
         assert_eq!(
@@ -1723,5 +2112,32 @@ mod tests {
             Some(("example.org".into(), "https://example.org".into()))
         );
         assert_eq!(website("not a site"), None);
+    }
+
+    #[test]
+    fn recognises_file_info_and_mutation_requests() {
+        assert_eq!(
+            parse("file info for C:\\Users\\paagu\\Documents\\report.docx"),
+            Intent::GetFileInfo("C:\\Users\\paagu\\Documents\\report.docx".into())
+        );
+        assert_eq!(
+            parse("how big is my_movie.mp4?"),
+            Intent::GetFileInfo("my_movie.mp4".into())
+        );
+        assert_eq!(
+            parse("inspect file \"notes.txt\""),
+            Intent::GetFileInfo("notes.txt".into())
+        );
+        assert_eq!(
+            parse("create folder C:\\Projects\\NewApp"),
+            Intent::CreateFolder("C:\\Projects\\NewApp".into())
+        );
+        assert_eq!(
+            parse("move document.pdf to Downloads"),
+            Intent::MoveFile {
+                source: "document.pdf".into(),
+                destination: "Downloads".into(),
+            }
+        );
     }
 }

@@ -18,7 +18,10 @@ pub const MAX_TEXT_CHARS: usize = 100;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ToolCall {
     CheckDiskSpace,
-    FindLargeFiles(Scope),
+    FindLargeFiles {
+        scope: Scope,
+        count: usize,
+    },
     FindDuplicateFiles(Scope),
     FindFiles {
         name: String,
@@ -73,6 +76,25 @@ pub enum ToolCall {
     /// Frees the safe place's space now. Only the person can ask for this:
     /// the model has no name for it, and [`ToolCall::model_may_request`] says no.
     EmptySafePlace,
+    /// Moves a file to a new location.
+    MoveFile {
+        source: String,
+        destination: String,
+    },
+    /// Copies a file to a new location.
+    CopyFile {
+        source: String,
+        destination: String,
+    },
+    /// Renames a file in place.
+    RenameFile {
+        path: String,
+        new_name: String,
+    },
+    /// Creates a new directory.
+    CreateFolder(String),
+    /// Inspects a file or folder and returns its measured properties.
+    GetFileInfo(String),
 }
 
 impl ToolCall {
@@ -80,7 +102,10 @@ impl ToolCall {
     pub fn from_intent(intent: &Intent) -> Option<Self> {
         Some(match intent {
             Intent::DiskSpace => ToolCall::CheckDiskSpace,
-            Intent::LargestFiles(scope) => ToolCall::FindLargeFiles(scope.clone()),
+            Intent::LargestFiles { scope, count } => ToolCall::FindLargeFiles {
+                scope: scope.clone(),
+                count: *count,
+            },
             Intent::FindDuplicates(scope) => ToolCall::FindDuplicateFiles(scope.clone()),
             Intent::FindFiles { name, scope } => ToolCall::FindFiles {
                 name: name.clone(),
@@ -112,6 +137,26 @@ impl ToolCall {
             Intent::OpenUnknown(target) => ToolCall::OpenProgram(target.clone()),
             Intent::ListSettings => ToolCall::ListSettings,
             Intent::RevertSetting => ToolCall::RevertSettingChange,
+            Intent::MoveFile {
+                source,
+                destination,
+            } => ToolCall::MoveFile {
+                source: source.clone(),
+                destination: destination.clone(),
+            },
+            Intent::CopyFile {
+                source,
+                destination,
+            } => ToolCall::CopyFile {
+                source: source.clone(),
+                destination: destination.clone(),
+            },
+            Intent::RenameFile { path, new_name } => ToolCall::RenameFile {
+                path: path.clone(),
+                new_name: new_name.clone(),
+            },
+            Intent::CreateFolder(path) => ToolCall::CreateFolder(path.clone()),
+            Intent::GetFileInfo(path) => ToolCall::GetFileInfo(path.clone()),
             // `Intent::Settings` carries the person's own words and is resolved
             // against the catalogue before it becomes a call (see `respond`).
             _ => return None,
@@ -137,11 +182,21 @@ impl ToolCall {
         };
         Ok(match name {
             "check_disk_space" => ToolCall::CheckDiskSpace,
-            "find_large_files" => ToolCall::FindLargeFiles(folders_arg(args)?),
+            "find_large_files" => {
+                let count = args
+                    .get("count")
+                    .and_then(Value::as_u64)
+                    .map(|n| n.clamp(1, 100) as usize)
+                    .unwrap_or(10);
+                ToolCall::FindLargeFiles {
+                    scope: read_scope_arg(args)?,
+                    count,
+                }
+            }
             "find_duplicate_files" => ToolCall::FindDuplicateFiles(folders_arg(args)?),
             "find_files" => ToolCall::FindFiles {
                 name: text_arg(args, "name")?,
-                scope: folders_arg(args)?,
+                scope: read_scope_arg(args)?,
             },
             "system_status" => ToolCall::SystemStatus,
             "open_app" => {
@@ -197,6 +252,20 @@ impl ToolCall {
                 }
                 ToolCall::ChangeSetting { setting, value }
             }
+            "move_file" => ToolCall::MoveFile {
+                source: path_arg(args, "source")?,
+                destination: path_arg(args, "destination")?,
+            },
+            "copy_file" => ToolCall::CopyFile {
+                source: path_arg(args, "source")?,
+                destination: path_arg(args, "destination")?,
+            },
+            "rename_file" => ToolCall::RenameFile {
+                path: path_arg(args, "path")?,
+                new_name: text_arg(args, "new_name")?,
+            },
+            "create_folder" => ToolCall::CreateFolder(path_arg(args, "path")?),
+            "get_file_info" => ToolCall::GetFileInfo(path_arg(args, "path")?),
             other => return Err(format!("there is no tool called \"{other}\"")),
         })
     }
@@ -226,6 +295,24 @@ fn text_arg(args: &Value, key: &str) -> Result<String, String> {
     }
 }
 
+/// Paths retain meaningful internal spaces and have their own Windows-sized bound.
+fn path_arg(args: &Value, key: &str) -> Result<String, String> {
+    let raw = args
+        .get(key)
+        .and_then(Value::as_str)
+        .ok_or_else(|| format!("\"{key}\" is missing"))?;
+    let path = raw.trim();
+    if path.is_empty()
+        || path.encode_utf16().count() > 32767
+        || path
+            .chars()
+            .any(|c| c.is_control() || reply::is_hidden_format(c))
+    {
+        return Err(format!("\"{key}\" is not a valid printable path"));
+    }
+    Ok(path.into())
+}
+
 /// An optional text argument: absent, null or "" mean none.
 fn optional_text_arg(args: &Value, key: &str) -> Result<Option<String>, String> {
     match args.get(key) {
@@ -237,6 +324,39 @@ fn optional_text_arg(args: &Value, key: &str) -> Result<Option<String>, String> 
 
 /// The optional `folders` list: known folder names only. None or an empty
 /// list means all of the person's folders.
+fn read_scope_arg(args: &Value) -> Result<Scope, String> {
+    match folders_arg(args) {
+        Ok(Scope::UserFolders) => Ok(Scope::AllDrives),
+        Ok(scope) => Ok(scope),
+        Err(original) => {
+            let items = args
+                .get("folders")
+                .and_then(Value::as_array)
+                .ok_or_else(|| original.clone())?;
+            if items.len() != 1 {
+                return Err("Use one explicit local path or a list of known folders.".into());
+            }
+            let label = items[0].as_str().ok_or(original)?;
+            if ["all", "all_drives", "system"].contains(&label.to_ascii_lowercase().as_str()) {
+                return Ok(Scope::AllDrives);
+            }
+            let path = if label.len() == 2
+                && label.as_bytes()[0].is_ascii_alphabetic()
+                && label.ends_with(':')
+            {
+                std::path::PathBuf::from(format!("{label}\\"))
+            } else {
+                std::path::PathBuf::from(label)
+            };
+            if path.is_absolute() && custodian_winsec::fsops::is_local_volume(&path) {
+                Ok(Scope::Custom(path))
+            } else {
+                Err("Search scope must be an absolute path on a local drive.".into())
+            }
+        }
+    }
+}
+
 fn folders_arg(args: &Value) -> Result<Scope, String> {
     let items = match args.get("folders") {
         None | Some(Value::Null) => return Ok(Scope::UserFolders),
@@ -279,10 +399,20 @@ mod tests {
                 "find_large_files",
                 &json!({"folders": ["Downloads", "Videos"]})
             ),
-            Ok(ToolCall::FindLargeFiles(Scope::Folders(vec![
-                KnownFolder::Downloads,
-                KnownFolder::Videos
-            ])))
+            Ok(ToolCall::FindLargeFiles {
+                scope: Scope::Folders(vec![KnownFolder::Downloads, KnownFolder::Videos]),
+                count: 10,
+            })
+        );
+        assert_eq!(
+            ToolCall::parse(
+                "find_large_files",
+                &json!({"folders": ["Downloads"], "count": 1})
+            ),
+            Ok(ToolCall::FindLargeFiles {
+                scope: Scope::Folders(vec![KnownFolder::Downloads]),
+                count: 1,
+            })
         );
         assert_eq!(
             ToolCall::parse("find_duplicate_files", &json!({"folders": []})),
@@ -292,7 +422,7 @@ mod tests {
             ToolCall::parse("find_files", &json!({"name": "  tax   2025 "})),
             Ok(ToolCall::FindFiles {
                 name: "tax 2025".into(),
-                scope: Scope::UserFolders
+                scope: Scope::AllDrives
             })
         );
         assert_eq!(
@@ -340,6 +470,46 @@ mod tests {
                 url: "https://www.youtube.com".into()
             })
         );
+        assert_eq!(
+            ToolCall::parse("get_file_info", &json!({"path": "C:\\doc.txt"})),
+            Ok(ToolCall::GetFileInfo("C:\\doc.txt".into()))
+        );
+    }
+
+    #[test]
+    fn discovery_accepts_local_paths_and_mutation_paths_keep_internal_spaces() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().display().to_string();
+        assert!(matches!(
+            ToolCall::parse(
+                "find_large_files",
+                &json!({"folders":[path], "count":u64::MAX})
+            )
+            .unwrap(),
+            ToolCall::FindLargeFiles {
+                scope: Scope::Custom(_),
+                count: 100
+            }
+        ));
+        assert!(matches!(
+            ToolCall::parse("find_large_files", &json!({})).unwrap(),
+            ToolCall::FindLargeFiles {
+                scope: Scope::AllDrives,
+                ..
+            }
+        ));
+        let source = format!("D:\\Work Projects\\{}\\report  final.txt", "a".repeat(140));
+        assert_eq!(
+            ToolCall::parse(
+                "move_file",
+                &json!({"source":source,"destination":"D:\\Archive"})
+            )
+            .unwrap(),
+            ToolCall::MoveFile {
+                source,
+                destination: "D:\\Archive".into()
+            }
+        );
     }
 
     #[test]
@@ -349,7 +519,10 @@ mod tests {
             ("open_app", json!({"app": "cmd"})),
             ("open_app", json!({"app": "powershell.exe -c whoami"})),
             ("open_folder", json!({"folder": "C:\\Windows"})),
-            ("find_large_files", json!({"folders": ["C:\\"]})),
+            (
+                "find_large_files",
+                json!({"folders": ["\\\\server\\share"]}),
+            ),
             ("find_large_files", json!({"folders": "Downloads"})),
             ("find_large_files", json!({"folders": [7]})),
             ("open_website", json!({"site": "evil.com\"&calc"})),
@@ -540,7 +713,7 @@ mod tests {
             ToolCall::parse("find_files", &json!({"name": "invoice\u{202e}fdp.exe"})),
             Ok(ToolCall::FindFiles {
                 name: "invoicefdp.exe".into(),
-                scope: Scope::UserFolders
+                scope: Scope::AllDrives
             })
         );
         assert!(ToolCall::parse("web_search", &json!({"query": "\u{200b}\u{feff}"})).is_err());
@@ -553,15 +726,33 @@ mod tests {
             Some(ToolCall::CheckDiskSpace)
         );
         assert_eq!(
+            ToolCall::from_intent(&intent::parse("find the largest file on my system")),
+            Some(ToolCall::FindLargeFiles {
+                scope: Scope::AllDrives,
+                count: 1,
+            })
+        );
+        assert_eq!(
+            ToolCall::from_intent(&intent::parse("biggest files in Downloads")),
+            Some(ToolCall::FindLargeFiles {
+                scope: Scope::Folders(vec![KnownFolder::Downloads]),
+                count: 10,
+            })
+        );
+        assert_eq!(
             ToolCall::from_intent(&intent::parse("where is my resume?")),
             Some(ToolCall::FindFiles {
                 name: "resume".into(),
-                scope: Scope::UserFolders
+                scope: Scope::AllDrives
             })
         );
         assert_eq!(
             ToolCall::from_intent(&intent::parse("is my pc slow?")),
             Some(ToolCall::SystemStatus)
+        );
+        assert_eq!(
+            ToolCall::from_intent(&intent::parse("file info for C:\\doc.txt")),
+            Some(ToolCall::GetFileInfo("C:\\doc.txt".into()))
         );
         assert_eq!(ToolCall::from_intent(&intent::parse("hello")), None);
         assert_eq!(

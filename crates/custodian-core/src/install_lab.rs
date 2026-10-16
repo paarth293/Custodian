@@ -1,8 +1,22 @@
+/// Status of Windows Sandbox availability.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SandboxStatus {
+    Available,
+    NotInstalled,
+    Disabled,
+    Unavailable,
+}
+
 /// Reports whether Windows Sandbox is available.
 ///
-/// Placeholder: always `true` until the optional-feature probe lands.
-pub fn detect_sandbox() -> bool {
-    true
+/// F29/F31: Probes system feature or returns NotInstalled rather than constant `true`.
+pub fn detect_sandbox() -> SandboxStatus {
+    let wsb_exe = std::path::Path::new(r"C:\Windows\System32\WindowsSandbox.exe");
+    if wsb_exe.exists() {
+        SandboxStatus::Available
+    } else {
+        SandboxStatus::NotInstalled
+    }
 }
 
 /// Builds a Windows Sandbox (`.wsb`) configuration that maps the installer

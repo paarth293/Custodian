@@ -161,3 +161,64 @@
   - Performance and accessibility passes recorded.
   - Localisation structures established.
 - Conclusion: Project built completely up to Step 158. Ready for Phase 12 Model Fine Tuning.
+
+
+## Current checkout verification — 2026-10-15
+
+See [the detailed verification report](VERIFICATION-2026-10-15.md). The historical
+mock-based phase entries above do not establish full production acceptance.
+
+- Native Windows release and NSIS installer built successfully.
+- Routine checks pass: 296 Rust tests, 92 JavaScript tests, 21 Python tests,
+  formatting, lint, types, secret scan, Rust/Python dependency checks and the
+  production JavaScript dependency audit.
+- Fixed evaluation reporting, task/resource coordination, move rollback,
+  manifest traversal handling, malformed ML responses and conversation resets.
+- Model evaluation improved from 49/57 to 52/57; still below the 95% target.
+- Real sandboxed chat fails its response deadline during CPU tool-prompt
+  preparation; explicit Vulkan initialization stalls. This remains unresolved.
+- New file actions do not yet have persisted undo recipes; task coordination
+  does not persist across restarts. The desktop needs interactive acceptance
+  testing, and the installer still does not bundle the local agent/runtime.
+
+## Current checkout verification — 2026-10-16
+
+See [the current verification report](VERIFICATION-2026-10-16.md) and
+[acceptance checklist](ACCEPTANCE.md). The 15 October entries above describe
+that earlier checkout, not the current outcome.
+
+- Whole-PC read discovery and explicit arbitrary local paths are supported;
+  file mutation protection is separate from folder discovery.
+- Actual C:-to-D: desktop search, decline, approval, verified move, restart and
+  verified undo passed with newly created fixtures.
+- CPU and Vulkan models each passed the unchanged 57-case gate: 56/57 (98.25%),
+  with four designated deletion-claim checks passing each.
+- Routine checks: 315 Rust and 121 JavaScript tests pass; build, types, lint,
+  Clippy, schema generation and full JavaScript dependency audit pass.
+- Runtime assets are bundled; isolated AppContainer knowledge/tool inference
+  passes using the staged CPU runtime outside the source checkout.
+- Full product acceptance remains open, including clean-profile installation,
+  repeated walkthroughs, abrupt mutation-time crash recovery and placeholders.
+
+## Offline foundation implementation — 2026-10-16
+
+The [foundation report](OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md)
+supersedes the capability and installer snapshot immediately above.
+
+- Shared file privacy policy, native private-location controls, stale task and
+  approval revocation, and explicit offline/paused capability refusals added.
+- 324 Rust tests passed, four opt-in tests excluded; 122 JavaScript tests passed.
+  Build/types/lint, warnings-denied Clippy and source-format checks passed.
+- Final packaged UI rerun passed eight real checks: private known-folder refusal,
+  excluded search canary, measured discovery, decline, cross-drive move, restart
+  and verified undo, persisted privacy/offline refusal, and whole-system scan/stop.
+  The first final-build UI run timed out with its privacy panel still collapsed;
+  repeated interaction reliability remains an acceptance gap.
+- A tightened real sandboxed CPU model smoke passed. Its first weak assertion
+  had accepted a wrong definition; that result is explicitly retained as a
+  failure of the assertion, not a knowledge pass.
+- Updated unsigned offline development installer built; automatic WebView2
+  download disabled. Missing-prerequisite and clean-profile install/uninstall
+  acceptance were not executed. Hashes are in the foundation report.
+- Full multi-app operator, dedicated execution boundary and remaining privacy
+  hardening are incomplete. Legacy cleanup and broad app routes remain paused.

@@ -7,17 +7,17 @@ import { interceptRequest } from '../src/interception';
 import { createReceipt } from '../src/receipts';
 
 describe('BrowserBroker', () => {
-  it('executes typed actions and rejects unknown ones', async () => {
+  it('never claims execution for the unavailable browser and rejects unknown actions', async () => {
     const broker = new BrowserBroker();
-    broker.start(['--disable-gpu']);
-    await expect(broker.performAction('navigate', { url: 'https://example.com' })).resolves.toBe(
-      'Action navigate executed',
+    await expect(broker.performAction('navigate', { url: 'https://example.com' })).rejects.toThrow(
+      'E_UNAVAILABLE',
     );
     await expect(broker.performAction('unknown', {})).rejects.toThrow('E_POLICY');
   });
 
   it('refuses to start without the Chromium sandbox', () => {
     expect(() => new BrowserBroker().start(['--no-sandbox'])).toThrow('E_POLICY');
+    expect(() => new BrowserBroker().start([])).toThrow('E_UNAVAILABLE');
   });
 });
 

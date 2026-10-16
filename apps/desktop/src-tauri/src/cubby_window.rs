@@ -39,8 +39,7 @@ struct SavedPosition {
 }
 
 fn state_file(app: &AppHandle) -> Option<PathBuf> {
-    app.path()
-        .app_config_dir()
+    crate::paths::config_dir(app)
         .ok()
         .map(|dir| dir.join("cubby-window.json"))
 }
@@ -83,22 +82,26 @@ fn physical(size: (f64, f64), scale: f64) -> (i32, i32) {
 
 /// Creates the Cubby window at its remembered (or default) position.
 pub fn create_cubby_window(app: &AppHandle) -> tauri::Result<()> {
-    let window = WebviewWindowBuilder::new(app, CUBBY_LABEL, WebviewUrl::App("index.html".into()))
-        .title("Cubby")
-        .inner_size(COMPACT.0, COMPACT.1)
-        .transparent(true)
-        .decorations(false)
-        .always_on_top(true)
-        .skip_taskbar(true)
-        .resizable(false)
-        .shadow(false)
-        .focusable(false)
-        // Hidden from screen sharing and screenshots (SR-F7) in release builds;
-        // disabled in dev so developers can screenshot Cubby.
-        // The tray "Show Cubby in screenshots" can lift it for an hour in release.
-        .content_protected(cfg!(not(debug_assertions)))
-        .visible(false)
-        .build()?;
+    let mut builder =
+        WebviewWindowBuilder::new(app, CUBBY_LABEL, WebviewUrl::App("index.html".into()))
+            .title("Cubby")
+            .inner_size(COMPACT.0, COMPACT.1)
+            .transparent(true)
+            .decorations(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .resizable(false)
+            .shadow(false)
+            .focusable(false)
+            // Hidden from screen sharing and screenshots (SR-F7) in release builds;
+            // disabled in dev so developers can screenshot Cubby.
+            // The tray "Show Cubby in screenshots" can lift it for an hour in release.
+            .content_protected(cfg!(not(debug_assertions)))
+            .visible(false);
+    if let Some(path) = crate::paths::verification_webview_dir()? {
+        builder = builder.data_directory(path);
+    }
+    let window = builder.build()?;
 
     if let Some(primary) = window.primary_monitor()? {
         let scale = primary.scale_factor();

@@ -3,6 +3,8 @@ target/
 dist/
 *.tsbuildinfo
 apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/runtime-stage/*
+!apps/desktop/src-tauri/runtime-stage/.gitkeep
 # Extra outputs of `tauri icon`; this desktop app does not bundle them.
 apps/desktop/src-tauri/icons/android/
 apps/desktop/src-tauri/icons/ios/
@@ -25,6 +27,7 @@ models/*
 !models/.gitkeep
 *.gguf
 data/
+/fixture/desktop-acceptance-*/
 
 # Logs and OS/editor files
 *.log

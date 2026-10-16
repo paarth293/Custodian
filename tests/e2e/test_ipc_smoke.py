@@ -40,7 +40,7 @@ def test_mlhost_answers_over_stdio(tmp_path: Path) -> None:
     decision = read_frame_from(stdout, KEY.encode())
     assert decision is not None
     assert decision["status"] == "ok"
-    assert decision["decision"] in {"approve", "delete", "quarantine", "abstained"}
+    assert decision["decision"] == "quarantine"
 
 
 def test_mlhost_refuses_to_start_without_key() -> None:

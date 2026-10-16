@@ -11,8 +11,23 @@ pub fn hash_file(path: &Path) -> io::Result<String> {
     hash_prefix(path, u64::MAX)
 }
 
+/// Hashes the exact open file object supplied by a caller holding its access lock.
+pub fn hash_reader(reader: &mut impl Read) -> io::Result<String> {
+    let mut hasher = blake3::Hasher::new();
+    let mut buffer = [0u8; BUFFER];
+    loop {
+        let size = reader.read(&mut buffer)?;
+        if size == 0 {
+            break;
+        }
+        hasher.update(&buffer[..size]);
+    }
+    Ok(hasher.finalize().to_hex().to_string())
+}
+
 /// Digest of at most the first `limit` bytes; cheap pre-filter for large files.
 pub fn hash_prefix(path: &Path, limit: u64) -> io::Result<String> {
+    crate::privacy::check(path)?;
     let mut reader = File::open(path)?.take(limit);
     let mut hasher = blake3::Hasher::new();
     let mut buffer = vec![0u8; BUFFER];

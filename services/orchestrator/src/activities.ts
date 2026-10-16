@@ -1,5 +1,6 @@
 /** Sends an IPC frame to another Custodian role. Placeholder: logs only. */
 export async function sendIpcFrame(role: string, payload: unknown): Promise<boolean> {
-  console.log(`Sending IPC frame to ${role}:`, payload);
-  return true;
+  void role;
+  void payload;
+  throw new Error('E_UNAVAILABLE: Orchestrator IPC is not implemented. No action was executed.');
 }

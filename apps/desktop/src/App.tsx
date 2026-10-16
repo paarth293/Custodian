@@ -3,9 +3,11 @@ import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import './App.css';
-import ApprovalView, { Plan } from './components/ApprovalView';
+import ApprovalView from './components/ApprovalView';
 import ChatPanel, { Message } from './components/ChatPanel';
+import PrivacyControls from './components/PrivacyControls';
 import { appendReply, bubbleText, decideCard, type ChatEvent } from './chat/events';
+import { updateWork, type ConversationWork } from './chat/work';
 import CubbyCharacter from './cubby/CubbyCharacter';
 import CubbyStage from './cubby/CubbyStage';
 import { showCubbyMenu } from './cubby/contextMenu';
@@ -24,19 +26,24 @@ const LANDING_MS = 350;
 function App() {
   const [panelSide, setPanelSide] = useState<PanelSide | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isThinking, setIsThinking] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
-  const [activity, setActivity] = useState<Activity | null>(null);
+  const [work, setWork] = useState<ConversationWork>({ turns: {}, plans: [] });
+  const [isResetting, setIsResetting] = useState(false);
+  const resetInProgress = useRef(false);
+  const conversationGeneration = useRef(0);
+  const isThinking = Object.keys(work.turns).length > 0;
+  const status =
+    Object.values(work.turns)
+      .filter((text) => text !== null)
+      .at(-1) ?? null;
+  const activity: Activity | null = isThinking ? (status ? 'working' : 'thinking') : null;
   const [held, setHeld] = useState(false);
   const [bubble, setBubble] = useState<string | null>("Hi! I'm Cubby.");
-  // Holds the plan awaiting user approval.
-  const [pendingPlan, setPendingPlan] = useState<Plan | null>(null);
 
   const panelOpen = panelSide !== null;
   const life = useCubbyLife(activity !== null || held, 'happy');
   const mood = resolveMood({
     held,
-    activity: pendingPlan ? 'needs-you' : activity,
+    activity: work.plans.length > 0 ? 'needs-you' : activity,
     reaction: life.reaction,
     asleep: life.asleep,
   });
@@ -179,17 +186,18 @@ function App() {
   }, [life, mode.demo, panelOpen, say, togglePanel]);
 
   const handleSendMessage = async (text: string) => {
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: text };
+    if (resetInProgress.current) return;
+    const generation = conversationGeneration.current;
+    const turnId = crypto.randomUUID();
+    const userMsg: Message = { id: turnId, role: 'user', content: text };
     setMessages((prev) => [...prev, userMsg]);
     life.poke();
-    setIsThinking(true);
-    setStatus(null);
-    setActivity('thinking');
+    setWork((prev) => updateWork(prev, { kind: 'start', id: turnId }));
 
     // Text streams into the current reply bubble. A tool result or a card
     // stands on its own, and text after it starts a new bubble, so the AI's
     // words never mix with what Cubby's code found.
-    const base = `${Date.now()}-reply`;
+    const base = `${turnId}-reply`;
     let part = 0;
     let replyId = base;
     const addBlock = (block: Message) => {
@@ -198,10 +206,10 @@ function App() {
     };
     const channel = new Channel<ChatEvent>();
     channel.onmessage = (event) => {
+      if (generation !== conversationGeneration.current) return;
       switch (event.kind) {
         case 'status':
-          setStatus(event.text);
-          setActivity('working');
+          setWork((prev) => updateWork(prev, { kind: 'status', id: turnId, text: event.text }));
           break;
         case 'text': {
           const id = replyId;
@@ -220,7 +228,7 @@ function App() {
           addBlock({ id: event.card.id, role: 'assistant', content: '', card: event.card });
           break;
         case 'plan':
-          setPendingPlan(event.plan);
+          setWork((prev) => updateWork(prev, { kind: 'plan', id: turnId, plan: event.plan }));
           break;
         case 'action':
           if (event.action === 'sleep') setTimeout(() => life.sleep(), 1500);
@@ -230,17 +238,41 @@ function App() {
 
     try {
       await invoke('send_chat_message', { message: text, channel });
-      life.react('happy', 1600);
     } catch (err) {
       console.error('Chat error:', err);
       life.react('curious', 2000);
       const id = replyId;
       setMessages((prev) => appendReply(prev, id, `Sorry, something went wrong: ${String(err)}`));
     } finally {
-      setActivity(null);
-      setStatus(null);
-      setIsThinking(false);
+      setWork((prev) => updateWork(prev, { kind: 'finish', id: turnId }));
     }
+  };
+
+  const handleNewChat = async () => {
+    if (isThinking || resetInProgress.current) return;
+    resetInProgress.current = true;
+    setIsResetting(true);
+    try {
+      await call('reset_conversation');
+    } catch (err) {
+      console.error('Failed to reset conversation:', err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-reset-error`,
+          role: 'assistant',
+          content: `I couldn't start a new conversation: ${String(err)}`,
+        },
+      ]);
+      return;
+    } finally {
+      resetInProgress.current = false;
+      setIsResetting(false);
+    }
+    conversationGeneration.current++;
+    setMessages([]);
+    setWork((prev) => updateWork(prev, { kind: 'reset' }));
+    say('Started a new conversation.');
   };
 
   const handleStop = () => {
@@ -249,29 +281,45 @@ function App() {
 
   /** Sends the person's answer to a card; Rust runs what it stored for it. */
   const handleDecideCard = async (messageId: string, allow: boolean) => {
+    const generation = conversationGeneration.current;
     setMessages((prev) => decideCard(prev, messageId, allow ? 'allowed' : 'declined'));
     let answer: string;
+    let failed = false;
     try {
       answer = (await call<string>('decide_action', { actionId: messageId, allow })) ?? '';
     } catch (err) {
       answer = String(err);
+      failed = true;
     }
+    if (generation !== conversationGeneration.current) return;
     if (answer) {
       setMessages((prev) => [
         ...prev,
         { id: `${messageId}-answer`, role: 'assistant', content: answer },
       ]);
     }
-    if (allow) life.react('happy', 1400);
+    if (
+      failed ||
+      answer.toLowerCase().startsWith('failed') ||
+      answer.toLowerCase().startsWith('error')
+    ) {
+      life.react('curious', 2000);
+    }
   };
 
-  const handleApprovalDecided = (approved: boolean, result: string) => {
+  const uiGeneration = conversationGeneration.current;
+  const handleApprovalDecided = (planId: string, _approved: boolean, result: string) => {
+    if (uiGeneration !== conversationGeneration.current) return;
     setMessages((prev) => [
       ...prev,
       { id: `${Date.now()}-result`, role: 'assistant', content: result },
     ]);
-    setPendingPlan(null);
-    life.react(approved ? 'excited' : 'happy', 1800);
+    setWork((prev) => updateWork(prev, { kind: 'decided', planId }));
+    const failed =
+      result.toLowerCase().startsWith('failed') || result.toLowerCase().startsWith('error');
+    if (failed) {
+      life.react('curious', 2000);
+    }
   };
 
   return (
@@ -288,6 +336,16 @@ function App() {
             </div>
             <button
               type="button"
+              className="panel-new-chat"
+              aria-label="New conversation"
+              title="New conversation"
+              disabled={isThinking || isResetting}
+              onClick={() => void handleNewChat()}
+            >
+              +
+            </button>
+            <button
+              type="button"
               className="panel-close"
               aria-label="Close chat"
               onClick={() => void setPanel(false)}
@@ -295,15 +353,29 @@ function App() {
               ×
             </button>
           </header>
+          <PrivacyControls
+            onChanged={() => {
+              conversationGeneration.current++;
+              setMessages([]);
+              setWork((previous) => updateWork(previous, { kind: 'reset' }));
+            }}
+          />
           <ChatPanel
             messages={messages}
             isThinking={isThinking}
             status={status}
             onSendMessage={handleSendMessage}
+            disabled={isResetting}
             onStop={handleStop}
             onDecideCard={(id, allow) => void handleDecideCard(id, allow)}
           />
-          {pendingPlan && <ApprovalView plan={pendingPlan} onDecided={handleApprovalDecided} />}
+          {work.plans.map((plan) => (
+            <ApprovalView
+              key={plan.id}
+              plan={plan}
+              onDecided={(approved, result) => handleApprovalDecided(plan.id, approved, result)}
+            />
+          ))}
         </div>
       )}
       <CubbyStage

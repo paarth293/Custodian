@@ -197,7 +197,7 @@ pub fn find_summary(
         if stats.truncated {
             text.push_str(" I stopped early, so it may still be somewhere I didn't look.");
         }
-        return text;
+        return with_coverage(text, &stats);
     }
     let mut text = format!(
         "I found {} with \"{query}\" in the name{}:",
@@ -218,9 +218,29 @@ pub fn find_summary(
             .map(|m| format!(", changed {}", ago(m, now)))
             .unwrap_or_default();
         text.push_str(&format!(
-            "\n• {} — in {}{changed}",
+            "\n• {} — in {}{changed}\n  Path: {}\n  Size: {} bytes",
             file_name(&f.path),
-            parent_name(&f.path)
+            parent_name(&f.path),
+            safe_path(&f.path),
+            f.size,
+        ));
+    }
+    text.push_str(&format!(
+        "\nSearched {} ({} files checked).",
+        join_list(folders),
+        count(stats.files_seen)
+    ));
+    with_coverage(text, &stats)
+}
+
+fn with_coverage(mut text: String, stats: &WalkStats) -> String {
+    if stats.excluded_count > 0 {
+        text.push_str(&format!("\nSkipped {} links, cloud placeholders or excluded folders. Results cover accessible local files only.", count(stats.excluded_count)));
+    }
+    if stats.access_denied_count > 0 {
+        text.push_str(&format!(
+            "\nCould not inspect {} entries or locations; this coverage is incomplete.",
+            count(stats.access_denied_count)
         ));
     }
     text
@@ -355,24 +375,60 @@ pub fn left_out_note(left: &LeftOut) -> String {
     )
 }
 
-pub fn largest_summary(files: &[FileEntry], folders: &[&str], scanned: usize) -> String {
+pub fn largest_summary(files: &[FileEntry], folders: &[&str], stats: &WalkStats) -> String {
     if files.is_empty() {
-        return format!("I didn't find any files in {}.", join_list(folders));
+        let mut text = format!("I didn't find any files in {}.", join_list(folders));
+        if stats.access_denied_count > 0 {
+            text.push_str(&format!(
+                " (Skipped {} inaccessible {} due to permission restrictions.)",
+                count(stats.access_denied_count),
+                plural(stats.access_denied_count, "location", "locations")
+            ));
+        }
+        if stats.budget_exhausted || stats.truncated {
+            text.push_str(" (I stopped early because of the search limit.)");
+        }
+        return with_coverage(text, stats);
     }
-    let mut text = format!(
-        "The biggest files in {} (out of {} checked):",
-        join_list(folders),
-        count(scanned)
-    );
+    let heading = if files.len() == 1 {
+        format!(
+            "The largest file in {} (out of {} checked):",
+            join_list(folders),
+            count(stats.files_seen)
+        )
+    } else {
+        format!(
+            "The biggest files in {} (out of {} checked):",
+            join_list(folders),
+            count(stats.files_seen)
+        )
+    };
+    let mut text = heading;
     for f in files {
         text.push_str(&format!(
-            "\n• {} — {} (in {})",
+            "\n• {} — {} ({} bytes) in {}",
             file_name(&f.path),
             bytes(f.size),
-            parent_name(&f.path)
+            f.size,
+            safe_path(&f.path)
         ));
     }
-    text
+    if stats.budget_exhausted || stats.truncated {
+        text.push_str(
+            "\n\nNote: I stopped early due to the scan limit, so this is a partial result.",
+        );
+    }
+    if stats.access_denied_count > 0 {
+        text.push_str(&format!(
+            "\nNote: Skipped {} inaccessible {} due to permission restrictions.",
+            count(stats.access_denied_count),
+            plural(stats.access_denied_count, "location", "locations")
+        ));
+    }
+    if stats.cancelled {
+        text.push_str("\nNote: The search was cancelled before completing.");
+    }
+    with_coverage(text, stats)
 }
 
 /// `drives`: (name, free bytes, total bytes).
@@ -798,6 +854,10 @@ mod tests {
             }],
             stats: WalkStats {
                 files_seen: 1500,
+                excluded_count: 0,
+                access_denied_count: 0,
+                budget_exhausted: false,
+                cancelled: false,
                 truncated: false,
             },
             wasted_bytes: 2048,
@@ -1050,6 +1110,10 @@ mod tests {
         }];
         let stats = WalkStats {
             files_seen: 1200,
+            excluded_count: 0,
+            access_denied_count: 0,
+            budget_exhausted: false,
+            cancelled: false,
             truncated: false,
         };
         let text = find_summary("resume", &files, &["Documents"], stats, now);
@@ -1066,6 +1130,42 @@ mod tests {
         assert_eq!(
             none,
             "I couldn't find a file with \"tax\" in its name in Documents and Desktop (1,200 files checked)."
+        );
+    }
+
+    #[test]
+    fn formats_largest_file_summary_with_exact_bytes_and_caveats() {
+        let single = vec![FileEntry {
+            path: PathBuf::from("D:\\huge_archive.zip"),
+            size: 5_242_880_000,
+            modified: None,
+        }];
+        let stats = WalkStats {
+            files_seen: 45000,
+            excluded_count: 0,
+            access_denied_count: 3,
+            budget_exhausted: true,
+            cancelled: false,
+            truncated: false,
+        };
+        let text = largest_summary(&single, &["D:\\"], &stats);
+        assert!(
+            text.starts_with("The largest file in D:\\ (out of 45,000 checked):"),
+            "{text}"
+        );
+        assert!(
+            text.contains("huge_archive.zip — 4.9 GB (5242880000 bytes) in D:\\huge_archive.zip"),
+            "{text}"
+        );
+        assert!(
+            text.contains(
+                "Note: I stopped early due to the scan limit, so this is a partial result."
+            ),
+            "{text}"
+        );
+        assert!(
+            text.contains("Note: Skipped 3 inaccessible locations due to permission restrictions."),
+            "{text}"
         );
     }
 

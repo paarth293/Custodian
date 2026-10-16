@@ -98,6 +98,7 @@ pub fn scan(root: &Path, now: SystemTime, cancel: &AtomicBool) -> TempPlan {
         WalkLimits {
             max_files: 200_000,
             min_size: 1,
+            ..WalkLimits::default()
         },
         cancel,
         &mut |_| {},

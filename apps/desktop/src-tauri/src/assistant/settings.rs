@@ -147,13 +147,23 @@ impl SettingsHistory {
         }
     }
 
-    /// Keeps the newest changes, and any older one not yet put back.
+    /// Keeps the newest changes, and any older one not yet put back (F24 / A40).
     fn prune(&mut self, now_unix: i64) {
+        // Drop old reverted entries older than KEEP_REVERTED_SECS
         self.entries
             .retain(|e| !e.reverted || now_unix - e.applied_unix < KEEP_REVERTED_SECS);
+        // If still over MAX_HISTORY, drop oldest reverted entries first to preserve open changes
         if self.entries.len() > MAX_HISTORY {
-            let excess = self.entries.len() - MAX_HISTORY;
-            self.entries.drain(..excess);
+            let mut to_drop = self.entries.len() - MAX_HISTORY;
+            let mut i = 0;
+            while i < self.entries.len() && to_drop > 0 {
+                if self.entries[i].reverted {
+                    self.entries.remove(i);
+                    to_drop -= 1;
+                } else {
+                    i += 1;
+                }
+            }
         }
     }
 }
@@ -519,5 +529,34 @@ mod tests {
                 options: "left, center".into(),
             })
         );
+    }
+
+    #[test]
+    fn prune_preserves_unreverted_changes_even_over_limit() {
+        let mut history = SettingsHistory::default();
+        // Add 250 open (unreverted) changes
+        for i in 0..250 {
+            history.record(
+                Change {
+                    id: "dark_mode_apps".into(),
+                    value: "light".into(),
+                    from: Some("dark".into()),
+                },
+                i,
+            );
+        }
+        history.prune(1000);
+        // All 250 open changes must be preserved since none have been reverted
+        assert_eq!(history.entries.len(), 250);
+
+        // Mark first 100 as reverted
+        for i in 1..=100 {
+            history.mark_reverted(i);
+        }
+        // Prune now: should drop 50 oldest reverted entries to get down to 200
+        history.prune(1000);
+        assert_eq!(history.entries.len(), 200);
+        // The 150 open changes are all intact
+        assert_eq!(history.entries.iter().filter(|e| !e.reverted).count(), 150);
     }
 }

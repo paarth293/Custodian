@@ -63,7 +63,11 @@ impl Journal {
     pub fn write_record(&mut self, data: &[u8]) -> Result<(), JournalError> {
         let len = u32::try_from(data.len()).map_err(|_| JournalError::RecordTooLarge)?;
 
-        self.file.seek(SeekFrom::End(0))?;
+        let current_len = self.file.seek(SeekFrom::End(0))?;
+        if current_len.saturating_add(8).saturating_add(u64::from(len)) > MAX_JOURNAL_BYTES {
+            return Err(JournalError::Space);
+        }
+
         self.file.write_all(&len.to_le_bytes())?;
         self.file.write_all(&crc32(data).to_le_bytes())?;
         self.file.write_all(data)?;
@@ -90,6 +94,9 @@ impl Journal {
             }
             let len = u32::from_le_bytes(header[..4].try_into().unwrap());
             let expected_crc = u32::from_le_bytes(header[4..].try_into().unwrap());
+            if len == 0 {
+                break;
+            }
 
             let mut data = Vec::new();
             let read = (&mut self.file)
@@ -156,5 +163,24 @@ mod tests {
             .unwrap();
 
         assert!(matches!(Journal::new(&path), Err(JournalError::Space)));
+    }
+
+    #[test]
+    fn refuses_append_exceeding_journal_limit() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("near_full.log");
+        let mut j = Journal::new(&path).unwrap();
+        j.write_record(b"first").unwrap();
+
+        // Artificially extend file to near limit
+        j.file.set_len(MAX_JOURNAL_BYTES - 10).unwrap();
+
+        // An append that would cross MAX_JOURNAL_BYTES (needs 8 bytes header + payload len) fails with Space
+        let err = j.write_record(b"toolargepayload").unwrap_err();
+        assert!(matches!(err, JournalError::Space));
+
+        // Reopening remains completely valid and possible
+        let reopened = Journal::new(&path);
+        assert!(reopened.is_ok());
     }
 }

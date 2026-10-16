@@ -8,6 +8,7 @@
 
 use super::reply;
 use super::tools::ToolCall;
+use custodian_core::file_tasks::FileTaskPlan;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -44,8 +45,8 @@ pub fn card_text(call: &ToolCall) -> Option<(String, String, String)> {
             "Open".into(),
         ),
         ToolCall::UndoLastCleanup => (
-            "Undo the last clean-up?".into(),
-            "Put the files from my most recent clean-up back where they were.".into(),
+            "Undo the last file task?".into(),
+            "Undo the most recent verified file task or clean-up. Changed files and occupied original locations are left alone.".into(),
             "Put back".into(),
         ),
         ToolCall::OpenProgram(name) => (
@@ -89,24 +90,81 @@ pub fn card_text(call: &ToolCall) -> Option<(String, String, String)> {
                 "Change it".into(),
             )
         }
+        ToolCall::MoveFile {
+            source,
+            destination,
+        } => (
+            "Move file?".into(),
+            format!(
+                "Move \"{}\" to \"{}\". Nothing changes until you allow it.",
+                reply::safe_name(source),
+                reply::safe_name(destination)
+            ),
+            "Move".into(),
+        ),
+        ToolCall::CopyFile {
+            source,
+            destination,
+        } => (
+            "Copy file?".into(),
+            format!(
+                "Copy \"{}\" to \"{}\". Nothing changes until you allow it.",
+                reply::safe_name(source),
+                reply::safe_name(destination)
+            ),
+            "Copy".into(),
+        ),
+        ToolCall::RenameFile { path, new_name } => (
+            "Rename file?".into(),
+            format!(
+                "Rename \"{}\" to \"{}\". Nothing changes until you allow it.",
+                reply::safe_name(path),
+                reply::safe_name(new_name)
+            ),
+            "Rename".into(),
+        ),
+        ToolCall::CreateFolder(path) => (
+            "Create folder?".into(),
+            format!(
+                "Create folder \"{}\". Nothing changes until you allow it.",
+                reply::safe_name(path)
+            ),
+            "Create".into(),
+        ),
         _ => return None,
     })
 }
 
-/// What the model is told while the card waits.
-pub fn waiting_note(call: &ToolCall) -> String {
-    let what = match call {
+/// Human-readable description of what `call` is asking to do.
+pub fn action_name(call: &ToolCall) -> String {
+    match call {
         ToolCall::WebSearch(query) => format!("searching the web for \"{query}\""),
         ToolCall::OpenWebsite { url, .. } => format!("opening {url}"),
-        ToolCall::UndoLastCleanup => "putting back the files from the last clean-up".into(),
+        ToolCall::UndoLastCleanup => "undoing the last verified file task or clean-up".into(),
         ToolCall::CloseApp(name) => format!("closing {name}"),
         ToolCall::ChangeSetting { setting, value } => {
             format!("changing the Windows setting {setting} to {value}")
         }
         ToolCall::OpenProgram(name) => format!("opening {name}"),
         ToolCall::OpenFile(name) => format!("opening the file {name}"),
-        _ => "this".into(),
-    };
+        ToolCall::MoveFile {
+            source,
+            destination,
+        } => format!("moving \"{source}\" to \"{destination}\""),
+        ToolCall::CopyFile {
+            source,
+            destination,
+        } => format!("copying \"{source}\" to \"{destination}\""),
+        ToolCall::RenameFile { path, new_name } => format!("renaming \"{path}\" to \"{new_name}\""),
+        ToolCall::CreateFolder(path) => format!("creating folder \"{path}\""),
+        ToolCall::GetFileInfo(path) => format!("getting details for \"{path}\""),
+        _ => "this action".into(),
+    }
+}
+
+/// What the model is told while the card waits.
+pub fn waiting_note(call: &ToolCall) -> String {
+    let what = action_name(call);
     format!("Waiting for the person: a card asks them to allow {what}. Nothing has happened yet.")
 }
 
@@ -119,6 +177,10 @@ pub fn declined_text(call: &ToolCall) -> String {
         ToolCall::CloseApp(_) => "Okay, I'll leave it open.".into(),
         ToolCall::ChangeSetting { .. } => "Okay, I'll leave that setting as it is.".into(),
         ToolCall::OpenProgram(_) | ToolCall::OpenFile(_) => "Okay, I won't open it.".into(),
+        ToolCall::MoveFile { .. } => "Okay, I won't move that file.".into(),
+        ToolCall::CopyFile { .. } => "Okay, I won't copy that file.".into(),
+        ToolCall::RenameFile { .. } => "Okay, I won't rename that file.".into(),
+        ToolCall::CreateFolder(_) => "Okay, I won't create that folder.".into(),
         _ => "Okay, I won't.".into(),
     }
 }
@@ -126,18 +188,62 @@ pub fn declined_text(call: &ToolCall) -> String {
 /// Waiting actions by card id.
 #[derive(Default)]
 pub struct PendingActions {
-    waiting: Mutex<HashMap<String, (ToolCall, Instant)>>,
+    waiting: Mutex<HashMap<String, PendingAction>>,
+}
+
+struct PendingAction {
+    call: ToolCall,
+    created: Instant,
+    file_plan: Option<FileTaskPlan>,
 }
 
 impl PendingActions {
+    pub fn clear(&self) {
+        self.waiting
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
+    }
     /// Keeps `call` until the person decides and returns its card, or `None`
     /// if `call` needs no card.
+    #[cfg(test)]
     pub fn add(&self, call: ToolCall, now: Instant) -> Option<ActionCard> {
+        self.add_prepared(call, now, None)
+    }
+
+    pub fn add_prepared(
+        &self,
+        call: ToolCall,
+        now: Instant,
+        plan: Option<FileTaskPlan>,
+    ) -> Option<ActionCard> {
         let (title, detail, confirm) = card_text(&call)?;
+        let detail = if let Some(plan) = &plan {
+            let source = plan
+                .source
+                .as_ref()
+                .map(|path| {
+                    format!(
+                        "Source: {}\n",
+                        reply::safe_name(&path.display().to_string())
+                    )
+                })
+                .unwrap_or_default();
+            format!("{source}Destination: {}\nNothing changes until you allow it. If the file or destination folder changes, this request will be refused. A verified undo record is saved before the change.", reply::safe_name(&plan.destination.display().to_string()))
+        } else {
+            detail
+        };
         let id = uuid_like();
         let mut waiting = self.waiting.lock().unwrap_or_else(|e| e.into_inner());
-        waiting.retain(|_, (_, created)| now.saturating_duration_since(*created) < CARD_LIFETIME);
-        waiting.insert(id.clone(), (call, now));
+        waiting.retain(|_, action| now.saturating_duration_since(action.created) < CARD_LIFETIME);
+        waiting.insert(
+            id.clone(),
+            PendingAction {
+                call,
+                created: now,
+                file_plan: plan,
+            },
+        );
         Some(ActionCard {
             id,
             title,
@@ -148,13 +254,23 @@ impl PendingActions {
 
     /// Removes and returns the action for `id` if it is still valid. A card
     /// can be used once.
+    #[cfg(test)]
     pub fn take(&self, id: &str, now: Instant) -> Option<ToolCall> {
-        let (call, created) = self
+        self.take_prepared(id, now).map(|(call, _)| call)
+    }
+
+    pub fn take_prepared(
+        &self,
+        id: &str,
+        now: Instant,
+    ) -> Option<(ToolCall, Option<FileTaskPlan>)> {
+        let action = self
             .waiting
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .remove(id)?;
-        (now.saturating_duration_since(created) < CARD_LIFETIME).then_some(call)
+        (now.saturating_duration_since(action.created) < CARD_LIFETIME)
+            .then_some((action.call, action.file_plan))
     }
 }
 

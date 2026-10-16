@@ -3,8 +3,8 @@ import { calculate } from './calculator';
 
 /**
  * Cubby's closed tool vocabulary (§40, §88): the only things the language
- * model can ask for. Every parameter is an enum or a short search text, so
- * nothing the model writes can become a path, a command or a URL. The desktop
+ * model can ask for. Parameters are enums or bounded text; approved file
+ * tasks also accept paths that the desktop validates. No parameter is executed as a command. The desktop
  * app validates each call again and decides what really happens; anything
  * that changes files or sends data off the PC only proposes, and the person
  * decides on screen.
@@ -49,6 +49,17 @@ const folders = {
 const shortText = (description: string) =>
   ({ type: 'string', description, minLength: 1, maxLength: 100 }) as const;
 
+const pathText = (description: string) =>
+  ({ type: 'string', description, minLength: 1, maxLength: 32767 }) as const;
+
+const readFolders = {
+  type: 'array',
+  description:
+    'Search scope. Empty means all local drives. Use known folder names or one absolute local folder/drive path when explicitly requested.',
+  items: { type: 'string', minLength: 1, maxLength: 32767 },
+  maxItems: FOLDERS.length,
+} as const;
+
 /** Local date and time, e.g. "Monday, 5 October 2026, 9:41 AM". */
 export function currentDateTime(now = new Date()): string {
   const date = now.toLocaleDateString('en-GB', {
@@ -66,8 +77,17 @@ export const TOOLS: Record<string, ToolDefinition> = {
     description: 'Free and total space on each of the PC’s drives.',
   },
   find_large_files: {
-    description: 'Lists the biggest files in the person’s folders.',
-    params: { type: 'object', properties: { folders } },
+    description: 'Lists the biggest files in the person’s folders or system.',
+    params: {
+      type: 'object',
+      properties: {
+        folders: readFolders,
+        count: {
+          type: 'integer',
+          description: 'How many large files to find (e.g. 1 for singular, 10 for plural default).',
+        },
+      },
+    },
   },
   find_duplicate_files: {
     description:
@@ -81,7 +101,7 @@ export const TOOLS: Record<string, ToolDefinition> = {
       'Use it when the person asks where a file is.',
     params: {
       type: 'object',
-      properties: { name: shortText('Words from the file name.'), folders },
+      properties: { name: shortText('Words from the file name.'), folders: readFolders },
     },
   },
   system_status: {
@@ -203,14 +223,77 @@ export const TOOLS: Record<string, ToolDefinition> = {
     params: {
       type: 'object',
       properties: {
-        setting: shortText('A setting name from list_settings, for example "dark_mode_apps".'),
-        value: shortText('One of that setting’s own values, for example "dark" or "on".'),
+        setting: {
+          enum: [
+            'dark_mode_apps',
+            'dark_mode_windows',
+            'transparency_effects',
+            'show_hidden_files',
+            'show_file_extensions',
+            'taskbar_alignment',
+          ],
+        },
+        value: { enum: ['light', 'dark', 'on', 'off', 'left', 'center'] },
       },
     },
   },
   undo_last_cleanup: {
     description:
-      'Offers to put back the files from the most recent clean-up. The person confirms it.',
+      'Offers to undo the most recent verified file task. Legacy cleanup recovery is paused. The person confirms it.',
+  },
+  move_file: {
+    description:
+      'Moves a file to a new folder or destination. The person sees the exact paths and must allow it on a card before anything moves.',
+    params: {
+      type: 'object',
+      properties: {
+        source: pathText('Full path or name of the file to move.'),
+        destination: pathText('Destination folder or target path.'),
+      },
+    },
+  },
+  copy_file: {
+    description:
+      'Copies a file to a new folder or destination. The person sees the exact paths and must allow it on a card before anything is copied.',
+    params: {
+      type: 'object',
+      properties: {
+        source: pathText('Full path or name of the file to copy.'),
+        destination: pathText('Destination folder or target path.'),
+      },
+    },
+  },
+  rename_file: {
+    description:
+      'Renames a file in its current folder. The person must allow it on a card before anything changes.',
+    params: {
+      type: 'object',
+      properties: {
+        path: pathText('Full path or name of the file to rename.'),
+        new_name: shortText('New name for the file, without changing its folder.'),
+      },
+    },
+  },
+  create_folder: {
+    description:
+      'Creates a new folder at the given path. The person must allow it on a card before anything is created.',
+    params: {
+      type: 'object',
+      properties: {
+        path: pathText('Path or folder name to create.'),
+      },
+    },
+  },
+  get_file_info: {
+    description:
+      'Gets detailed measured facts about a file or folder: exact byte size, formatted size, location, and modification time. ' +
+      'Read-only; inspects the actual current file on disk without changing it.',
+    params: {
+      type: 'object',
+      properties: {
+        path: pathText('Full path or name of the file or folder to inspect.'),
+      },
+    },
   },
   calculate: {
     description:
@@ -227,3 +310,17 @@ export const TOOLS: Record<string, ToolDefinition> = {
     local: () => currentDateTime(),
   },
 };
+
+/** Implemented catalogue names remain stable, but unavailable capabilities
+ * must never be offered to the model as executable tools in this release. */
+export const OFFLINE_UNAVAILABLE_TOOLS = new Set([
+  'web_search',
+  'open_website',
+  'find_duplicate_files',
+  'clean_temp_files',
+  'cleanup_history',
+  'pc_checkup',
+  'list_open_apps',
+  'close_app',
+  'open_installed_app',
+]);

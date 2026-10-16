@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ActionCard } from '../chat/events';
+import { call } from '../lib/tauri';
+
+export interface ActiveTask {
+  id: string;
+  description: string;
+  state: string;
+  progress?: string;
+}
 
 export type Message = {
   id: string;
@@ -14,6 +22,7 @@ export type Message = {
 };
 
 export interface ChatPanelProps {
+  disabled?: boolean;
   messages: Message[];
   /** True while Cubby is answering; the input waits. */
   isThinking: boolean;
@@ -74,6 +83,7 @@ function CardView({
 }
 
 export default function ChatPanel({
+  disabled = false,
   messages,
   isThinking,
   status,
@@ -82,8 +92,42 @@ export default function ChatPanel({
   onDecideCard,
 }: ChatPanelProps) {
   const [input, setInput] = useState('');
+  const [activeTasks, setActiveTasks] = useState<ActiveTask[]>([]);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Poll active tasks periodically
+  useEffect(() => {
+    let mounted = true;
+    const fetchTasks = async () => {
+      try {
+        const list = await call<ActiveTask[]>('list_active_tasks');
+        if (mounted && list) {
+          setActiveTasks(list);
+        }
+      } catch {
+        // Ignored in non-Tauri or testing environment
+      }
+    };
+    void fetchTasks();
+    const interval = setInterval(fetchTasks, 1000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handleCancelTask = async (taskId: string) => {
+    try {
+      await call('cancel_task', { taskId });
+      const list = await call<ActiveTask[]>('list_active_tasks');
+      if (list) {
+        setActiveTasks(list);
+      }
+    } catch {
+      // Ignored
+    }
+  };
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -95,7 +139,7 @@ export default function ChatPanel({
   }, [isThinking]);
 
   const send = (text: string) => {
-    if (text.trim() && !isThinking) {
+    if (!disabled && text.trim()) {
       onSendMessage(text.trim());
       setInput('');
     }
@@ -143,6 +187,34 @@ export default function ChatPanel({
         <div ref={endOfMessagesRef} />
       </div>
 
+      {activeTasks.length > 0 && (
+        <aside className="active-tasks-board" aria-label="Background tasks">
+          <div className="active-tasks-header">Tasks ({activeTasks.length})</div>
+          <ul className="active-tasks-list">
+            {activeTasks.map((task) => (
+              <li key={task.id} className="active-task-item">
+                <span className="task-desc" title={task.description}>
+                  {task.description}
+                  {task.progress && <small>{task.progress}</small>}
+                </span>
+                {task.state === 'recovery-required' ? (
+                  <span role="status">Needs review before retrying</span>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-cancel-task"
+                    onClick={() => void handleCancelTask(task.id)}
+                    aria-label={`Cancel ${task.description}`}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )}
+
       <form
         className="chat-input-form"
         onSubmit={(e) => {
@@ -156,19 +228,23 @@ export default function ChatPanel({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask Cubby something..."
-          disabled={isThinking}
           aria-label="Chat input"
           maxLength={2000}
+          disabled={disabled}
         />
-        {isThinking ? (
-          <button type="button" className="chat-stop" onClick={() => onStop?.()}>
+        {isThinking && (
+          <button
+            type="button"
+            className="chat-stop"
+            onClick={() => onStop?.()}
+            aria-label="Stop current work"
+          >
             Stop
           </button>
-        ) : (
-          <button type="submit" disabled={!input.trim()}>
-            Send
-          </button>
         )}
+        <button type="submit" disabled={disabled || !input.trim()}>
+          Send
+        </button>
       </form>
     </section>
   );

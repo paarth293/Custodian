@@ -77,3 +77,68 @@ def test_invalid_json_is_dropped_and_stream_continues() -> None:
     process_frames(stdin, stdout, KEY)
     stdout.seek(0)
     assert read_frame_from(stdout, KEY) == {"status": "ok"}
+
+
+def test_planted_approve_or_delete_is_refused(monkeypatch) -> None:
+    from mlhost import laya
+
+    class FakeModel:
+        def __init__(self, action: str):
+            self.action = action
+
+        def create_chat_completion(self, **kwargs):
+            import json
+
+            return {"choices": [{"message": {"content": json.dumps({"action": self.action})}}]}
+
+    # Model attempts to approve -> refused, abstains
+    monkeypatch.setattr("mlhost.laya.load_model", lambda: FakeModel("approve"))
+    assert laya.decide({"filename": "malware.exe", "av_hits": 0}) == "abstained"
+
+    # Model attempts to delete directly -> refused, abstains
+    monkeypatch.setattr("mlhost.laya.load_model", lambda: FakeModel("delete"))
+    assert laya.decide({"filename": "malware.exe", "av_hits": 0}) == "abstained"
+
+
+def test_av_hits_deterministically_forces_quarantine_ignoring_model(monkeypatch) -> None:
+    from mlhost import laya
+
+    class FakeModel:
+        def create_chat_completion(self, **kwargs):
+            import json
+
+            return {"choices": [{"message": {"content": json.dumps({"action": "approve"})}}]}
+
+    monkeypatch.setattr("mlhost.laya.load_model", FakeModel)
+    # AV hits > 0 must quarantine even if ML claimed "approve" (monotonicity / F45)
+    assert laya.decide({"filename": "virus.exe", "av_hits": 3}) == "quarantine"
+
+
+def test_valid_escalate_quarantine_and_review(monkeypatch) -> None:
+    from mlhost import laya
+
+    class FakeModel:
+        def __init__(self, action: str):
+            self.action = action
+
+        def create_chat_completion(self, **kwargs):
+            import json
+
+            return {"choices": [{"message": {"content": json.dumps({"action": self.action})}}]}
+
+    monkeypatch.setattr("mlhost.laya.load_model", lambda: FakeModel("quarantine"))
+    assert laya.decide({"filename": "suspicious.exe", "av_hits": 0}) == "quarantine"
+
+    monkeypatch.setattr("mlhost.laya.load_model", lambda: FakeModel("review"))
+    assert laya.decide({"filename": "suspicious.exe", "av_hits": 0}) == "review"
+
+
+def test_malformed_model_action_abstains(monkeypatch) -> None:
+    from mlhost import laya
+
+    class FakeModel:
+        def create_chat_completion(self, **kwargs):
+            return {"choices": [{"message": {"content": '{"action": ["approve"]}'}}]}
+
+    monkeypatch.setattr("mlhost.laya.load_model", FakeModel)
+    assert laya.decide({"filename": "file.exe", "av_hits": 0}) == "abstained"

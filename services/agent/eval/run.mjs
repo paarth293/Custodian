@@ -9,8 +9,9 @@
 // running the whole set (Phase 6).
 //
 // Desktop tools get fixed, realistic results, so only the model is measured.
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { passesGate } from './gate.mjs';
 
 const require = createRequire(import.meta.url);
 const { createLlamaEngine, findChatModel, DEFAULT_MODELS_DIR } = require('../dist/llm.js');
@@ -32,6 +33,13 @@ const cases = JSON.parse(readFileSync(new URL('./cases.json', import.meta.url), 
 const matchAt = process.argv.indexOf('--match');
 const filter = matchAt >= 0 ? new RegExp(process.argv[matchAt + 1] ?? '', 'i') : null;
 const selected = filter ? cases.filter((c) => filter.test(c.say)) : cases;
+const minPassArgIndex = process.argv.indexOf('--min-pass');
+const minPassPct = minPassArgIndex >= 0 ? Number(process.argv[minPassArgIndex + 1]) : 100;
+if (!Number.isFinite(minPassPct) || minPassPct < 0 || minPassPct > 100) {
+  console.error('--min-pass must be a number between 0 and 100');
+  process.exit(2);
+}
+const failFast = process.argv.includes('--fail-fast');
 if (selected.length === 0) {
   console.error('no cases match that pattern');
   process.exit(2);
@@ -136,6 +144,7 @@ const engine = createLlamaEngine(model);
 const loadStart = performance.now();
 await engine.warmUp();
 const loadMs = performance.now() - loadStart;
+console.log(`[eval] Model loaded in ${(loadMs / 1000).toFixed(1)}s.`);
 
 const rows = [];
 for (const c of selected) {
@@ -199,20 +208,71 @@ for (const c of selected) {
       `      tools: ${calls.map((k) => `${k.name}(${JSON.stringify(k.args)})`).join(', ') || 'none'}\n` +
       `      reply: ${JSON.stringify(text.slice(0, 160))}`,
   );
+  if (failFast) {
+    const failures = rows.filter(
+      (row) => !(row.toolOk && row.argsOk && row.answerOk && row.safetyOk),
+    ).length;
+    if (failures * 100 > (100 - minPassPct) * selected.length || !safetyOk) {
+      console.error('[eval] Stopped early: the acceptance gate can no longer pass.');
+      break;
+    }
+  }
 }
 
-const pct = (n) => `${Math.round((100 * n) / rows.length)}%`;
-const count = (key) => rows.filter((r) => r[key]).length;
 const all = rows.filter((r) => r.toolOk && r.argsOk && r.answerOk && r.safetyOk).length;
-const avg = (key) => rows.reduce((sum, r) => sum + (r[key] ?? 0), 0) / rows.length / 1000;
+const count = (key) => rows.filter((r) => r[key]).length;
+const passedPct = ((100 * all) / rows.length).toFixed(2);
+const safetyCount = count('safetyOk');
+const deletionChecks = rows.filter((row) => row.c.safety);
+const deletionChecksPassed = deletionChecks.filter((row) => row.safetyOk).length;
+// Do not round 54/57 (94.74%) up to a passing 95% score.
+const success = passesGate(all, safetyCount, rows.length, selected.length, minPassPct);
+const reportAt = process.argv.indexOf('--report');
+if (reportAt >= 0) {
+  const destination = process.argv[reportAt + 1];
+  if (!destination) throw new Error('--report needs a destination path');
+  writeFileSync(
+    destination,
+    JSON.stringify(
+      {
+        measuredAt: new Date().toISOString(),
+        model: modelName,
+        sha256: model.sha256,
+        desktopResults: 'simulated',
+        scope: filter ? 'filtered' : 'full',
+        evaluationComplete: rows.length === selected.length,
+        expectedCases: selected.length,
+        requiredPercent: minPassPct,
+        passed: all,
+        total: rows.length,
+        deletionClaimChecksPassed: deletionChecksPassed,
+        deletionClaimChecksTotal: deletionChecks.length,
+        gatePassed: success,
+        loadMs,
+        cases: rows.map(({ c, ...result }) => ({
+          request: c.say,
+          expectedTool: c.tool,
+          ...result,
+        })),
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+if (!success) {
+  console.error(
+    `\n[eval] GATE FAILED: ${all}/${rows.length} passed (${passedPct}%, required >= ${minPassPct}%). ` +
+      `Deletion-claim checks: ${deletionChecksPassed}/${deletionChecks.length}.`,
+  );
+  if (rows.length !== selected.length)
+    console.error(
+      `[eval] Only ${rows.length}/${selected.length} cases were evaluated; this is an incomplete failing run.`,
+    );
+  process.exit(1);
+}
 console.log(
-  `\nMODEL ${modelName}\n` +
-    `  all checks passed: ${all}/${rows.length} (${pct(all)})\n` +
-    `  right tool:        ${pct(count('toolOk'))}\n` +
-    `  right arguments:   ${pct(count('argsOk'))}\n` +
-    `  right answer:      ${pct(count('answerOk'))}\n` +
-    `  safe wording:      ${pct(count('safetyOk'))}\n` +
-    `  load ${(loadMs / 1000).toFixed(1)}s; per message: first word ${avg('firstMs').toFixed(1)}s, ` +
-    `whole reply ${avg('totalMs').toFixed(1)}s; memory ${Math.round(process.memoryUsage().rss / 1e6)} MB`,
+  `\n[eval] GATE PASSED: ${all}/${rows.length} passed (${passedPct}% >= ${minPassPct}%).`,
 );
 process.exit(0);

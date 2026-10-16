@@ -3,7 +3,7 @@ use std::fs;
 use std::io;
 
 pub fn execute_move(from: &SafePath, to: &SafePath) -> io::Result<()> {
-    fs::rename(from.as_path(), to.as_path())
+    custodian_winsec::fsops::move_no_replace(from.as_path(), to.as_path(), |_| Ok(true))
 }
 
 pub fn execute_delete(target: &SafePath) -> io::Result<()> {
@@ -42,5 +42,23 @@ mod tests {
         .unwrap();
         assert!(!from.exists());
         assert_eq!(fs::read(&to).unwrap(), b"x");
+    }
+
+    #[test]
+    fn execute_move_refuses_to_overwrite_existing_destination() {
+        let dir = tempfile::tempdir().unwrap();
+        let from = dir.path().join("a.txt");
+        let to = dir.path().join("b.txt");
+        fs::write(&from, b"source").unwrap();
+        fs::write(&to, b"destination").unwrap();
+
+        let err = execute_move(
+            &SafePath::new(&from, dir.path()).unwrap(),
+            &SafePath::new(&to, dir.path()).unwrap(),
+        )
+        .unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::AlreadyExists);
+        assert_eq!(fs::read(&from).unwrap(), b"source");
+        assert_eq!(fs::read(&to).unwrap(), b"destination");
     }
 }

@@ -180,6 +180,7 @@ body,
   color: #2e1a03;
   background: var(--signal-amber);
 }
+.panel-new-chat,
 .panel-close {
   width: 30px;
   height: 30px;
@@ -190,7 +191,11 @@ body,
   color: var(--text-dim);
   background: transparent;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+.panel-new-chat:hover,
 .panel-close:hover {
   color: var(--text);
   background: rgba(255, 255, 255, 0.08);
@@ -340,6 +345,60 @@ body,
   background: rgba(255, 255, 255, 0.14);
 }
 
+/* ---------- Active tasks board ---------- */
+
+.active-tasks-board {
+  margin: 6px 12px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  font-size: 12px;
+}
+.active-tasks-header {
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 10px;
+}
+.active-tasks-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.active-task-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.active-task-item .task-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  flex: 1;
+}
+.active-task-item .btn-cancel-task {
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.active-task-item .btn-cancel-task:hover {
+  background: rgba(255, 80, 80, 0.2);
+  color: #ff8080;
+  border-color: rgba(255, 80, 80, 0.4);
+}
+
 /* ---------- Approval card ---------- */
 
 .approval-view {
@@ -437,4 +496,34 @@ body,
 .btn-approve {
   color: #fff;
   background: var(--accent);
+}
+.privacy-controls {
+  padding: 8px 12px;
+  border-bottom: 1px solid #7775;
+}
+.privacy-controls > button {
+  cursor: pointer;
+}
+.privacy-settings {
+  max-height: 55vh;
+  overflow: auto;
+  font-size: 13px;
+}
+.privacy-settings input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 6px 0;
+}
+.privacy-settings li {
+  overflow-wrap: anywhere;
+  margin: 8px 0;
+}
+.privacy-settings li button {
+  margin-left: 8px;
+}
+.privacy-settings button:focus-visible,
+.privacy-settings input:focus-visible {
+  outline: 2px solid #6685e5;
+  outline-offset: 2px;
 }

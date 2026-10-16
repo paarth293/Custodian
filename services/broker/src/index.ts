@@ -30,11 +30,14 @@ export class BrowserBroker {
   start(flags: string[]): void {
     if (flags.includes('--no-sandbox'))
       throw new Error('E_POLICY: Chromium sandbox must stay enabled');
+    throw new Error('E_UNAVAILABLE: Browser execution is not implemented.');
   }
 
   async performAction(action: string, params: unknown): Promise<string> {
     void params;
     if (!isBrowserAction(action)) throw new Error('E_POLICY');
-    return `Action ${action} executed`;
+    throw new Error(
+      'E_UNAVAILABLE: Browser execution is not implemented and online actions are deferred.',
+    );
   }
 }

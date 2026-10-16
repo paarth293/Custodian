@@ -1,7 +1,7 @@
 //! Elevation helper. Accepts exactly one verb from a fixed allow-list so the
 //! elevated surface stays as small as possible.
 //!
-//! Exit codes: 0 success, 1 usage error, 2 unknown verb.
+//! Exit codes: 0 success, 1 usage error, 2 unknown verb, 3 not implemented.
 
 use std::process::ExitCode;
 
@@ -24,7 +24,8 @@ fn main() -> ExitCode {
         return ExitCode::from(2);
     }
 
-    // Placeholder: the privileged implementations are not wired in yet.
-    println!("{verb}: ok");
-    ExitCode::SUCCESS
+    // F31: The privileged implementations are not wired in yet.
+    // Return explicit error rather than claiming fake success.
+    eprintln!("{verb}: elevation action not implemented in this build");
+    ExitCode::from(3)
 }

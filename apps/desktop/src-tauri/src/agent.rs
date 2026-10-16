@@ -28,6 +28,8 @@ pub enum AgentError {
     Ipc(#[from] IpcError),
     #[error("{0}")]
     Model(String),
+    #[error("agent operation timed out: {0}")]
+    Timeout(String),
 }
 
 #[derive(Serialize)]
@@ -50,10 +52,24 @@ enum Request<'a> {
     Ping {
         id: u64,
     },
+    /// Reset conversation context.
+    #[allow(dead_code)]
+    Reset {
+        id: u64,
+    },
 }
 
 /// What a tool call gets once the person has pressed Stop.
 const STOPPED: &str = "The person stopped this request. Do not continue.";
+
+/// Maximum time to wait for the agent to acknowledge Stop / Cancel before considering it unresponsive.
+const CANCEL_DEADLINE: std::time::Duration = std::time::Duration::from_secs(3);
+
+/// Maximum time to wait for a ping response before timing out.
+const PING_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// Maximum time of total silence during chat before watchdog trips.
+const CHAT_IDLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -88,38 +104,128 @@ enum Reply {
 pub type ToolHandler<'a> = &'a mut dyn FnMut(&str, &serde_json::Value) -> String;
 
 /// One request/response conversation channel to an agent.
-pub struct Connection<R: Read, W: Write> {
-    reader: BufReader<R>,
+pub struct Connection<R: Read + Send + 'static, W: Write> {
+    receiver: std::sync::mpsc::Receiver<Result<Reply, AgentError>>,
     writer: BufWriter<W>,
     key: Vec<u8>,
     next_id: u64,
+    _marker: std::marker::PhantomData<R>,
 }
 
-impl<R: Read, W: Write> Connection<R, W> {
+impl<R: Read + Send + 'static, W: Write> Connection<R, W> {
     pub fn new(reader: R, writer: W, key: Vec<u8>) -> Self {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let key_clone = key.clone();
+        std::thread::Builder::new()
+            .name("custodian-agent-ipc-reader".into())
+            .spawn(move || {
+                let mut reader = BufReader::new(reader);
+                loop {
+                    match read_frame::<Reply, _>(&mut reader, &key_clone) {
+                        Ok(reply) => {
+                            if tx.send(Ok(reply)).is_err() {
+                                break;
+                            }
+                        }
+                        Err(IpcError::Io(e))
+                            if e.kind() == std::io::ErrorKind::UnexpectedEof
+                                || e.kind() == std::io::ErrorKind::BrokenPipe =>
+                        {
+                            break;
+                        }
+                        Err(e) => {
+                            let _ = tx.send(Err(AgentError::Ipc(e)));
+                            break;
+                        }
+                    }
+                }
+            })
+            .expect("spawn agent ipc reader thread");
+
         Self {
-            reader: BufReader::new(reader),
+            receiver: rx,
             writer: BufWriter::new(writer),
             key,
             next_id: 1,
+            _marker: std::marker::PhantomData,
         }
     }
 
-    /// Asks the agent whether it can load its model where it runs. Returns
-    /// the problem it reports, or `None` when it is ready.
+    /// Checks transport, file access and runtime import. Model inference readiness
+    /// is verified by a deep probe or an actual chat, not this shallow ping.
+    #[cfg(test)]
     pub fn ping(&mut self) -> Result<Option<String>, AgentError> {
+        self.ping_with_cancel(None)
+    }
+
+    pub fn ping_with_cancel(
+        &mut self,
+        cancel: Option<&AtomicBool>,
+    ) -> Result<Option<String>, AgentError> {
         let id = self.next_id;
         self.next_id += 1;
         write_frame(&mut self.writer, &Request::Ping { id }, &self.key)?;
+        let start = std::time::Instant::now();
         loop {
-            if let Reply::Pong {
-                id: rid,
-                ready,
-                error,
-            } = read_frame::<Reply, _>(&mut self.reader, &self.key)?
+            if cancel.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+                return Err(AgentError::Timeout("agent startup was cancelled".into()));
+            }
+            if start.elapsed() > PING_TIMEOUT {
+                return Err(AgentError::Timeout("agent ping timed out".into()));
+            }
+            match self
+                .receiver
+                .recv_timeout(std::time::Duration::from_millis(50))
             {
-                if rid == id {
-                    return Ok((!ready).then(|| error.unwrap_or_else(|| "not ready".into())));
+                Ok(Ok(Reply::Pong {
+                    id: rid,
+                    ready,
+                    error,
+                })) => {
+                    if rid == id {
+                        return Ok((!ready).then(|| error.unwrap_or_else(|| "not ready".into())));
+                    }
+                }
+                Ok(Ok(_)) => {}
+                Ok(Err(e)) => return Err(e),
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                    return Err(AgentError::Ipc(IpcError::Io(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "agent process disconnected",
+                    ))));
+                }
+            }
+        }
+    }
+
+    /// Resets the agent's chat history for a fresh conversation.
+    #[allow(dead_code)]
+    pub fn reset(&mut self) -> Result<(), AgentError> {
+        let id = self.next_id;
+        self.next_id += 1;
+        write_frame(&mut self.writer, &Request::Reset { id }, &self.key)?;
+        let start = std::time::Instant::now();
+        loop {
+            if start.elapsed() > std::time::Duration::from_secs(5) {
+                return Err(AgentError::Timeout("agent reset timed out".into()));
+            }
+            match self
+                .receiver
+                .recv_timeout(std::time::Duration::from_millis(50))
+            {
+                Ok(Ok(Reply::Done { id: rid })) if rid == id => return Ok(()),
+                Ok(Ok(Reply::Error { id: rid, error })) if rid == id => {
+                    return Err(AgentError::Model(error))
+                }
+                Ok(Ok(_)) => {}
+                Ok(Err(e)) => return Err(e),
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                    return Err(AgentError::Ipc(IpcError::Io(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "agent process disconnected",
+                    ))));
                 }
             }
         }
@@ -139,42 +245,73 @@ impl<R: Read, W: Write> Connection<R, W> {
         self.next_id += 1;
         write_frame(&mut self.writer, &Request::Chat { id, message }, &self.key)?;
         let mut stopped = false;
+        let mut cancel_sent_at: Option<std::time::Instant> = None;
+        let mut last_activity = std::time::Instant::now();
         loop {
-            let reply = read_frame::<Reply, _>(&mut self.reader, &self.key)?;
             if !stopped && cancel.load(Ordering::Relaxed) {
-                write_frame(&mut self.writer, &Request::Cancel { id }, &self.key)?;
+                let _ = write_frame(&mut self.writer, &Request::Cancel { id }, &self.key);
                 stopped = true;
+                cancel_sent_at = Some(std::time::Instant::now());
             }
-            match reply {
-                Reply::Token { id: rid, text } if rid == id => {
-                    if !stopped {
-                        on_text(&text);
+
+            if let Some(sent_at) = cancel_sent_at {
+                if sent_at.elapsed() > CANCEL_DEADLINE {
+                    return Err(AgentError::Timeout(
+                        "agent did not respond to cancel within deadline".into(),
+                    ));
+                }
+            } else if last_activity.elapsed() > CHAT_IDLE_TIMEOUT {
+                return Err(AgentError::Timeout("agent inactive for too long".into()));
+            }
+
+            match self
+                .receiver
+                .recv_timeout(std::time::Duration::from_millis(50))
+            {
+                Ok(Ok(reply)) => {
+                    last_activity = std::time::Instant::now();
+                    match reply {
+                        Reply::Token { id: rid, text } if rid == id => {
+                            if !stopped {
+                                on_text(&text);
+                            }
+                        }
+                        Reply::Done { id: rid } if rid == id => return Ok(()),
+                        Reply::Error { id: rid, error } if rid == id => {
+                            return Err(AgentError::Model(error))
+                        }
+                        Reply::Tool {
+                            id: rid,
+                            call,
+                            name,
+                            args,
+                        } if rid == id => {
+                            let result = if stopped {
+                                STOPPED.to_string()
+                            } else {
+                                on_tool(&name, &args)
+                            };
+                            let reply = Request::ToolResult {
+                                id,
+                                call,
+                                result: &result,
+                            };
+                            write_frame(&mut self.writer, &reply, &self.key)?;
+                        }
+                        // Replies to an earlier, abandoned request are ignored.
+                        _ => {}
                     }
                 }
-                Reply::Done { id: rid } if rid == id => return Ok(()),
-                Reply::Error { id: rid, error } if rid == id => {
-                    return Err(AgentError::Model(error))
+                Ok(Err(err)) => return Err(err),
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                    // Check cancel / timeout conditions on next iteration
                 }
-                Reply::Tool {
-                    id: rid,
-                    call,
-                    name,
-                    args,
-                } if rid == id => {
-                    let result = if stopped {
-                        STOPPED.to_string()
-                    } else {
-                        on_tool(&name, &args)
-                    };
-                    let reply = Request::ToolResult {
-                        id,
-                        call,
-                        result: &result,
-                    };
-                    write_frame(&mut self.writer, &reply, &self.key)?;
+                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                    return Err(AgentError::Ipc(IpcError::Io(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "agent process disconnected",
+                    ))));
                 }
-                // Replies to an earlier, abandoned request are ignored.
-                _ => {}
             }
         }
     }
@@ -214,15 +351,11 @@ fn new_key() -> String {
 /// Settings the agent may be given, passed through when set.
 const PASSED_THROUGH: &[&str] = &["CUSTODIAN_CHAT_MODEL", "CUSTODIAN_LLAMA_GPU"];
 
-/// A job with the agent's limits, or `None` (and a note) if Windows refused.
-fn agent_job(assign: impl FnOnce(&Job) -> std::io::Result<()>) -> Option<Job> {
-    match Job::new(AGENT_LIMITS).and_then(|job| assign(&job).map(|()| job)) {
-        Ok(job) => Some(job),
-        Err(err) => {
-            eprintln!("[desktop] agent runs without job limits: {err}");
-            None
-        }
-    }
+/// A job with the agent's limits. Returns an error if Windows refused so we fail closed.
+fn agent_job(assign: impl FnOnce(&Job) -> std::io::Result<()>) -> Result<Job, AgentError> {
+    Job::new(AGENT_LIMITS)
+        .and_then(|job| assign(&job).map(|()| job))
+        .map_err(|err| AgentError::Spawn(format!("could not configure job limits: {err}")))
 }
 
 impl AgentProcess {
@@ -231,11 +364,17 @@ impl AgentProcess {
         let key_hex = new_key();
         let mut command = Command::new(node);
         command
+            .env_clear()
             .arg(entry)
-            .env("CUSTODIAN_IPC_KEY", &key_hex)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit());
+        for var in ["SystemRoot", "windir", "PATH", "TEMP", "TMP"] {
+            if let Some(val) = std::env::var_os(var) {
+                command.env(var, val);
+            }
+        }
+        command.env("CUSTODIAN_IPC_KEY", &key_hex);
         if let Some(dir) = models_dir {
             command.env("CUSTODIAN_MODELS_DIR", dir);
         }
@@ -258,7 +397,14 @@ impl AgentProcess {
         let mut child = command
             .spawn()
             .map_err(|e| AgentError::Spawn(e.to_string()))?;
-        let job = agent_job(|job| job.assign(&child));
+        let job = match agent_job(|job| job.assign(&child)) {
+            Ok(job) => job,
+            Err(err) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(err);
+            }
+        };
         let stdout = child
             .stdout
             .take()
@@ -273,7 +419,7 @@ impl AgentProcess {
         Ok(Self {
             runner: Runner::Plain(child),
             connection,
-            _job: job,
+            _job: Some(job),
         })
     }
 
@@ -315,7 +461,13 @@ impl AgentProcess {
         let mut contained = sandbox
             .spawn(node, &args, &env, private.as_deref())
             .map_err(|e| AgentError::Spawn(e.to_string()))?;
-        let job = agent_job(|job| job.assign_raw(contained.raw_process()));
+        let job = match agent_job(|job| job.assign_raw(contained.raw_process())) {
+            Ok(job) => job,
+            Err(err) => {
+                contained.kill();
+                return Err(err);
+            }
+        };
         if let Err(err) = contained.resume() {
             contained.kill();
             return Err(AgentError::Spawn(err.to_string()));
@@ -335,7 +487,7 @@ impl AgentProcess {
         Ok(Self {
             runner: Runner::Contained(contained),
             connection,
-            _job: job,
+            _job: Some(job),
         })
     }
 
@@ -348,8 +500,33 @@ impl AgentProcess {
         }
     }
 
+    #[cfg(test)]
     pub fn ping(&mut self) -> Result<Option<String>, AgentError> {
         self.connection.ping()
+    }
+
+    pub fn ping_with_cancel(
+        &mut self,
+        cancel: Option<&AtomicBool>,
+    ) -> Result<Option<String>, AgentError> {
+        self.connection.ping_with_cancel(cancel)
+    }
+
+    #[allow(dead_code)]
+    pub fn reset(&mut self) -> Result<(), AgentError> {
+        self.connection.reset()
+    }
+
+    #[allow(dead_code)]
+    pub fn kill(&mut self) {
+        match &mut self.runner {
+            Runner::Plain(child) => {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
+            #[cfg(windows)]
+            Runner::Contained(child) => child.kill(),
+        }
     }
 
     pub fn chat(
@@ -653,6 +830,19 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn silent_agent_stop_aborts_without_hanging() {
+        let (to_client_r, _to_client_w) = std::io::pipe().unwrap();
+        let (_to_agent_r, to_agent_w) = std::io::pipe().unwrap();
+        let key = b"test-key".to_vec();
+        let mut conn = Connection::new(to_client_r, to_agent_w, key);
+        let cancel = AtomicBool::new(true); // Stop requested immediately
+        let err = conn
+            .chat("hello", &cancel, &mut |_| {}, &mut no_tools)
+            .unwrap_err();
+        assert!(matches!(err, AgentError::Timeout(msg) if msg.contains("cancel within deadline")));
+    }
+
     /// Runs the real agent and model inside its AppContainer, as Custodian
     /// does: it must be able to load the model there and answer. Needs
     /// `npm run build` and a pinned chat model in `models/`; run with
@@ -691,7 +881,94 @@ mod tests {
             )
             .unwrap();
         eprintln!("sandboxed model reply: {reply}");
-        assert!(!reply.trim().is_empty());
+        assert!(
+            reply.to_lowercase().contains("copy")
+                || reply.to_lowercase().contains("identical")
+                || reply.to_lowercase().contains("same"),
+            "{reply}"
+        );
+        let mut calls = Vec::new();
+        let mut answer = String::new();
+        agent
+            .chat(
+                "How much free disk space do I have on my C drive?",
+                &AtomicBool::new(false),
+                &mut |text| answer.push_str(text),
+                &mut |name, _| {
+                    calls.push(name.to_string());
+                    "Shown to the person: C: has 41 GB free of 476 GB.".to_string()
+                },
+            )
+            .unwrap();
+        assert!(
+            calls.iter().any(|name| name == "check_disk_space"),
+            "{calls:?}: {answer}"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    #[ignore = "needs an isolated staged runtime in CUSTODIAN_RUNTIME_TEST_ROOT"]
+    fn installed_runtime_answers_in_sandbox_without_checkout_dependencies() {
+        use custodian_winsec::appcontainer::Sandbox;
+        let root = PathBuf::from(
+            std::env::var_os("CUSTODIAN_RUNTIME_TEST_ROOT").expect("set the isolated runtime root"),
+        );
+        let node = root.join("bin/node.exe");
+        let entry = root.join("agent/server.js");
+        let models = root.join("models");
+        let sandbox = Sandbox::open("custodian.runtime-verification").unwrap();
+        for dir in sandbox_read_roots(&node, &entry, Some(&models)) {
+            sandbox.grant_read(&dir).unwrap();
+        }
+        let mut agent =
+            AgentProcess::spawn_sandboxed(&sandbox, &node, &entry, Some(&models)).unwrap();
+        assert_eq!(agent.ping().unwrap(), None);
+        let mut reply = String::new();
+        agent
+            .chat(
+                "Reply with one short sentence: what is a duplicate file?",
+                &AtomicBool::new(false),
+                &mut |text| reply.push_str(text),
+                &mut |_, _| "No tools in this test.".into(),
+            )
+            .unwrap();
+        let answer = reply.to_lowercase();
+        assert!(
+            answer.contains("copy") || answer.contains("identical") || answer.contains("same"),
+            "{reply}"
+        );
+        assert!(
+            !answer.contains("not have enough") && !answer.contains("don't have enough"),
+            "{reply}"
+        );
+        eprintln!("Installed isolated runtime reply: {reply}");
+        assert!(
+            (answer.contains("identical")
+                || answer.contains("same content")
+                || answer.contains("same data")
+                || answer.contains("exact copy"))
+                && !answer.contains("slight differences")
+                && !answer.contains("different content"),
+            "The model must explain content identity, not merely mention a copy: {reply}"
+        );
+        let mut calls = Vec::new();
+        let mut answer = String::new();
+        agent
+            .chat(
+                "How much free disk space do I have on my C drive?",
+                &AtomicBool::new(false),
+                &mut |text| answer.push_str(text),
+                &mut |name, _| {
+                    calls.push(name.to_string());
+                    "Shown to the person: C: has 41 GB free of 476 GB.".into()
+                },
+            )
+            .unwrap();
+        assert!(
+            calls.iter().any(|name| name == "check_disk_space"),
+            "{calls:?}: {answer}"
+        );
     }
 
     /// Chats with the real agent and model under the job limits. Needs

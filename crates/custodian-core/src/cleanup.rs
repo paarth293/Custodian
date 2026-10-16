@@ -182,6 +182,8 @@ impl ManifestEntry {
 struct Manifest {
     plan_id: String,
     created_unix: u64,
+    #[serde(default)]
+    completed_order: Option<u64>,
     /// Set once an undo has put back everything it could.
     undone: bool,
     entries: Vec<ManifestEntry>,
@@ -291,6 +293,13 @@ fn move_verified(from: &Path, to: &Path, hash: &str) -> io::Result<()> {
     if let Some(parent) = to.parent() {
         fs::create_dir_all(parent)?;
     }
+    let current_hash = hash_file(from)?;
+    if current_hash != hash {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("stored payload integrity check failed: expected {hash}, found {current_hash}"),
+        ));
+    }
     custodian_winsec::fsops::move_no_replace(from, to, |copy| Ok(hash_file(copy)? == hash))
 }
 
@@ -374,10 +383,10 @@ fn kept_copy_intact(entry: &ManifestEntry) -> Result<&Path, String> {
         return Err(changed());
     }
     if is_cloud_placeholder(&meta) {
-        return match (entry.keep_modified, modified_unix(&meta)) {
-            (Some(then), Some(now)) if then == now => Ok(keep),
-            _ => Err(changed()),
-        };
+        return Err(
+            "the copy that was kept is a cloud placeholder and cannot be verified locally offline"
+                .to_string(),
+        );
     }
     match hash_file(keep) {
         Ok(h) if h == entry.hash => Ok(keep),
@@ -409,15 +418,61 @@ impl Quarantine {
         let dir = self.plan_dir(&manifest.plan_id);
         fs::create_dir_all(&dir)?;
         let tmp = dir.join("manifest.json.tmp");
-        fs::write(&tmp, serde_json::to_vec_pretty(manifest)?)?;
+        let bytes = serde_json::to_vec_pretty(manifest)?;
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&tmp)?;
+        std::io::Write::write_all(&mut file, &bytes)?;
+        file.sync_all()?;
+        drop(file);
         fs::rename(tmp, dir.join(MANIFEST))?;
         Ok(())
     }
 
+    fn is_valid_plan_id(id: &str) -> bool {
+        !id.is_empty()
+            && id.len() <= 64
+            && id
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    }
+
     fn read_manifest(&self, plan_id: &str) -> Result<Manifest, CleanupError> {
-        let path = self.plan_dir(plan_id).join(MANIFEST);
+        if !Self::is_valid_plan_id(plan_id) {
+            return Err(CleanupError::UnknownPlan(format!(
+                "invalid plan id format: {plan_id}"
+            )));
+        }
+        let expected_dir = self.plan_dir(plan_id);
+        let path = expected_dir.join(MANIFEST);
         let bytes = fs::read(&path).map_err(|_| CleanupError::UnknownPlan(plan_id.to_string()))?;
-        Ok(serde_json::from_slice(&bytes)?)
+        let manifest: Manifest = serde_json::from_slice(&bytes)?;
+        if manifest.plan_id != plan_id {
+            return Err(CleanupError::UnknownPlan(format!(
+                "manifest plan_id mismatch: {} vs {}",
+                manifest.plan_id, plan_id
+            )));
+        }
+        for entry in &manifest.entries {
+            let confined = entry
+                .stored
+                .strip_prefix(&expected_dir)
+                .is_ok_and(|relative| {
+                    relative.components().next().is_some()
+                        && relative
+                            .components()
+                            .all(|part| matches!(part, std::path::Component::Normal(_)))
+                });
+            if !confined {
+                return Err(CleanupError::UnknownPlan(format!(
+                    "manifest contains stored path outside vault root: {}",
+                    entry.stored.display()
+                )));
+            }
+        }
+        Ok(manifest)
     }
 
     /// Every clean-up, newest first.
@@ -427,8 +482,11 @@ impl Quarantine {
         };
         let mut all: Vec<Manifest> = dirs
             .flatten()
-            .filter_map(|d| fs::read(d.path().join(MANIFEST)).ok())
-            .filter_map(|bytes| serde_json::from_slice(&bytes).ok())
+            .filter_map(|d| {
+                let name = d.file_name();
+                let id = name.to_str()?;
+                self.read_manifest(id).ok()
+            })
             .collect();
         all.sort_by(|a, b| {
             b.created_unix
@@ -455,9 +513,13 @@ impl Quarantine {
     /// copy changed since the scan are skipped, never forced. Private: plans
     /// run only through [`Quarantine::execute_approved`].
     fn execute(&self, plan: &CleanupPlan) -> Result<CleanupOutcome, CleanupError> {
+        let _mutation = crate::mutation_lock::MUTATIONS
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let mut manifest = Manifest {
             plan_id: plan.id.clone(),
             created_unix: now_unix(),
+            completed_order: None,
             undone: false,
             entries: Vec::new(),
         };
@@ -502,13 +564,9 @@ impl Quarantine {
                 .map(|n| n.to_string_lossy().into_owned())
                 .unwrap_or_default();
             let stored = files_dir.join(format!("{index:05}_{name}"));
-            if let Err(err) = move_verified(&item.path, &stored, &item.hash) {
-                outcome.skipped.push(skip(&err.to_string()));
-                continue;
-            }
             manifest.entries.push(ManifestEntry {
                 original: item.path.clone(),
-                stored,
+                stored: stored.clone(),
                 size: item.size,
                 hash: item.hash.clone(),
                 keep: Some(item.keep.clone()),
@@ -516,12 +574,29 @@ impl Quarantine {
                 restored_to: None,
                 purged_unix: None,
             });
-            // Persist after every move so a crash never loses track of a file.
+            // Persist intent before moving so a crash never loses track of a file.
             self.write_manifest(&manifest)?;
+            if let Err(err) = move_verified(&item.path, &stored, &item.hash) {
+                // A failed rollback can leave the payload at `stored`. Keep its
+                // prepared entry so recovery never loses the file's location.
+                if !stored.exists() {
+                    manifest.entries.pop();
+                }
+                let _ = self.write_manifest(&manifest);
+                outcome.skipped.push(skip(&err.to_string()));
+                continue;
+            }
             outcome.moved += 1;
             outcome.bytes += item.size;
         }
         if !manifest.entries.is_empty() {
+            manifest.completed_order = Some(
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_nanos()
+                    .min(u64::MAX as u128) as u64,
+            );
             self.write_manifest(&manifest)?;
         }
         Ok(outcome)
@@ -532,6 +607,9 @@ impl Quarantine {
     /// A file whose space was already freed is re-created from the kept
     /// original, if that is still identical.
     pub fn undo(&self, plan_id: &str) -> Result<UndoOutcome, CleanupError> {
+        let _mutation = crate::mutation_lock::MUTATIONS
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let mut manifest = self.read_manifest(plan_id)?;
         let mut outcome = UndoOutcome {
             plan_id: plan_id.to_string(),
@@ -602,6 +680,9 @@ impl Quarantine {
         now_unix: u64,
         due: impl Fn(&Manifest) -> bool,
     ) -> Result<PurgeOutcome, CleanupError> {
+        let _mutation = crate::mutation_lock::MUTATIONS
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let mut outcome = PurgeOutcome::default();
         for mut manifest in self.manifests() {
             // A clock that reads earlier than the clean-up itself cannot be
@@ -640,6 +721,24 @@ impl Quarantine {
             .flat_map(|m| m.entries.iter())
             .filter(|e| e.in_safe_place())
             .fold((0, 0), |(n, bytes), e| (n + 1, bytes + e.size))
+    }
+
+    pub fn latest_undoable_order(&self) -> Option<u64> {
+        self.manifests()
+            .into_iter()
+            .filter(|manifest| {
+                !manifest.undone
+                    && manifest
+                        .entries
+                        .iter()
+                        .any(|entry| entry.in_safe_place() || entry.purged())
+            })
+            .map(|manifest| {
+                manifest
+                    .completed_order
+                    .unwrap_or_else(|| manifest.created_unix.saturating_mul(1_000_000_000))
+            })
+            .max()
     }
 
     /// Past clean-ups, newest first.
@@ -890,6 +989,20 @@ mod tests {
     }
 
     #[test]
+    fn undo_refuses_when_stored_payload_is_modified() {
+        let f = fixture();
+        let (_keep, copy, plan) = cleaned(&f, "doc", b"contract");
+        let manifest = f.quarantine.read_manifest(&plan.id).unwrap();
+        // Tamper with the stored copy in quarantine (A24)
+        fs::write(&manifest.entries[0].stored, b"tampered contract").unwrap();
+        let outcome = f.quarantine.undo(&plan.id).unwrap();
+        assert_eq!(outcome.restored, 0);
+        assert_eq!(outcome.skipped.len(), 1);
+        assert!(outcome.skipped[0].1.contains("integrity check failed"));
+        assert!(!copy.exists(), "tampered payload was not restored");
+    }
+
+    #[test]
     fn never_purges_when_the_clock_reads_before_the_clean_up() {
         let f = fixture();
         cleaned(&f, "x", b"data");
@@ -1082,5 +1195,48 @@ mod tests {
             .take(1)
             .collect();
         assert_eq!(no_ext, vec![PathBuf::from("notes (restored)")]);
+    }
+
+    #[test]
+    fn refuses_manifest_with_traversal_or_out_of_vault_path() {
+        let f = fixture();
+        // Path traversal in plan id is rejected
+        assert!(f.quarantine.read_manifest("../etc").is_err());
+        assert!(f.quarantine.read_manifest("..\\windows").is_err());
+        assert!(f.quarantine.read_manifest("a/b").is_err());
+
+        // Manifest containing stored path outside vault directory is rejected
+        let plan_dir = f.quarantine.plan_dir("validplan123");
+        fs::create_dir_all(&plan_dir).unwrap();
+        let malicious_manifest = serde_json::json!({
+            "plan_id": "validplan123",
+            "created_unix": 1000,
+            "undone": false,
+            "entries": [{
+                "original": "C:\\safe\\file.txt",
+                "stored": "C:\\Windows\\System32\\cmd.exe",
+                "size": 10,
+                "hash": "abc"
+            }]
+        });
+        fs::write(
+            plan_dir.join(MANIFEST),
+            serde_json::to_vec(&malicious_manifest).unwrap(),
+        )
+        .unwrap();
+
+        let err = f.quarantine.read_manifest("validplan123").unwrap_err();
+        assert!(err.to_string().contains("outside vault root"), "{err}");
+    }
+
+    #[test]
+    fn rejects_stored_path_that_escapes_through_parent_components() {
+        let f = fixture();
+        let (_, _, plan) = cleaned(&f, "doc", b"contract");
+        let mut manifest = f.quarantine.read_manifest(&plan.id).unwrap();
+        manifest.entries[0].stored = f.quarantine.plan_dir(&plan.id).join("../outside");
+        f.quarantine.write_manifest(&manifest).unwrap();
+        let err = f.quarantine.read_manifest(&plan.id).unwrap_err();
+        assert!(err.to_string().contains("outside vault root"), "{err}");
     }
 }

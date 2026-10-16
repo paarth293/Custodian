@@ -41,7 +41,7 @@ describe('currentDateTime', () => {
 });
 
 describe('TOOLS', () => {
-  it('never lets the model name a path, a command or a URL', () => {
+  it('exposes only the declared bounded parameters, with no shell command field', () => {
     for (const [name, tool] of Object.entries(TOOLS)) {
       const props = (tool.params as { properties?: Record<string, unknown> } | undefined)
         ?.properties;
@@ -61,6 +61,11 @@ describe('TOOLS', () => {
           'when',
           'setting',
           'value',
+          'count',
+          'source',
+          'destination',
+          'path',
+          'new_name',
         ]).toContain(key);
       }
       expect(name).toMatch(/^[a-z_]+$/);
@@ -85,8 +90,9 @@ describe('TOOLS', () => {
       const props =
         (tool.params as { properties?: Record<string, { type?: string; maxLength?: number }> })
           ?.properties ?? {};
-      for (const schema of Object.values(props)) {
-        if (schema.type === 'string') expect(schema.maxLength).toBeLessThanOrEqual(100);
+      for (const [key, schema] of Object.entries(props)) {
+        const bound = ['source', 'destination', 'path'].includes(key) ? 32767 : 100;
+        if (schema.type === 'string') expect(schema.maxLength).toBeLessThanOrEqual(bound);
       }
     }
   });
@@ -147,6 +153,33 @@ describe('createHandler with tools', () => {
 });
 
 describe('createHandler with Stop', () => {
+  it('cancels an outstanding tool wait and refuses another call after Stop', async () => {
+    const replies: Reply[] = [];
+    const results: string[] = [];
+    const engine: ChatEngine = {
+      async chat(_message, _onText, runTool) {
+        results.push(await runTool!('find_files', { name: 'report' }));
+        results.push(await runTool!('open_file', { name: 'report' }));
+      },
+    };
+    const handle = createHandler(engine, '', (r) => replies.push(r));
+    const done = handle({ type: 'chat', id: 7, message: 'find report' });
+    await vi_waitFor(() => replies.some((r) => r.type === 'tool'));
+    await handle({ type: 'cancel', id: 7 });
+    await Promise.race([
+      done,
+      new Promise((_, reject) => {
+        const timer = setTimeout(() => reject(new Error('cancel left tool wait alive')), 1000);
+        timer.unref();
+      }),
+    ]);
+    expect(results).toHaveLength(2);
+    expect(results.every((result) => result.includes('stopped'))).toBe(true);
+    expect(replies.filter((r) => r.type === 'tool')).toHaveLength(1);
+    expect(replies.at(-1)).toEqual({ type: 'done', id: 7 });
+    await handle({ type: 'tool_result', id: 7, call: 1, result: 'late result' });
+    expect(replies.at(-1)).toEqual({ type: 'done', id: 7 });
+  });
   /** Streams words until its signal aborts, like the real engine. */
   const chattyEngine: ChatEngine = {
     async chat(_message, onText, _runTool, signal) {

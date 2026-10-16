@@ -1,4 +1,8 @@
-"""Laya: the fine-tuned decision model for suspicious files."""
+"""Laya: the calibrated escalate-only recommendation model for suspicious files (D-19 / F45).
+
+ML may recommend additional caution or review, but may NEVER lower
+deterministic risk, grant permission, or directly authorize removal or deletion.
+"""
 
 from __future__ import annotations
 
@@ -8,13 +12,16 @@ from typing import Any
 
 from mlhost.model_loader import load_model
 
-ACTIONS = frozenset({"approve", "delete", "quarantine"})
+# Escalate-only recommendation actions. "approve" and "delete" are explicitly forbidden
+# from model inference to prevent ML from downgrading risk or bypassing approval.
+ACTIONS = frozenset({"quarantine", "review"})
 ABSTAINED = "abstained"
 
 SYSTEM_PROMPT = (
-    "You are Custodian AI. You analyze file metadata and return exactly one action "
-    'in JSON format: {"action": "..."}. The ONLY allowed actions are: "approve", '
-    '"delete", or "quarantine". Do not use any other words.'
+    "You are Custodian AI advisory service. You analyze file metadata to recommend additional "
+    'caution. You must return JSON: {"action": "..."}. '
+    'The allowed recommendations are: "review", "quarantine", or "abstained". '
+    "You cannot approve files or authorize deletion."
 )
 
 
@@ -29,15 +36,24 @@ def build_prompt(filename: str, av_hits: int, signed: bool) -> str:
 
 
 def decide(data: dict[str, Any]) -> str:
-    """Returns ``approve``, ``delete``, ``quarantine`` or ``abstained``.
+    """Returns ``quarantine``, ``review`` or ``abstained`` (escalate-only).
 
-    Any failure (missing model, invalid output) abstains so the caller falls
-    back to asking the user.
+    Any AV hit deterministically requires quarantine.
+    ML can NEVER return ``approve`` or ``delete``; attempting to do so abstains (F45).
     """
+    try:
+        av_hits = int(data.get("av_hits", 0))
+    except (ValueError, TypeError):
+        return ABSTAINED
+
+    # Deterministic baseline: any verified AV hit requires quarantine regardless of ML.
+    if av_hits > 0:
+        return "quarantine"
+
     try:
         prompt = build_prompt(
             str(data.get("filename", "unknown")),
-            int(data.get("av_hits", 0)),
+            av_hits,
             bool(data.get("signed", False)),
         )
         model = load_model()
@@ -55,7 +71,16 @@ def decide(data: dict[str, Any]) -> str:
         print(f"[mlhost] Laya abstained: {exc}", file=sys.stderr)
         return ABSTAINED
 
-    if action in ACTIONS:
+    # F45 / B38: ML can NEVER approve or directly authorize deletion.
+    if action in ("approve", "delete"):
+        print(
+            f"[mlhost] Refusing unauthorized ML action {action!r}; "
+            "ML cannot lower risk or authorize deletion",
+            file=sys.stderr,
+        )
+        return ABSTAINED
+
+    if isinstance(action, str) and action in ACTIONS:
         return str(action)
     print(f"[mlhost] Laya returned unknown action: {action!r}", file=sys.stderr)
     return ABSTAINED

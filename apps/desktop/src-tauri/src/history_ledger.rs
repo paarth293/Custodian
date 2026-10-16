@@ -25,6 +25,7 @@ pub enum LedgerStatus {
 pub fn record(dir: &Path, event: &Value) -> Result<LedgerStatus, String> {
     let _writer = WRITER.lock().unwrap_or_else(|e| e.into_inner());
     let fail = |e: &dyn std::fmt::Display| format!("I couldn't update my history log: {e}");
+    std::fs::create_dir_all(dir).map_err(|e| fail(&e))?;
     let anchors = AnchorManager::new(dir.join("anchor.dpapi"));
     let mut ledger = Ledger::new(dir.join("ledger.bin")).map_err(|e| fail(&e))?;
 
@@ -60,11 +61,16 @@ pub fn record(dir: &Path, event: &Value) -> Result<LedgerStatus, String> {
 pub fn check(dir: &Path) -> Result<LedgerStatus, String> {
     let _writer = WRITER.lock().unwrap_or_else(|e| e.into_inner());
     let path = dir.join("ledger.bin");
+    let anchors = AnchorManager::new(dir.join("anchor.dpapi"));
     if !path.exists() {
-        return Ok(LedgerStatus::Intact); // Nothing recorded yet.
+        // F11: If the ledger is missing, it is only intact if there is also NO anchor.
+        // If an anchor exists (or is corrupted), the ledger was removed or tampered.
+        return match anchors.load() {
+            Ok(None) => Ok(LedgerStatus::Intact),
+            _ => Ok(LedgerStatus::TamperDetected),
+        };
     }
     let mut ledger = Ledger::new(path).map_err(|e| e.to_string())?;
-    let anchors = AnchorManager::new(dir.join("anchor.dpapi"));
     let intact = match anchors.load() {
         Ok(Some(anchor)) => ledger.verify_anchor(&anchor).is_ok(),
         Ok(None) => ledger.height() == 0,
@@ -92,6 +98,19 @@ pub fn note(result: &Result<LedgerStatus, String>) -> Option<String> {
 #[cfg(all(test, windows))]
 mod tests {
     use super::*;
+    #[test]
+    fn first_live_record_creates_its_history_directory() {
+        let root = tempfile::tempdir().unwrap();
+        let history = root.path().join("new-profile").join("ledger");
+        assert!(!history.exists());
+        assert_eq!(
+            record(&history, &json!({"kind": "fixture"})).unwrap(),
+            LedgerStatus::Intact
+        );
+        assert!(history.join("ledger.bin").is_file());
+        assert!(history.join("anchor.dpapi").is_file());
+        assert_eq!(check(&history).unwrap(), LedgerStatus::Intact);
+    }
     use std::fs::{self, OpenOptions};
 
     #[test]
@@ -145,6 +164,15 @@ mod tests {
             record(dir.path(), &json!({ "kind": "undo" })),
             Ok(LedgerStatus::TamperDetected)
         );
+    }
+
+    #[test]
+    fn a_deleted_ledger_with_existing_anchor_is_noticed() {
+        let dir = tempfile::tempdir().unwrap();
+        record(dir.path(), &json!({ "kind": "cleanup" })).unwrap();
+        // Attacker deletes ledger.bin but anchor.dpapi remains
+        fs::remove_file(dir.path().join("ledger.bin")).unwrap();
+        assert_eq!(check(dir.path()), Ok(LedgerStatus::TamperDetected));
     }
 
     #[test]

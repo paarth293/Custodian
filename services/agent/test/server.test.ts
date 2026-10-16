@@ -79,6 +79,42 @@ describe('createHandler', () => {
     expect(replies).toEqual([{ type: 'error', id: 3, error: 'out of memory' }]);
   });
 
+  it('handles deep ping requests', async () => {
+    let checkedDeep: boolean | undefined;
+    const probeEngine: ChatEngine = {
+      ...fakeEngine,
+      async check(deep) {
+        checkedDeep = deep;
+        return null;
+      },
+    };
+    const replies: Reply[] = [];
+    await createHandler(probeEngine, '', (r) => replies.push(r))({
+      type: 'ping',
+      id: 99,
+      deep: true,
+    });
+    expect(checkedDeep).toBe(true);
+    expect(replies).toEqual([{ type: 'pong', id: 99, ready: true }]);
+  });
+
+  it('handles reset requests to clear chat history', async () => {
+    let resetCalled = false;
+    const resetEngine: ChatEngine = {
+      ...fakeEngine,
+      async reset() {
+        resetCalled = true;
+      },
+    };
+    const replies: Reply[] = [];
+    await createHandler(resetEngine, '', (r) => replies.push(r))({
+      type: 'reset',
+      id: 101,
+    });
+    expect(resetCalled).toBe(true);
+    expect(replies).toEqual([{ type: 'done', id: 101 }]);
+  });
+
   it('ignores malformed requests', async () => {
     const replies: Reply[] = [];
     await createHandler(fakeEngine, '', (r) => replies.push(r))({
@@ -86,6 +122,35 @@ describe('createHandler', () => {
       command: 'rm -rf /',
     });
     expect(replies).toEqual([]);
+  });
+
+  it('waits for the active chat before resetting, and resets before the next chat', async () => {
+    const events: string[] = [];
+    let finish!: () => void;
+    const first = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const handle = createHandler(
+      {
+        async chat(message) {
+          events.push(message);
+          if (message === 'first') await first;
+        },
+        async reset() {
+          events.push('reset');
+        },
+      },
+      '',
+      () => {},
+    );
+    const pending = handle({ type: 'chat', id: 1, message: 'first' });
+    await Promise.resolve();
+    const reset = handle({ type: 'reset', id: 2 });
+    const next = handle({ type: 'chat', id: 3, message: 'next' });
+    expect(events).toEqual(['first']);
+    finish();
+    await Promise.all([pending, reset, next]);
+    expect(events).toEqual(['first', 'reset', 'next']);
   });
 });
 

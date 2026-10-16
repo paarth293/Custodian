@@ -3,6 +3,17 @@
 What the code does today versus what the design promises. Update this file in
 the same commit that stubs, cuts or completes something.
 
+Completion is governed by [the acceptance checklist](docs/ACCEPTANCE.md).
+Historical phase entries based on simulations are not product acceptance.
+The [offline foundation implementation](docs/OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md)
+supersedes earlier live-capability claims for the current source. File privacy
+controls and offline refusals are implemented; legacy cleanup/purge and broad
+app actions are intentionally paused pending migration. The full operator and
+all privacy/security gates remain incomplete.
+The [16 October verification](docs/VERIFICATION-2026-10-16.md) records whole-PC
+scope, actual cross-drive desktop execution/restart/undo, model scores and
+remaining acceptance gaps.
+
 ## Stubbed
 
 Placeholders with their final signatures but without the real implementation.
@@ -17,18 +28,22 @@ Placeholders with their final signatures but without the real implementation.
   and is placed in its job object before it runs. The grants add one
   inheritable read entry for the container to those folders' permissions;
   the first time takes about 15 s for `node_modules`.
-- If the agent cannot load its model inside the container (its `ping` fails),
-  it starts as a normal process instead, the reason is logged, and "is my
-  data safe?" says so. The normal path still starts the process before it is
-  in its job. `CUSTODIAN_AGENT_SANDBOX=0` turns the container off.
+- If the agent cannot load its model inside the container, startup fails
+  closed and deterministic desktop tools remain available. There is no
+  automatic unrestricted fallback. `CUSTODIAN_AGENT_SANDBOX=0` or
+  `CUSTODIAN_AGENT_UNRESTRICTED=1` explicitly enables development-only
+  unrestricted startup; that path still starts the process before its job.
 - The older `spawn_in_appcontainer` in `custodian-winsec` (used by
   `sandbox_factory`, not by the agent) still starts a normal child process.
 - Safe places have no owner-only DACL and no reparse-point check yet. Quarantined
   files are moved, not encrypted (the design's zero-copy rename); only sidecars,
   keys and the ledger anchor are sealed with DPAPI.
-- `check_backup_status`, `detect_sandbox` and `verify_publisher` always return `true`.
-- `verify_download` only flags files named like the EICAR test file.
-- Install-lab `parse_diff`, `record_recipe`, `undo_install` and `prepare_uninstall` do nothing.
+- Backup and publisher checks report unavailable until their Windows providers
+  are connected. Sandbox detection checks for WindowsSandbox.exe without a
+  launch/feature-readiness probe. Download verification fails closed
+  when a scanner is unavailable; EICAR detection is still filename-based.
+- Install-lab `parse_diff` and `record_recipe` remain placeholders.
+  `undo_install` and `prepare_uninstall` refuse unsupported operations.
 - `OnlineStateMachine` does not terminate the broker job.
 - The input hook that would call `record_real_click` is not installed.
 
@@ -63,8 +78,8 @@ name anything outside it. What is not covered yet:
 
 ### Engine (`custodian-engine`)
 
-- `OffloadOp` replaces the file with a stub but uploads nothing.
-- `OnlineOnlyOp` is a no-op (no `CfSetPinState`).
+- `OffloadOp` and `OnlineOnlyOp` return Unsupported without modifying files
+  until durable remote upload/rollback and `CfSetPinState` are implemented.
 - `CloneDedupeOp` copies instead of block-cloning.
 - The ledger anchor is sealed with DPAPI, not signed with a TPM key, so code
   running as the same user could rewrite both the ledger and its anchor.
@@ -73,8 +88,8 @@ name anything outside it. What is not covered yet:
 
 ### Sandbox and parser
 
-- `custodian-sandbox` `build_argv` returns a fixed argv; `capsprobe` only prints.
-- `custodian-elevate` validates verbs but performs no privileged action.
+- `custodian-sandbox` expands configured arguments; `capsprobe` only prints.
+- `custodian-elevate` validates verbs and refuses unsupported privileged actions.
 - `ExcerptPipeline` does not invoke `custodian-parser`.
 
 ### Services
@@ -145,14 +160,32 @@ name anything outside it. What is not covered yet:
   abandoned and the CPU is used instead, so a broken driver cannot hold a
   reply up indefinitely. That cap is not optional: at 5 s it timed out on
   every start on the development laptop and every reply ran on the CPU —
-  about 150 s instead of about 3 s (measured 2026-10-12). No model has been run in CI. The agent and Node.js are
-  not bundled into the installer, so the chat model works only from a
-  repository checkout after `npm run build`.
+  about 150 s instead of about 3 s (measured 2026-10-12). No model has been run in CI.
+  The packaging step now stages Node, the agent, runtime dependencies and a
+  SHA-256-verified CPU model. Clean-profile installation still needs acceptance.
 - Mode colour: Online mode is never reported because the broker process does
   not exist yet, so the amber Special Form appears only as a labelled preview
   (tray or right-click menu).
 - `tools/fetch.ps1` writes a mock `tools/tools.toml` instead of fetching and
   pinning the sandbox tools.
+
+### Background tasks and file operations
+
+- The task coordinator saves sealed lifecycle history. On reopening, completed
+  tasks remain completed and interrupted work requires recovery; changes are not
+  replayed automatically. It checks overlapping paths and retains executing
+  workers' resource locks until they acknowledge cancellation.
+- File move, copy, rename and folder creation save sealed prepared receipts
+  before mutation and verify results before recording completion. Verified undo
+  works after reopening the records. Approval cards now capture absolute paths,
+  source identity/content and destination-parent identity; changed objects and
+  occupied destinations are refused. Fixture tests also cover resolving “it”
+  against measured search results, ambiguity and stale conversation results.
+  This does not close path-race hardening or abrupt process-death recovery.
+  Cancellation cannot interrupt a synchronous operating-system call mid-call.
+- The active-task panel and fresh-conversation control need interactive
+  desktop acceptance testing. Automated tests do not establish that every
+  design goal is implemented.
 
 ## Cut
 
@@ -210,3 +243,28 @@ is measured):
 ## Not Entered
 
 (Nothing yet)
+
+## Verification on 2026-10-15
+
+- Automated workspace checks pass: Rust formatting, Clippy with warnings denied,
+  296 Rust tests (three opt-in tests excluded from the routine run), JavaScript
+  build/typecheck/lint/formatting and 92 tests, Python lint/format/typecheck and
+  21 tests including authenticated stdio smoke tests. Python ran on the locally
+  installed 3.11.9, rather than the CI target of 3.12.
+- Explicit C: to D: temporary-file tests verify moves, checks and rollback.
+- Full Qwen3 4B evaluation with simulated desktop results: baseline 49/57 (86%),
+  revised routing prompt 52/57 (91%) overall,
+  57/57 safety checks; the 95% acceptance gate fails. This measures the model
+  alone, not the rule-based desktop routes or real execution.
+- The real model answers under job limits. The first sandboxed CPU integration
+  attempt and isolated CPU retry timed out during tool-prompt preparation.
+  Explicit Vulkan initialization stalled. Sandboxed chat is not acceptance-ready.
+- Rust dependency policy checks and Python dependency audit pass. Production
+  JavaScript dependencies have zero reported vulnerabilities. The full JavaScript
+  audit reports two moderate issues through development-only quicktype/stream-json,
+  with no available fix. No dependencies were force-upgraded.
+
+The native production executable and Windows NSIS installer built successfully.
+The current system/tool prompt measures 3,319 tokens for both pinned Qwen models;
+the minimum context is now 4,096 instead of 3,072 so the tool instructions fit.
+See [the current verification report](docs/VERIFICATION-2026-10-15.md) for details.

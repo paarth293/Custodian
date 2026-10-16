@@ -7,8 +7,11 @@
 mod actions;
 mod advice;
 mod apps;
+mod file_ops;
 pub mod intent;
 mod launcher;
+pub mod privacy;
+mod references;
 mod reply;
 mod settings;
 mod system;
@@ -125,6 +128,8 @@ enum PlanOutcome {
 
 #[derive(Default)]
 pub struct AssistantState {
+    privacy: Arc<custodian_core::privacy::AccessPolicy>,
+    agent_policy_revision: std::sync::atomic::AtomicU64,
     plans: Mutex<HashMap<String, PendingPlan>>,
     agent: Mutex<Option<AgentProcess>>,
     /// When the agent was last started or asked something.
@@ -136,6 +141,83 @@ pub struct AssistantState {
     cancel: AtomicBool,
     /// One reader or writer of the to-do list at a time.
     tasks_lock: Mutex<()>,
+    /// Recent verified events, tool results, and card outcomes for conversation context projection (R14).
+    history_context: Mutex<Vec<String>>,
+    file_references: references::FileReferences,
+    /// Task coordinator managing background tasks, lifecycle states and resource locks (M6 / F46).
+    pub coordinator: custodian_core::coordinator::TaskCoordinator,
+}
+
+impl AssistantState {
+    pub fn load(data_dir: &Path) -> Result<Self, String> {
+        let coordinator = custodian_core::coordinator::TaskCoordinator::open(
+            data_dir.join("background-tasks.dpapi"),
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(Self {
+            coordinator,
+            privacy: Arc::new(
+                custodian_core::privacy::AccessPolicy::open(data_dir.join("privacy.dpapi"))
+                    .map_err(|_| {
+                        "Privacy rules could not be verified. Startup was stopped.".to_string()
+                    })?,
+            ),
+            ..Self::default()
+        })
+    }
+    /// Records a verified event or action outcome to the recent context projection.
+    pub fn record_context(&self, entry: String) {
+        if !custodian_core::privacy::request_is_current() {
+            return;
+        }
+        if !self.privacy.allows_text(&entry) {
+            return;
+        }
+        let mut ctx = self
+            .history_context
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        ctx.push(entry);
+        if ctx.len() > 20 {
+            let excess = ctx.len() - 20;
+            ctx.drain(0..excess);
+        }
+    }
+
+    /// Returns the context projection formatted for prompt injection into the model, or empty string.
+    pub fn get_context_projection(&self) -> String {
+        if !custodian_core::privacy::request_is_current() {
+            return String::new();
+        }
+        let ctx = self
+            .history_context
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        if ctx.is_empty() {
+            return String::new();
+        }
+        format!(
+            "<data>\nRecent PC activity and verified results:\n{}\n</data>\n\n",
+            ctx.iter()
+                .filter(|entry| self.privacy.allows_text(entry))
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("\n")
+                .replace('&', "&amp;")
+                .replace('<', "&lt;")
+                .replace('>', "&gt;")
+        )
+    }
+
+    /// Clears the context projection (for a fresh conversation).
+    pub fn reset_context(&self) {
+        let mut ctx = self
+            .history_context
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        ctx.clear();
+        self.file_references.clear();
+    }
 }
 
 /// Who asked for a tool: the person (by typing a command or clicking a
@@ -157,7 +239,14 @@ fn needs_card(call: &ToolCall, origin: Origin) -> bool {
     match origin {
         Origin::Approved => false,
         Origin::Model => actions::card_text(call).is_some(),
-        Origin::Person => matches!(call, ToolCall::ChangeSetting { .. }),
+        Origin::Person => matches!(
+            call,
+            ToolCall::ChangeSetting { .. }
+                | ToolCall::MoveFile { .. }
+                | ToolCall::CopyFile { .. }
+                | ToolCall::RenameFile { .. }
+                | ToolCall::CreateFolder(_)
+        ),
     }
 }
 
@@ -216,6 +305,11 @@ fn say(channel: Sink<'_>, text: impl Into<String>) {
 }
 
 fn folder_path(app: &AppHandle, folder: KnownFolder) -> Option<PathBuf> {
+    match crate::paths::verification_folder(folder.label()) {
+        Ok(Some(path)) => return path.is_dir().then_some(path),
+        Ok(None) => {}
+        Err(_) => return None,
+    }
     let path = app.path();
     match folder {
         KnownFolder::Downloads => path.download_dir(),
@@ -229,41 +323,83 @@ fn folder_path(app: &AppHandle, folder: KnownFolder) -> Option<PathBuf> {
     .filter(|p| p.is_dir())
 }
 
-/// Existing folders for a scope, with their labels.
-fn resolve_scope(app: &AppHandle, scope: &Scope) -> Vec<(KnownFolder, PathBuf)> {
-    let folders: Vec<KnownFolder> = match scope {
-        Scope::UserFolders => KnownFolder::ALL.to_vec(),
-        Scope::Folders(list) => list.clone(),
-    };
-    let mut seen: Vec<PathBuf> = Vec::new();
-    let mut resolved = Vec::new();
-    for folder in folders {
-        if let Some(path) = folder_path(app, folder) {
-            // Skip folders nested in one already listed (e.g. Desktop inside OneDrive Documents).
-            if seen
-                .iter()
-                .any(|s| path.starts_with(s) || s.starts_with(&path))
-            {
-                continue;
-            }
-            seen.push(path.clone());
-            resolved.push((folder, path));
+/// Deduplicates search roots:
+/// - If a candidate root is a sub-path of an already included root, skip it.
+/// - If a candidate root is a parent of an already included root, remove the narrower root and include the broader root (F18 / A16).
+pub fn deduplicate_roots(candidates: Vec<(String, PathBuf)>) -> Vec<(String, PathBuf)> {
+    let mut resolved: Vec<(String, PathBuf)> = Vec::new();
+    for (label, path) in candidates {
+        if resolved
+            .iter()
+            .any(|(_, existing)| path.starts_with(existing))
+        {
+            continue;
         }
+        resolved.retain(|(_, existing)| !existing.starts_with(&path));
+        resolved.push((label, path));
     }
     resolved
 }
 
+/// Existing folders or drives for a scope, with their labels.
+fn resolve_scope(app: &AppHandle, scope: &Scope) -> Vec<(String, PathBuf)> {
+    let mut candidates: Vec<(String, PathBuf)> = Vec::new();
+    match scope {
+        Scope::UserFolders => {
+            for folder in KnownFolder::ALL {
+                if let Some(path) = folder_path(app, folder) {
+                    candidates.push((folder.label().to_string(), path));
+                }
+            }
+        }
+        Scope::Folders(list) => {
+            for folder in list {
+                if let Some(path) = folder_path(app, *folder) {
+                    candidates.push((folder.label().to_string(), path));
+                }
+            }
+        }
+        Scope::AllDrives => {
+            for (mount, _, _) in fixed_drives() {
+                let p = PathBuf::from(&mount);
+                if custodian_core::privacy::check(&p).is_ok() && p.is_dir() {
+                    candidates.push((mount, p));
+                }
+            }
+        }
+        Scope::Drive(d) => {
+            let mut drive_str = d.clone();
+            if !drive_str.ends_with('\\') && !drive_str.ends_with('/') {
+                drive_str.push('\\');
+            }
+            let p = PathBuf::from(&drive_str);
+            if custodian_core::privacy::check(&p).is_ok() && p.is_dir() {
+                candidates.push((d.clone(), p));
+            }
+        }
+        Scope::Custom(p) => {
+            if custodian_core::privacy::check(p).is_ok() && p.is_dir() {
+                candidates.push((p.display().to_string(), p.clone()));
+            }
+        }
+    }
+    deduplicate_roots(
+        candidates
+            .into_iter()
+            .filter(|(_, path)| custodian_core::privacy::check(path).is_ok())
+            .collect(),
+    )
+}
+
 fn quarantine(app: &AppHandle) -> Result<Quarantine, String> {
-    let dir = app.path().app_local_data_dir().map_err(|e| e.to_string())?;
+    let dir = crate::paths::data_dir(app).map_err(|e| e.to_string())?;
     Ok(Quarantine::new(dir.join("quarantine")))
 }
 
 /// Adds `event` to the history ledger; returns a note for the reply if the
 /// history needs the person's attention.
 fn record_history(app: &AppHandle, event: serde_json::Value) -> Option<String> {
-    let result = app
-        .path()
-        .app_local_data_dir()
+    let result = crate::paths::data_dir(app)
         .map_err(|e| e.to_string())
         .and_then(|dir| history_ledger::record(&dir.join("ledger"), &event));
     history_ledger::note(&result)
@@ -287,7 +423,7 @@ fn approvals(app: &AppHandle, state: &AssistantState) -> Result<Arc<ApprovalServ
     if let Some(service) = slot.as_ref() {
         return Ok(Arc::clone(service));
     }
-    let dir = app.path().app_local_data_dir().map_err(|e| e.to_string())?;
+    let dir = crate::paths::data_dir(app).map_err(|e| e.to_string())?;
     let service = Arc::new(
         ApprovalService::load(&dir.join("keys").join("approval.key.dpapi"))
             .map_err(|e| format!("I couldn't open my approval key: {e}"))?,
@@ -403,11 +539,43 @@ fn execute(
     origin: Origin,
     channel: Sink<'_>,
 ) -> Option<String> {
+    if let Some(reason) = privacy::unavailable(&call) {
+        say(channel, reason);
+        return Some(reason.into());
+    }
+    custodian_core::privacy::with_policy(state.privacy.clone(), || {
+        if !custodian_core::privacy::request_is_current() {
+            say(channel, "Privacy rules changed; this request was stopped.");
+            return Some("Privacy rules changed; this request was stopped.".into());
+        }
+        execute_inner(app, state, call, origin, channel)
+    })
+}
+
+fn execute_inner(
+    app: &AppHandle,
+    state: &AssistantState,
+    call: ToolCall,
+    origin: Origin,
+    channel: Sink<'_>,
+) -> Option<String> {
     if origin == Origin::Model && !call.model_may_request() {
         return Some("Only the person can ask for that; tell them how instead.".into());
     }
     if needs_card(&call, origin) {
-        if let Some(card) = state.actions.add(call.clone(), Instant::now()) {
+        let plan = match file_ops::prepare_call(app, state, &call) {
+            Ok(plan) => plan,
+            Err(err) => {
+                say(channel, &err);
+                return Some(format!(
+                    "The request could not be prepared: {err}. No change was started."
+                ));
+            }
+        };
+        if let Some(card) = state
+            .actions
+            .add_prepared(call.clone(), Instant::now(), plan)
+        {
             let note = actions::waiting_note(&call);
             emit(channel, ChatEvent::Confirm { card });
             return Some(note);
@@ -415,12 +583,64 @@ fn execute(
     }
     match call {
         ToolCall::CheckDiskSpace => disk_space_tool(channel),
-        ToolCall::FindLargeFiles(scope) => {
-            run_largest(&resolve_scope(app, &scope), &state.cancel, channel)
+        ToolCall::FindLargeFiles { scope, count } => {
+            let resolved = resolve_scope(app, &scope);
+            let labels: Vec<&str> = resolved.iter().map(|(l, _)| l.as_str()).collect();
+            let desc = format!("Measuring largest files in {}", reply::join_list(&labels));
+            let (task_id, task_cancel) = match state.coordinator.create_task(
+                desc,
+                custodian_core::coordinator::TaskState::Running,
+                &[],
+            ) {
+                Ok(task) => task,
+                Err(err) => {
+                    say(
+                        channel,
+                        format!("I couldn't start tracking this scan: {err}. No scan was started."),
+                    );
+                    return None;
+                }
+            };
+            let search = state.file_references.begin_search();
+            let files = run_largest(&resolved, count, &task_cancel, channel);
+            state.file_references.complete_search(search, &files);
+            let next =
+                if task_cancel.load(Ordering::Relaxed) || state.cancel.load(Ordering::Relaxed) {
+                    custodian_core::coordinator::TaskState::Cancelled
+                } else {
+                    custodian_core::coordinator::TaskState::Completed
+                };
+            state.coordinator.update_state(&task_id, next, None).ok();
         }
         ToolCall::FindDuplicateFiles(scope) => find_duplicates_tool(app, state, &scope, channel),
         ToolCall::FindFiles { name, scope } => {
-            run_find(&resolve_scope(app, &scope), &name, &state.cancel, channel)
+            let resolved = resolve_scope(app, &scope);
+            let labels: Vec<&str> = resolved.iter().map(|(l, _)| l.as_str()).collect();
+            let desc = format!("Finding \"{}\" in {}", name, reply::join_list(&labels));
+            let (task_id, task_cancel) = match state.coordinator.create_task(
+                desc,
+                custodian_core::coordinator::TaskState::Running,
+                &[],
+            ) {
+                Ok(task) => task,
+                Err(err) => {
+                    say(
+                        channel,
+                        format!("I couldn't start tracking this scan: {err}. No scan was started."),
+                    );
+                    return None;
+                }
+            };
+            let search = state.file_references.begin_search();
+            let files = run_find(&resolved, &name, &task_cancel, channel);
+            state.file_references.complete_search(search, &files);
+            let next =
+                if task_cancel.load(Ordering::Relaxed) || state.cancel.load(Ordering::Relaxed) {
+                    custodian_core::coordinator::TaskState::Cancelled
+                } else {
+                    custodian_core::coordinator::TaskState::Completed
+                };
+            state.coordinator.update_state(&task_id, next, None).ok();
         }
         ToolCall::SystemStatus => {
             emit(
@@ -439,7 +659,7 @@ fn execute(
             Ok(q) => say(channel, reply::history_summary(&q.history())),
             Err(err) => say(channel, format!("I couldn't read my history: {err}")),
         },
-        ToolCall::UndoLastCleanup => undo_tool(app, channel),
+        ToolCall::UndoLastCleanup => undo_tool(app, state, channel),
         ToolCall::EmptySafePlace => empty_safe_place_tool(app, channel),
         ToolCall::ListOpenApps => say(
             channel,
@@ -465,22 +685,32 @@ fn execute(
             change_setting_tool(app, &setting, &value, channel)
         }
         ToolCall::RevertSettingChange => revert_setting_tool(app, channel),
+        ToolCall::MoveFile {
+            source,
+            destination,
+        } => move_file_tool(app, state, &source, &destination, channel),
+        ToolCall::CopyFile {
+            source,
+            destination,
+        } => copy_file_tool(app, state, &source, &destination, channel),
+        ToolCall::RenameFile { path, new_name } => {
+            rename_file_tool(app, state, &path, &new_name, channel)
+        }
+        ToolCall::CreateFolder(path) => create_folder_tool(app, state, &path, channel),
+        ToolCall::GetFileInfo(path) => get_file_info_tool(app, state, &path, channel),
     }
     None
 }
 
 /// Where the sealed record of settings changes is kept.
 fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
-    app.path()
-        .app_local_data_dir()
+    crate::paths::data_dir(app)
         .map(|dir| dir.join("settings.dpapi"))
         .map_err(|e| e.to_string())
 }
 
-/// Writes a checked settings change and records what it replaced, so it can be
-/// put back. The change is written first and recorded second; when the record
-/// cannot be written the person is told plainly that Cubby cannot put it back
-/// for them, rather than being left to find out later.
+/// Applies a planned settings change with pre-mutation verification, intent
+/// persistence before mutation, and post-mutation read-back verification (F23 / F24).
 fn apply_setting_change(
     app: &AppHandle,
     change: &custodian_winsec::settings::Change,
@@ -489,15 +719,78 @@ fn apply_setting_change(
     let Some(setting) = change.setting() else {
         return say(channel, settings::unknown_text(&change.id));
     };
+
+    // 1. Check if setting changed externally since plan was created
+    let current_before = setting.current().map(|c| c.key.to_string());
+    if current_before != change.from {
+        return say(
+            channel,
+            format!(
+                "The setting \"{}\" was changed outside Custodian (now \"{}\") since this was planned, so nothing was changed. Please ask again for a new plan.",
+                setting.label,
+                current_before.as_deref().unwrap_or("not set")
+            ),
+        );
+    }
+
+    // 2. Persist intent before touching the registry
+    let path = match settings_path(app) {
+        Ok(path) => path,
+        Err(err) => {
+            return say(
+                channel,
+                format!("I couldn't prepare my record of settings changes ({err}). Nothing was changed."),
+            );
+        }
+    };
+    let mut history = match settings::load(&path) {
+        Ok(history) => history,
+        Err(err) => {
+            return say(
+                channel,
+                format!(
+                    "I couldn't read my record of settings changes ({err}). Nothing was changed."
+                ),
+            );
+        }
+    };
+    let now = now_unix() as i64;
+    let entry = history.record(change.clone(), now);
+    if let Err(err) = settings::save(&path, &mut history, now) {
+        return say(
+            channel,
+            format!(
+                "I couldn't record this change before applying it ({err}). Nothing was changed."
+            ),
+        );
+    }
+
+    // 3. Apply the setting
     if let Err(err) = setting.apply(&change.value) {
+        // Rollback recorded history entry if apply failed
+        history.mark_reverted(entry.id);
+        let _ = settings::save(&path, &mut history, now);
         return say(channel, err.to_string());
     }
-    let now = now_unix() as i64;
-    let recorded = settings_path(app).and_then(|path| {
-        let mut history = settings::load(&path).map_err(|e| e.to_string())?;
-        history.record(change.clone(), now);
-        settings::save(&path, &mut history, now).map_err(|e| e.to_string())
-    });
+
+    // 4. Post-mutation read-back verification
+    let read_back = setting.current().map(|c| c.key.to_string());
+    if read_back.as_deref() != Some(&change.value) {
+        // Read-back failed: revert change and record failure
+        let _ = custodian_winsec::settings::revert(change);
+        history.mark_reverted(entry.id);
+        let _ = settings::save(&path, &mut history, now);
+        return say(
+            channel,
+            format!(
+                "I tried to change \"{}\" to \"{}\", but Windows reported \"{}\" on read-back. I put it back to avoid leaving an unverified state.",
+                setting.label,
+                change.value,
+                read_back.as_deref().unwrap_or("not set")
+            ),
+        );
+    }
+
     let note = record_history(
         app,
         json!({
@@ -506,14 +799,10 @@ fn apply_setting_change(
             "value": change.value,
             "from": change.from,
             "at": now,
+            "verified": true,
         }),
     );
-    let mut text = settings::changed_text(change);
-    if let Err(err) = recorded {
-        text.push_str(&format!(
-            "\n\nHeads up: I couldn't write down what it was before ({err}), so I can't put this back for you — you can set it back the same way you changed it."
-        ));
-    }
+    let text = settings::changed_text(change);
     say(channel, with_note(text, note));
 }
 
@@ -532,7 +821,8 @@ fn change_setting_tool(app: &AppHandle, id: &str, value: &str, channel: Sink<'_>
     apply_setting_change(app, &change, channel);
 }
 
-/// Puts back the most recent settings change, from the sealed record.
+/// Puts back the most recent settings change from the sealed record, using
+/// compare-and-swap semantics to ensure newer external user choices are not overwritten (F24).
 fn revert_setting_tool(app: &AppHandle, channel: Sink<'_>) {
     let path = match settings_path(app) {
         Ok(path) => path,
@@ -540,7 +830,7 @@ fn revert_setting_tool(app: &AppHandle, channel: Sink<'_>) {
             return say(
                 channel,
                 format!("I couldn't open my record of settings changes: {err}"),
-            )
+            );
         }
     };
     let mut history = match settings::load(&path) {
@@ -549,21 +839,40 @@ fn revert_setting_tool(app: &AppHandle, channel: Sink<'_>) {
             return say(
                 channel,
                 format!("I couldn't read my record of settings changes: {err}"),
-            )
+            );
         }
     };
     let Some(entry) = history.last_open().cloned() else {
         return say(channel, settings::NOTHING_TO_REVERT);
     };
+    let Some(setting) = entry.change.setting() else {
+        return say(channel, settings::unknown_text(&entry.change.id));
+    };
+
+    // Compare-and-swap: verify setting is still at the value Custodian set it to
+    let current = setting.current().map(|c| c.key.to_string());
+    if current.as_deref() != Some(&entry.change.value) {
+        return say(
+            channel,
+            format!(
+                "I couldn't put \"{}\" back because it was changed outside Custodian (currently \"{}\") since Custodian set it to \"{}\". Your newer choice was preserved.",
+                setting.label,
+                current.as_deref().unwrap_or("not set"),
+                entry.change.value
+            ),
+        );
+    }
+
     if let Err(err) = custodian_winsec::settings::revert(&entry.change) {
         return say(channel, format!("I couldn't put that back: {err}"));
     }
+
     history.mark_reverted(entry.id);
     let now = now_unix();
-    let saved = settings::save(&path, &mut history, now_unix() as i64).err();
+    let saved = settings::save(&path, &mut history, now as i64).err();
     let note = record_history(
         app,
-        json!({"kind": "setting_revert", "setting": entry.change.id, "at": now}),
+        json!({"kind": "setting_revert", "setting": entry.change.id, "at": now, "verified": true}),
     );
     let mut text = settings::reverted_text(&entry.change);
     if let Some(err) = saved {
@@ -572,6 +881,294 @@ fn revert_setting_tool(app: &AppHandle, channel: Sink<'_>) {
         ));
     }
     say(channel, with_note(text, note));
+}
+
+/// Returns true if `path` touches protected Windows system folders, caches or roots.
+fn is_protected_system_path(path: &Path) -> bool {
+    let name = path
+        .file_name()
+        .map(|name| name.to_string_lossy().to_ascii_lowercase())
+        .unwrap_or_default();
+    if [
+        "pagefile.sys",
+        "swapfile.sys",
+        "hiberfil.sys",
+        "bootmgr",
+        "bootnxt",
+        "bcd",
+        "ntuser.dat",
+        "usrclass.dat",
+        "$mft",
+        "$logfile",
+        "$bitmap",
+        "$secure",
+    ]
+    .contains(&name.as_str())
+    {
+        return true;
+    }
+    // Discovery exclusions are an optimisation, not a mutation allow-list.
+    // Ordinary project/build folders on any drive are eligible for approved tasks.
+    const PROTECTED_DIRS: &[&str] = &[
+        "windows",
+        "program files",
+        "program files (x86)",
+        "programdata",
+        "appdata",
+        "$recycle.bin",
+        "system volume information",
+        ".git",
+        ".ssh",
+    ];
+    let lower_str = path.to_string_lossy().to_ascii_lowercase();
+    for root in ["boot", "efi", "recovery", "$extend"] {
+        if lower_str.contains(&format!(":\\{root}\\"))
+            || lower_str.ends_with(&format!(":\\{root}"))
+            || lower_str.contains(&format!(":/{root}/"))
+            || lower_str.ends_with(&format!(":/{root}"))
+        {
+            return true;
+        }
+    }
+    for dir in PROTECTED_DIRS {
+        let needle1 = format!("\\{dir}\\");
+        let needle2 = format!("/{dir}/");
+        let prefix1 = format!(":\\{dir}\\");
+        let prefix2 = format!(":/{dir}/");
+        let end1 = format!("\\{dir}");
+        let end2 = format!("/{dir}");
+        if lower_str.contains(&needle1)
+            || lower_str.contains(&needle2)
+            || lower_str.contains(&prefix1)
+            || lower_str.contains(&prefix2)
+            || lower_str.ends_with(&end1)
+            || lower_str.ends_with(&end2)
+        {
+            return true;
+        }
+    }
+    for comp in path.components() {
+        let s = comp.as_os_str().to_string_lossy().to_ascii_lowercase();
+        if PROTECTED_DIRS.contains(&s.as_str()) {
+            return true;
+        }
+    }
+    path.parent().is_none()
+}
+
+fn resolve_existing_file(app: &AppHandle, raw: &str) -> Option<PathBuf> {
+    let p = PathBuf::from(raw);
+    if p.is_absolute() {
+        return (custodian_core::privacy::check(&p).is_ok() && p.is_file()).then_some(p);
+    }
+    let mut matches = Vec::new();
+    for folder in [
+        KnownFolder::Documents,
+        KnownFolder::Downloads,
+        KnownFolder::Desktop,
+        KnownFolder::Pictures,
+        KnownFolder::Videos,
+        KnownFolder::Music,
+    ] {
+        if let Some(root) = folder_path(app, folder) {
+            let candidate = root.join(raw);
+            if custodian_core::privacy::check(&candidate).is_ok() && candidate.is_file() {
+                if let Ok(path) = candidate.canonicalize() {
+                    if !matches.contains(&path) {
+                        matches.push(path);
+                    }
+                }
+            }
+        }
+    }
+    (matches.len() == 1).then(|| matches.remove(0))
+}
+
+fn resolve_dest_dir(app: &AppHandle, raw: &str) -> Option<PathBuf> {
+    if let Some(kf) = KnownFolder::from_label(raw) {
+        if let Some(p) = folder_path(app, kf) {
+            return custodian_core::privacy::check(&p).ok().map(|_| p);
+        }
+    }
+    let p = PathBuf::from(raw);
+    if custodian_core::privacy::check(&p).is_ok() && p.is_dir() {
+        return Some(p);
+    }
+    None
+}
+
+fn move_file_tool(
+    app: &AppHandle,
+    state: &AssistantState,
+    source: &str,
+    destination: &str,
+    channel: Sink<'_>,
+) {
+    file_ops::move_or_copy(
+        app,
+        state,
+        custodian_core::file_tasks::FileAction::Move,
+        source,
+        destination,
+        channel,
+    );
+}
+fn copy_file_tool(
+    app: &AppHandle,
+    state: &AssistantState,
+    source: &str,
+    destination: &str,
+    channel: Sink<'_>,
+) {
+    file_ops::move_or_copy(
+        app,
+        state,
+        custodian_core::file_tasks::FileAction::Copy,
+        source,
+        destination,
+        channel,
+    );
+}
+fn rename_file_tool(
+    app: &AppHandle,
+    state: &AssistantState,
+    path: &str,
+    new_name: &str,
+    channel: Sink<'_>,
+) {
+    file_ops::rename(app, state, path, new_name, channel);
+}
+fn create_folder_tool(app: &AppHandle, state: &AssistantState, path: &str, channel: Sink<'_>) {
+    file_ops::create_folder(app, state, path, channel);
+}
+
+fn get_file_info_tool(app: &AppHandle, state: &AssistantState, path: &str, channel: Sink<'_>) {
+    let raw = PathBuf::from(path);
+    if raw.is_absolute() && custodian_core::privacy::check(&raw).is_err() {
+        return say(channel, custodian_core::privacy::DENIED);
+    }
+    if raw.is_absolute() && !custodian_winsec::fsops::is_local_volume(&raw) {
+        return say(
+            channel,
+            "Offline file inspection supports local drives only.",
+        );
+    }
+    let target_path = if let Some(result) = state.file_references.resolve(path) {
+        match result {
+            Ok(path) => path,
+            Err(err) => return say(channel, err),
+        }
+    } else if let Some(p) = resolve_existing_file(app, path) {
+        p
+    } else if let Some(d) = resolve_dest_dir(app, path) {
+        d
+    } else {
+        let p = PathBuf::from(path);
+        if custodian_core::privacy::check(&p).is_ok() && p.exists() {
+            p
+        } else {
+            return say(
+                channel,
+                format!("I couldn't find \"{}\" on this PC.", reply::safe_name(path)),
+            );
+        }
+    };
+
+    let inspection = state.file_references.begin_search();
+    if custodian_core::privacy::check(&target_path).is_err() {
+        return say(channel, custodian_core::privacy::DENIED);
+    }
+    let meta = match std::fs::metadata(&target_path) {
+        Ok(m) => m,
+        Err(e) => {
+            return say(
+                channel,
+                format!("I couldn't inspect \"{}\": {e}", reply::safe_name(path)),
+            );
+        }
+    };
+
+    let canonical = target_path
+        .canonicalize()
+        .unwrap_or_else(|_| target_path.clone());
+    let is_dir = meta.is_dir();
+    let name = target_path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy();
+
+    let modified_str = meta.modified().ok().and_then(|t| {
+        let duration = t.duration_since(std::time::UNIX_EPOCH).ok()?;
+        let dt = chrono::DateTime::from_timestamp(duration.as_secs() as i64, 0)?;
+        Some(
+            dt.with_timezone(&chrono::Local)
+                .format("%Y-%m-%d %H:%M:%S")
+                .to_string(),
+        )
+    });
+
+    let created_str = meta.created().ok().and_then(|t| {
+        let duration = t.duration_since(std::time::UNIX_EPOCH).ok()?;
+        let dt = chrono::DateTime::from_timestamp(duration.as_secs() as i64, 0)?;
+        Some(
+            dt.with_timezone(&chrono::Local)
+                .format("%Y-%m-%d %H:%M:%S")
+                .to_string(),
+        )
+    });
+
+    let mut details = if is_dir {
+        let entry_count = std::fs::read_dir(&target_path).map(|r| r.count()).ok();
+        let mut d = format!(
+            "Folder details for \"{}\":\n• Full path: {}",
+            reply::safe_name(&name),
+            canonical.display()
+        );
+        if let Some(count) = entry_count {
+            d.push_str(&format!("\n• Items: {}", reply::count(count)));
+        }
+        d
+    } else {
+        let size_bytes = meta.len();
+        let human_size = reply::bytes(size_bytes);
+        format!(
+            "File details for \"{}\":\n• Full path: {}\n• Size: {} ({} bytes)",
+            reply::safe_name(&name),
+            canonical.display(),
+            human_size,
+            size_bytes
+        )
+    };
+
+    if let Some(m) = &modified_str {
+        details.push_str(&format!("\n• Last modified: {m}"));
+    }
+    if let Some(c) = &created_str {
+        details.push_str(&format!("\n• Created: {c}"));
+    }
+    if meta.permissions().readonly() {
+        details.push_str("\n• Attributes: Read-only");
+    }
+
+    if !is_dir {
+        state.file_references.complete_search(
+            inspection,
+            &[custodian_core::walk::FileEntry {
+                path: canonical.clone(),
+                size: meta.len(),
+                modified: meta.modified().ok(),
+            }],
+        );
+    }
+    state.record_context(format!(
+        "Inspected {}: path={}, size={} bytes, modified={}",
+        if is_dir { "folder" } else { "file" },
+        canonical.display(),
+        if is_dir { 0 } else { meta.len() },
+        modified_str.as_deref().unwrap_or("unknown")
+    ));
+
+    say(channel, details);
 }
 
 /// Handles a request about settings, or answers `false` when the words fit
@@ -670,6 +1267,7 @@ fn open_file_tool(
         .filter(|f| launcher::openable(&f.path))
         .collect();
     match openable.as_slice() {
+        [one] if custodian_core::privacy::check(&one.path).is_err() => say(channel, custodian_core::privacy::DENIED),
         [one] => match app
             .opener()
             .open_path(one.path.display().to_string(), None::<&str>)
@@ -706,8 +1304,7 @@ fn open_file_tool(
 
 /// Where the sealed to-do list is kept.
 fn tasks_path(app: &AppHandle) -> Result<PathBuf, String> {
-    app.path()
-        .app_local_data_dir()
+    crate::paths::data_dir(app)
         .map(|dir| dir.join("tasks.dpapi"))
         .map_err(|e| e.to_string())
 }
@@ -983,6 +1580,9 @@ pub const NOTICE_EVENT: &str = "cubby-notice";
 /// Shows `text` in Cubby's speech bubble and the chat. Notices never name
 /// files, because they can appear while the screen is shared.
 pub fn notify(app: &AppHandle, text: &str) {
+    if !app.state::<AssistantState>().privacy.allows_text(text) {
+        return;
+    }
     use tauri::Emitter;
     let _ = app.emit(NOTICE_EVENT, text);
 }
@@ -990,6 +1590,12 @@ pub fn notify(app: &AppHandle, text: &str) {
 /// Frees the space of copies whose 30 days have passed, in the background:
 /// shortly after start-up and every few hours after that.
 pub fn start_safe_place_keeper(app: AppHandle) {
+    // Legacy quarantine purge has not yet been migrated to the shared policy.
+    // Keep its receipts for manual recovery; never run it automatically.
+    let _ = app;
+}
+
+fn legacy_safe_place_keeper(app: AppHandle) {
     std::thread::spawn(move || {
         std::thread::sleep(KEEPER_FIRST_CHECK);
         // Copies kept back are mentioned once per run, not every check.
@@ -1051,25 +1657,97 @@ fn run_model_tool(
     state: &AssistantState,
     name: &str,
     args: &serde_json::Value,
+    requested_scope: &Scope,
     channel: Sink<'_>,
 ) -> String {
-    let call = match ToolCall::parse(name, args) {
+    let revision = state.privacy.revision();
+    let call = match parse_requested_tool(name, args, requested_scope) {
         Ok(call) => call,
         Err(problem) => return format!("That tool call was refused: {problem}."),
     };
-    as_model_result(channel, |sink| {
-        execute(app, state, call, Origin::Model, sink)
-    })
+    let res = as_model_result(channel, |sink| {
+        execute(app, state, call.clone(), Origin::Model, sink)
+    });
+    if state.privacy.revision() != revision || !state.privacy.allows_text(&res) {
+        return "Privacy rules changed or access was denied. No protected result is available."
+            .into();
+    }
+    state.record_context(format!(
+        "[Model Tool: {}] -> {}",
+        actions::action_name(&call),
+        res
+    ));
+    res
+}
+
+/// The user's scope controls discovery; a model guess cannot silently narrow it.
+fn parse_requested_tool(
+    name: &str,
+    args: &serde_json::Value,
+    requested_scope: &Scope,
+) -> Result<ToolCall, String> {
+    let mut args = args.clone();
+    if matches!(name, "find_large_files" | "find_files") {
+        if let Some(object) = args.as_object_mut() {
+            object.remove("folders");
+        }
+    }
+    ToolCall::parse(name, &args).map(|call| bind_read_scope(call, requested_scope))
+}
+
+fn bind_read_scope(call: ToolCall, requested_scope: &Scope) -> ToolCall {
+    match call {
+        ToolCall::FindLargeFiles { count, .. } => ToolCall::FindLargeFiles {
+            scope: requested_scope.clone(),
+            count,
+        },
+        ToolCall::FindFiles { name, .. } => ToolCall::FindFiles {
+            name,
+            scope: requested_scope.clone(),
+        },
+        other => other,
+    }
 }
 
 fn find_duplicates_tool(app: &AppHandle, state: &AssistantState, scope: &Scope, channel: Sink<'_>) {
     let folders = resolve_scope(app, scope);
-    if let Some(plan) = run_duplicates(&folders, &state.cancel, channel) {
+    let labels: Vec<&str> = folders.iter().map(|(l, _)| l.as_str()).collect();
+    let desc = format!("Looking for duplicates in {}", reply::join_list(&labels));
+    let (task_id, task_cancel) = match state.coordinator.create_task(
+        desc,
+        custodian_core::coordinator::TaskState::Running,
+        &[],
+    ) {
+        Ok(task) => task,
+        Err(err) => {
+            say(
+                channel,
+                format!("I couldn't start tracking this scan: {err}. No scan was started."),
+            );
+            return;
+        }
+    };
+    if let Some(plan) = run_duplicates(&folders, &task_cancel, channel) {
+        state
+            .coordinator
+            .update_state(
+                &task_id,
+                custodian_core::coordinator::TaskState::Completed,
+                Some("Scan finished; the clean-up plan is awaiting approval.".into()),
+            )
+            .ok();
         state
             .plans
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .insert(plan.id.clone(), PendingPlan::Duplicates(plan));
+    } else {
+        let next = if task_cancel.load(Ordering::Relaxed) || state.cancel.load(Ordering::Relaxed) {
+            custodian_core::coordinator::TaskState::Cancelled
+        } else {
+            custodian_core::coordinator::TaskState::Completed
+        };
+        state.coordinator.update_state(&task_id, next, None).ok();
     }
 }
 
@@ -1130,15 +1808,15 @@ fn clean_temp_tool(state: &AssistantState, channel: Sink<'_>) {
 /// Scans `folders` for duplicates, reports them, and proposes a clean-up plan
 /// (returned so the caller can keep it for approval).
 fn run_duplicates(
-    folders: &[(KnownFolder, PathBuf)],
+    folders: &[(String, PathBuf)],
     cancel: &AtomicBool,
     channel: Sink<'_>,
 ) -> Option<CleanupPlan> {
     if folders.is_empty() {
-        say(channel, "I couldn't find those folders on this PC.");
+        say(channel, "I couldn't find those locations on this PC.");
         return None;
     }
-    let labels: Vec<&str> = folders.iter().map(|(f, _)| f.label()).collect();
+    let labels: Vec<&str> = folders.iter().map(|(l, _)| l.as_str()).collect();
     emit(
         channel,
         ChatEvent::Status {
@@ -1226,12 +1904,17 @@ I'll keep the original of each and move the extra copies to my safe place. Revie
     Some(plan)
 }
 
-fn run_largest(folders: &[(KnownFolder, PathBuf)], cancel: &AtomicBool, channel: Sink<'_>) {
+fn run_largest(
+    folders: &[(String, PathBuf)],
+    count: usize,
+    cancel: &AtomicBool,
+    channel: Sink<'_>,
+) -> Vec<custodian_core::walk::FileEntry> {
     if folders.is_empty() {
-        say(channel, "I couldn't find those folders on this PC.");
-        return;
+        say(channel, "I couldn't find those locations on this PC.");
+        return Vec::new();
     }
-    let labels: Vec<&str> = folders.iter().map(|(f, _)| f.label()).collect();
+    let labels: Vec<&str> = folders.iter().map(|(l, _)| l.as_str()).collect();
     emit(
         channel,
         ChatEvent::Status {
@@ -1240,7 +1923,8 @@ fn run_largest(folders: &[(KnownFolder, PathBuf)], cancel: &AtomicBool, channel:
     );
     let roots: Vec<PathBuf> = folders.iter().map(|(_, p)| p.clone()).collect();
     let mut throttle = Throttle(Instant::now());
-    let (files, stats) = largest_files(&roots, 10, WalkLimits::default(), cancel, &mut |n| {
+    let limits = WalkLimits::whole_system_read();
+    let (files, stats) = largest_files(&roots, count, limits, cancel, &mut |n| {
         if throttle.ready() {
             emit(
                 channel,
@@ -1252,26 +1936,24 @@ fn run_largest(folders: &[(KnownFolder, PathBuf)], cancel: &AtomicBool, channel:
     });
     if cancel.load(Ordering::Relaxed) {
         say(channel, STOPPED);
-        return;
+        return Vec::new();
     }
-    say(
-        channel,
-        reply::largest_summary(&files, &labels, stats.files_seen),
-    );
+    say(channel, reply::largest_summary(&files, &labels, &stats));
+    files
 }
 
 /// "Where's my resume?": files whose names contain the words, newest first.
 fn run_find(
-    folders: &[(KnownFolder, PathBuf)],
+    folders: &[(String, PathBuf)],
     name: &str,
     cancel: &AtomicBool,
     channel: Sink<'_>,
-) {
+) -> Vec<custodian_core::walk::FileEntry> {
     if folders.is_empty() {
-        say(channel, "I couldn't find those folders on this PC.");
-        return;
+        say(channel, "I couldn't find those locations on this PC.");
+        return Vec::new();
     }
-    let labels: Vec<&str> = folders.iter().map(|(f, _)| f.label()).collect();
+    let labels: Vec<&str> = folders.iter().map(|(l, _)| l.as_str()).collect();
     emit(
         channel,
         ChatEvent::Status {
@@ -1288,7 +1970,7 @@ fn run_find(
         &roots,
         name,
         MAX_FOUND_FILES,
-        WalkLimits::default(),
+        WalkLimits::whole_system_read(),
         cancel,
         &mut |n| {
             if throttle.ready() {
@@ -1303,12 +1985,13 @@ fn run_find(
     );
     if cancel.load(Ordering::Relaxed) {
         say(channel, STOPPED);
-        return;
+        return Vec::new();
     }
     say(
         channel,
         reply::find_summary(name, &files, &labels, stats, SystemTime::now()),
     );
+    files
 }
 
 /// The PC's fixed drives: (name, free bytes, total bytes).
@@ -1317,7 +2000,9 @@ fn fixed_drives() -> Vec<(String, u64, u64)> {
     let mut drives: Vec<(String, u64, u64)> = disks
         .list()
         .iter()
-        .filter(|d| d.total_space() > 0 && !d.is_removable())
+        .filter(|d| {
+            d.total_space() > 0 && custodian_winsec::fsops::is_local_volume(d.mount_point())
+        })
         .map(|d| {
             (
                 d.mount_point().display().to_string(),
@@ -1459,6 +2144,9 @@ fn open_app_tool(app: &AppHandle, kind: App, channel: Sink<'_>) {
 
 fn open_folder_tool(app: &AppHandle, folder: KnownFolder, channel: Sink<'_>) {
     match folder_path(app, folder) {
+        Some(path) if custodian_core::privacy::check(&path).is_err() => {
+            say(channel, custodian_core::privacy::DENIED)
+        }
         Some(path) => match app
             .opener()
             .open_path(path.display().to_string(), None::<&str>)
@@ -1500,7 +2188,14 @@ fn web_search_tool(app: &AppHandle, query: &str, channel: Sink<'_>) {
     }
 }
 
-fn undo_tool(app: &AppHandle, channel: Sink<'_>) {
+fn undo_tool(app: &AppHandle, state: &AssistantState, channel: Sink<'_>) {
+    if file_ops::undo_latest_if_newer(app, state, channel) {
+        return;
+    }
+    say(channel, privacy::PAUSED);
+}
+
+fn legacy_undo_tool(app: &AppHandle, channel: Sink<'_>) {
     match quarantine(app).and_then(|q| q.undo_last().map_err(|e| e.to_string())) {
         Ok(outcome) => {
             let note = record_history(
@@ -1543,7 +2238,12 @@ fn agent_entry(app: &AppHandle) -> Option<PathBuf> {
         .ok()
         .map(|d| d.join("agent").join("server.js"));
     let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../services/agent/dist/server.js");
-    [bundled, Some(dev)]
+    let runtime = app
+        .path()
+        .resource_dir()
+        .ok()
+        .map(|dir| dir.join("runtime/agent/server.js"));
+    [runtime, bundled, Some(dev)]
         .into_iter()
         .flatten()
         .find(|p| p.is_file())
@@ -1555,7 +2255,12 @@ fn models_dir(app: &AppHandle) -> Option<PathBuf> {
     }
     let bundled = app.path().resource_dir().ok().map(|d| d.join("models"));
     let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../models");
-    [bundled, Some(dev)]
+    let runtime = app
+        .path()
+        .resource_dir()
+        .ok()
+        .map(|dir| dir.join("runtime/models"));
+    [runtime, bundled, Some(dev)]
         .into_iter()
         .flatten()
         .find(|p| p.is_dir())
@@ -1563,7 +2268,11 @@ fn models_dir(app: &AppHandle) -> Option<PathBuf> {
 
 /// Starts the agent unless it is already running. Returns whether it had
 /// to be started, or why it could not be.
-fn ensure_agent(app: &AppHandle, agent: &mut Option<AgentProcess>) -> Result<bool, String> {
+fn ensure_agent(
+    app: &AppHandle,
+    agent: &mut Option<AgentProcess>,
+    cancel: Option<&AtomicBool>,
+) -> Result<bool, String> {
     if agent.as_mut().is_some_and(|a| !a.is_alive()) {
         *agent = None;
     }
@@ -1572,23 +2281,59 @@ fn ensure_agent(app: &AppHandle, agent: &mut Option<AgentProcess>) -> Result<boo
     }
     let entry = agent_entry(app)
         .ok_or("the agent isn't built yet (run `npm run build` in the repository)")?;
-    let node = std::env::var("CUSTODIAN_NODE").unwrap_or_else(|_| "node".into());
+    let node = std::env::var("CUSTODIAN_NODE").unwrap_or_else(|_| {
+        app.path()
+            .resource_dir()
+            .ok()
+            .map(|dir| dir.join("runtime/bin/node.exe"))
+            .filter(|path| path.is_file())
+            .map(|path| path.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "node".into())
+    });
     let models = models_dir(app);
     #[cfg(windows)]
-    if let Some(sandboxed) = spawn_sandboxed_agent(&node, &entry, models.as_deref()) {
+    {
+        let opt_out = std::env::var_os("CUSTODIAN_AGENT_SANDBOX").is_some_and(|v| v == "0")
+            || std::env::var_os("CUSTODIAN_AGENT_UNRESTRICTED").is_some_and(|v| v == "1");
+        if opt_out {
+            eprintln!("[desktop] WARNING: Agent sandbox is explicitly disabled via CUSTODIAN_AGENT_SANDBOX=0 / CUSTODIAN_AGENT_UNRESTRICTED=1 (development mode only)");
+            let started =
+                AgentProcess::spawn(&node, &entry, models.as_deref()).map_err(|e| e.to_string())?;
+            *LAST_LAUNCH_SANDBOXED
+                .lock()
+                .unwrap_or_else(|e| e.into_inner()) = Some(started.sandboxed());
+            *agent = Some(started);
+            return Ok(true);
+        }
+
+        match spawn_sandboxed_agent(&node, &entry, models.as_deref(), cancel) {
+            Ok(sandboxed) => {
+                *LAST_LAUNCH_SANDBOXED
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner()) = Some(sandboxed.sandboxed());
+                *agent = Some(sandboxed);
+                Ok(true)
+            }
+            Err(err) => {
+                *LAST_LAUNCH_SANDBOXED
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner()) = Some(false);
+                Err(format!(
+                    "The AI agent could not be started securely in its sandbox: {err}. Unrestricted child startup is refused. Deterministic tools remain available."
+                ))
+            }
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        let started =
+            AgentProcess::spawn(&node, &entry, models.as_deref()).map_err(|e| e.to_string())?;
         *LAST_LAUNCH_SANDBOXED
             .lock()
-            .unwrap_or_else(|e| e.into_inner()) = Some(sandboxed.sandboxed());
-        *agent = Some(sandboxed);
-        return Ok(true);
+            .unwrap_or_else(|e| e.into_inner()) = Some(started.sandboxed());
+        *agent = Some(started);
+        Ok(true)
     }
-    let started =
-        AgentProcess::spawn(&node, &entry, models.as_deref()).map_err(|e| e.to_string())?;
-    *LAST_LAUNCH_SANDBOXED
-        .lock()
-        .unwrap_or_else(|e| e.into_inner()) = Some(started.sandboxed());
-    *agent = Some(started);
-    Ok(true)
 }
 
 /// The AppContainer the agent runs in.
@@ -1611,9 +2356,7 @@ fn protections(app: &AppHandle) -> reply::Protections {
         .lock()
         .unwrap_or_else(|e| e.into_inner())
         .clone();
-    let history_intact = app
-        .path()
-        .app_local_data_dir()
+    let history_intact = crate::paths::data_dir(app)
         .map_err(|e| e.to_string())
         .and_then(|dir| history_ledger::check(&dir.join("ledger")))
         .is_ok_and(|status| status == history_ledger::LedgerStatus::Intact);
@@ -1666,23 +2409,20 @@ fn agent_sandbox(
 }
 
 /// Starts the agent inside its sandbox (no network, none of the person's
-/// files) and checks that it can load its model there. `None` means it could
-/// not, and the agent should start normally; the reason is logged, and the
-/// sandbox is not tried again until Custodian restarts.
+/// files) and checks that it can load its model there.
 #[cfg(windows)]
-fn spawn_sandboxed_agent(node: &str, entry: &Path, models: Option<&Path>) -> Option<AgentProcess> {
-    static GAVE_UP: AtomicBool = AtomicBool::new(false);
-    if GAVE_UP.load(Ordering::Relaxed)
-        || std::env::var_os("CUSTODIAN_AGENT_SANDBOX").is_none_or(|v| v != "1")
-    {
-        return None;
-    }
+fn spawn_sandboxed_agent(
+    node: &str,
+    entry: &Path,
+    models: Option<&Path>,
+    cancel: Option<&AtomicBool>,
+) -> Result<AgentProcess, String> {
     let attempt = || -> Result<AgentProcess, String> {
         let node = crate::agent::resolve_node(node).ok_or("node was not found on the PATH")?;
         let sandbox = agent_sandbox(&node, entry, models)?;
         let mut agent = AgentProcess::spawn_sandboxed(&sandbox, &node, entry, models)
             .map_err(|e| e.to_string())?;
-        match agent.ping().map_err(|e| e.to_string())? {
+        match agent.ping_with_cancel(cancel).map_err(|e| e.to_string())? {
             None => Ok(agent),
             Some(problem) => Err(problem),
         }
@@ -1692,15 +2432,12 @@ fn spawn_sandboxed_agent(node: &str, entry: &Path, models: Option<&Path>) -> Opt
             eprintln!(
                 "[desktop] the agent runs in its sandbox (no network, no access to your files)"
             );
-            Some(agent)
+            Ok(agent)
         }
         Err(reason) => {
-            eprintln!(
-                "[desktop] the agent could not run in its sandbox, so it runs normally: {reason}"
-            );
-            *SANDBOX_PROBLEM.lock().unwrap_or_else(|e| e.into_inner()) = Some(reason);
-            GAVE_UP.store(true, Ordering::Relaxed);
-            None
+            eprintln!("[desktop] the agent could not run in its sandbox: {reason}");
+            *SANDBOX_PROBLEM.lock().unwrap_or_else(|e| e.into_inner()) = Some(reason.clone());
+            Err(reason)
         }
     }
 }
@@ -1711,15 +2448,44 @@ fn spawn_sandboxed_agent(node: &str, entry: &Path, models: Option<&Path>) -> Opt
 pub fn prewarm(app: &AppHandle) {
     let state = app.state::<AssistantState>();
     let mut agent = state.agent.lock().unwrap_or_else(|e| e.into_inner());
-    if ensure_agent(app, &mut agent).is_ok() {
+    if ensure_agent(app, &mut agent, Some(&state.cancel)).is_ok() {
         mark_agent_used(&state);
     }
 }
 
 /// Answers open-ended messages with the local model.
 fn ask_model(app: &AppHandle, state: &AssistantState, message: &str, channel: Sink<'_>) {
+    use custodian_core::coordinator::TaskState;
+    let (task_id, cancel) = match state.coordinator.create_task(
+        "Answering a chat request".into(),
+        TaskState::Queued,
+        &[],
+    ) {
+        Ok(task) => task,
+        Err(err) => return say(channel, err.to_string()),
+    };
     let mut agent = state.agent.lock().unwrap_or_else(|e| e.into_inner());
-    match ensure_agent(app, &mut agent) {
+    let revision = state.privacy.revision();
+    if state.agent_policy_revision.load(Ordering::Acquire) != revision {
+        *agent = None;
+        state
+            .agent_policy_revision
+            .store(revision, Ordering::Release);
+    }
+    if cancel.load(Ordering::Relaxed) || !custodian_core::privacy::request_is_current() {
+        state
+            .coordinator
+            .update_state(&task_id, TaskState::Cancelled, None)
+            .ok();
+        return say(channel, STOPPED);
+    }
+    if let Err(err) = state
+        .coordinator
+        .update_state(&task_id, TaskState::Running, None)
+    {
+        return say(channel, err.to_string());
+    }
+    match ensure_agent(app, &mut agent, Some(&cancel)) {
         Ok(true) => emit(
             channel,
             ChatEvent::Status {
@@ -1728,11 +2494,30 @@ fn ask_model(app: &AppHandle, state: &AssistantState, message: &str, channel: Si
         ),
         Ok(false) => {}
         Err(err) => {
+            if cancel.load(Ordering::Relaxed) {
+                state
+                    .coordinator
+                    .update_state(&task_id, TaskState::Cancelled, None)
+                    .ok();
+                return say(channel, STOPPED);
+            }
+            state
+                .coordinator
+                .update_state(&task_id, TaskState::Failed, Some(err.clone()))
+                .ok();
             say(channel, reply::no_brain(&err));
             return;
         }
     }
     let Some(process) = agent.as_mut() else {
+        state
+            .coordinator
+            .update_state(
+                &task_id,
+                TaskState::Failed,
+                Some("The agent was not started.".into()),
+            )
+            .ok();
         return;
     };
     emit(
@@ -1741,13 +2526,45 @@ fn ask_model(app: &AppHandle, state: &AssistantState, message: &str, channel: Si
             text: "Thinking…".into(),
         },
     );
+    let context_prefix = state.get_context_projection();
+    let prompt = if context_prefix.is_empty() {
+        message.to_string()
+    } else {
+        format!("{context_prefix}{message}")
+    };
     let result = process.chat(
-        message,
-        &state.cancel,
+        &prompt,
+        &cancel,
         &mut |text| say(channel, text),
-        &mut |name, args| run_model_tool(app, state, name, args, channel),
+        &mut |name, args| {
+            if cancel.load(Ordering::Relaxed) || state.privacy.revision() != revision {
+                return "This request was stopped or its permissions changed. No further action was started.".into();
+            }
+            run_model_tool(
+                app,
+                state,
+                name,
+                args,
+                &intent::read_scope_for(message),
+                channel,
+            )
+        },
     );
     mark_agent_used(state);
+    let next = if cancel.load(Ordering::Relaxed) {
+        TaskState::Cancelled
+    } else if result.is_ok() {
+        TaskState::Completed
+    } else {
+        TaskState::Failed
+    };
+    state.coordinator.update_state(&task_id, next, None).ok();
+    if cancel.load(Ordering::Relaxed) {
+        if result.is_err() {
+            *agent = None;
+        }
+        return say(channel, STOPPED);
+    }
     match result {
         Ok(()) => {}
         Err(AgentError::Model(reason)) => say(channel, reply::no_brain(&reason)),
@@ -1760,12 +2577,24 @@ fn ask_model(app: &AppHandle, state: &AssistantState, message: &str, channel: Si
 
 /// Handles one chat message from start to finish.
 fn respond(app: &AppHandle, state: &AssistantState, message: &str, channel: Sink<'_>) {
+    if !state.privacy.allows_text(message) {
+        return say(channel, custodian_core::privacy::DENIED);
+    }
+    if matches!(
+        message.trim().trim_end_matches('?').to_lowercase().as_str(),
+        "what can you do" | "what are your capabilities" | "help"
+    ) {
+        return say(channel, privacy::capability_text());
+    }
     let parsed = intent::parse(message);
     match parsed {
         Intent::CloseCubby => {
             say(
                 channel,
                 "I can't close myself, but you can hide me from the tray icon, or say \"go to sleep\".",
+            );
+            state.record_context(
+                "User requested to close Cubby: informed how to hide or sleep.".into(),
             );
             return;
         }
@@ -1780,6 +2609,7 @@ fn respond(app: &AppHandle, state: &AssistantState, message: &str, channel: Sink
                     action: "sleep".into(),
                 },
             );
+            state.record_context("User requested sleep: Cubby entered sleep state.".into());
             return;
         }
         _ => {}
@@ -1788,13 +2618,43 @@ fn respond(app: &AppHandle, state: &AssistantState, message: &str, channel: Sink
     // A settings request is resolved against the catalogue before it can
     // become a call, so nothing outside that catalogue is ever changed.
     if let Intent::Settings(words) = &parsed {
-        if resolve_settings_request(app, state, words, channel) {
+        let captured = RefCell::new(Vec::new());
+        let sink = |event: ChatEvent| {
+            if let ChatEvent::Text { ref text } = event {
+                captured.borrow_mut().push(text.clone());
+            }
+            channel(event);
+        };
+        if resolve_settings_request(app, state, words, &sink) {
+            let output = captured.into_inner().join("\n\n");
+            if !output.is_empty() {
+                state.record_context(format!(
+                    "[Settings Request] User asked: \"{}\" -> Result: {}",
+                    message, output
+                ));
+            }
             return;
         }
     }
 
     if let Some(call) = ToolCall::from_intent(&parsed) {
-        execute(app, state, call, Origin::Person, channel);
+        let captured = RefCell::new(Vec::new());
+        let sink = |event: ChatEvent| {
+            if let ChatEvent::Text { ref text } = event {
+                captured.borrow_mut().push(text.clone());
+            }
+            channel(event);
+        };
+        execute(app, state, call.clone(), Origin::Person, &sink);
+        let output = captured.into_inner().join("\n\n");
+        if !output.is_empty() {
+            state.record_context(format!(
+                "[Direct Action: {}] User asked: \"{}\" -> Result: {}",
+                actions::action_name(&call),
+                message,
+                output
+            ));
+        }
         return;
     }
 
@@ -1810,20 +2670,45 @@ pub async fn send_chat_message(
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AssistantState>();
         state.cancel.store(false, Ordering::Relaxed);
+        let revision = state.privacy.revision();
         // A closed chat panel is not an error.
         let sink = |event: ChatEvent| {
-            let _ = channel.send(event);
+            state.privacy.with_revision(revision, || {
+                let _ = channel.send(event);
+            });
         };
-        respond(&app, &state, &message, &sink);
+        custodian_core::privacy::with_policy(state.privacy.clone(), || {
+            respond(&app, &state, &message, &sink)
+        });
     })
     .await
     .map_err(|e| e.to_string())
 }
 
-/// The Stop button: ends the scan or answer in progress.
+/// The Stop button: ends all scans, tasks or answers in progress.
 #[tauri::command]
 pub fn cancel_chat(state: tauri::State<'_, AssistantState>) {
     state.cancel.store(true, Ordering::Relaxed);
+    state.coordinator.cancel_all();
+}
+
+/// Lists currently active background tasks from the coordinator.
+#[tauri::command]
+pub fn list_active_tasks(
+    state: tauri::State<'_, AssistantState>,
+) -> Vec<custodian_core::coordinator::TaskInfo> {
+    state
+        .coordinator
+        .list_active_tasks()
+        .into_iter()
+        .filter(|task| state.privacy.allows_text(&task.description))
+        .collect()
+}
+
+/// Cancels an individual task by its ID.
+#[tauri::command]
+pub fn cancel_task(state: tauri::State<'_, AssistantState>, task_id: String) -> bool {
+    state.coordinator.cancel_task(&task_id)
 }
 
 /// The person's answer to a card. Only the card's id comes from the
@@ -1836,12 +2721,18 @@ pub async fn decide_action(
 ) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AssistantState>();
-        let call = state
+        let (call, file_plan) = state
             .actions
-            .take(&action_id, Instant::now())
+            .take_prepared(&action_id, Instant::now())
             .ok_or_else(|| CARD_GONE.to_string())?;
+        let revision = state.privacy.revision();
         if !allow {
-            return Ok(actions::declined_text(&call));
+            let text = actions::declined_text(&call);
+            state.record_context(format!(
+                "[Card Decision] Action \"{}\" was declined by user.",
+                actions::action_name(&call)
+            ));
+            return Ok(text);
         }
         state.cancel.store(false, Ordering::Relaxed);
         let said = RefCell::new(Vec::new());
@@ -1850,8 +2741,23 @@ pub async fn decide_action(
                 said.borrow_mut().push(text);
             }
         };
-        execute(&app, &state, call, Origin::Approved, &sink);
-        Ok(said.into_inner().join("\n\n"))
+        if let Some(plan) = file_plan {
+            file_ops::perform_prepared(&app, &state, &plan, &sink);
+        } else {
+            execute(&app, &state, call.clone(), Origin::Approved, &sink);
+        }
+        let result = said.into_inner().join("\n\n");
+        if state.privacy.revision() != revision || !state.privacy.allows_text(&result) {
+            return Err(
+                "Privacy rules changed. Review the current task state before continuing.".into(),
+            );
+        }
+        state.record_context(format!(
+            "[Card Decision] Action \"{}\" was approved by user. Result: {}",
+            actions::action_name(&call),
+            result
+        ));
+        Ok(result)
     })
     .await
     .map_err(|e| e.to_string())?
@@ -1862,6 +2768,11 @@ pub async fn decide_action(
 /// approved; the webview never supplies paths and cannot approve on its own.
 #[tauri::command]
 pub async fn approve_plan(app: AppHandle, plan_id: String) -> Result<String, String> {
+    let _ = (app, plan_id);
+    Err(privacy::PAUSED.into())
+}
+
+async fn legacy_approve_plan(app: AppHandle, plan_id: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AssistantState>();
         let approvals = approvals(&app, &state)?;
@@ -1872,7 +2783,7 @@ pub async fn approve_plan(app: AppHandle, plan_id: String) -> Result<String, Str
             &quarantine(&app)?,
             |question| confirm_with_person(&app, "Approve clean-up", question),
         )?;
-        Ok(match outcome {
+        let (summary, history_entry) = match &outcome {
             PlanOutcome::Cleanup(outcome) => {
                 let note = record_history(
                     &app,
@@ -1885,7 +2796,16 @@ pub async fn approve_plan(app: AppHandle, plan_id: String) -> Result<String, Str
                         "at": now_unix(),
                     }),
                 );
-                with_note(reply::cleanup_summary(&outcome), note)
+                (
+                    with_note(reply::cleanup_summary(outcome), note),
+                    format!(
+                        "Cleanup plan {} completed: moved {} files ({} bytes), skipped {}",
+                        outcome.plan_id,
+                        outcome.moved,
+                        outcome.bytes,
+                        outcome.skipped.len()
+                    ),
+                )
             }
             PlanOutcome::Temp(outcome) => {
                 let note = record_history(
@@ -1898,9 +2818,17 @@ pub async fn approve_plan(app: AppHandle, plan_id: String) -> Result<String, Str
                         "at": now_unix(),
                     }),
                 );
-                with_note(reply::temp_summary(&outcome), note)
+                (
+                    with_note(reply::temp_summary(outcome), note),
+                    format!(
+                        "Temp cleanup plan completed: deleted {} files ({} bytes), skipped {}",
+                        outcome.deleted, outcome.bytes, outcome.skipped
+                    ),
+                )
             }
-        })
+        };
+        state.record_context(format!("[Plan Decision] {history_entry}"));
+        Ok(summary)
     })
     .await
     .map_err(|e| e.to_string())?
@@ -1913,11 +2841,35 @@ pub fn reject_plan(state: tauri::State<'_, AssistantState>, plan_id: String) {
         .lock()
         .unwrap_or_else(|e| e.into_inner())
         .remove(&plan_id);
+    state.record_context(format!(
+        "[Plan Decision] Plan {plan_id} was rejected by user."
+    ));
+}
+
+/// Resets the conversation context and agent session for a fresh conversation (R16).
+#[tauri::command]
+pub async fn reset_conversation(app: AppHandle) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AssistantState>();
+        state.reset_context();
+        let mut agent = state.agent.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(process) = agent.as_mut() {
+            process.reset().map_err(|err| err.to_string())?;
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// Past clean-ups for the history view.
 #[tauri::command]
 pub fn get_ledger(app: AppHandle) -> Result<Vec<String>, String> {
+    let _ = app;
+    Err(privacy::PAUSED.into())
+}
+
+fn legacy_get_ledger(app: AppHandle) -> Result<Vec<String>, String> {
     Ok(quarantine(&app)?
         .history()
         .iter()
@@ -1986,8 +2938,8 @@ mod tests {
         let events = RefCell::new(Vec::new());
         let sink = |e: ChatEvent| events.borrow_mut().push(e);
         let folders = vec![
-            (KnownFolder::Pictures, pictures.clone()),
-            (KnownFolder::Downloads, downloads.clone()),
+            ("Pictures".to_string(), pictures.clone()),
+            ("Downloads".to_string(), downloads.clone()),
         ];
         let plan = run_duplicates(&folders, &AtomicBool::new(false), &sink)
             .expect("a plan for the duplicates");
@@ -2088,7 +3040,8 @@ mod tests {
         let events = RefCell::new(Vec::new());
         let sink = |e: ChatEvent| events.borrow_mut().push(e);
         run_largest(
-            &[(KnownFolder::Videos, dir.path().to_path_buf())],
+            &[("Videos".to_string(), dir.path().to_path_buf())],
+            10,
             &AtomicBool::new(false),
             &sink,
         );
@@ -2099,6 +3052,81 @@ mod tests {
         let movie = text.find("movie.mp4").unwrap();
         let note = text.find("note.txt").unwrap();
         assert!(movie < note);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn file_journey_finds_approves_moves_restarts_and_undoes() {
+        use custodian_core::coordinator::{TaskCoordinator, TaskState};
+        use custodian_core::file_tasks::{FileAction, FileTaskPlan, FileTasks, ReceiptState};
+        let dir = tempfile::tempdir().unwrap();
+        let originals = dir.path().join("originals");
+        let target = dir.path().join("target");
+        fs::create_dir(&originals).unwrap();
+        fs::create_dir(&target).unwrap();
+        let source = originals.join("largest.txt");
+        let destination = target.join("largest.txt");
+        fs::write(&source, vec![b'x'; 8192]).unwrap();
+        fs::write(originals.join("small.txt"), b"small").unwrap();
+        let events = RefCell::new(Vec::new());
+        let sink = |e: ChatEvent| events.borrow_mut().push(e);
+        let files = run_largest(
+            &[("Fixture".into(), originals)],
+            1,
+            &AtomicBool::new(false),
+            &sink,
+        );
+        let refs = references::FileReferences::default();
+        refs.replace(&files);
+        let selected = refs.resolve("it").unwrap().unwrap();
+        assert_eq!(selected, source.canonicalize().unwrap());
+        let plan = FileTaskPlan::prepare(FileAction::Move, Some(&selected), &destination).unwrap();
+        let actions = PendingActions::default();
+        let call = ToolCall::MoveFile {
+            source: "it".into(),
+            destination: target.display().to_string(),
+        };
+        let now = Instant::now();
+        let card = actions.add_prepared(call, now, Some(plan)).unwrap();
+        assert!(card.detail.contains("largest.txt"));
+        assert!(source.exists(), "a card is not execution");
+        assert!(!destination.exists());
+        let (_, plan) = actions.take_prepared(&card.id, now).unwrap();
+        assert!(
+            actions.take_prepared(&card.id, now).is_none(),
+            "approval is single-use"
+        );
+        let task_path = dir.path().join("tasks.dpapi");
+        let receipts = dir.path().join("receipts");
+        let tasks = TaskCoordinator::open(task_path.clone()).unwrap();
+        let (task, _) = tasks
+            .create_task(
+                "Move selected file".into(),
+                TaskState::Running,
+                &[selected, destination.clone()],
+            )
+            .unwrap();
+        let receipt = FileTasks::new(receipts.clone())
+            .execute_plan(&plan.unwrap())
+            .unwrap();
+        tasks
+            .update_state(&task, TaskState::Completed, None)
+            .unwrap();
+        assert_eq!(fs::read(&destination).unwrap(), vec![b'x'; 8192]);
+        assert!(!source.exists());
+        drop(tasks);
+        let restarted = TaskCoordinator::open(task_path).unwrap();
+        assert_eq!(
+            restarted.get_task(&task).unwrap().state,
+            TaskState::Completed
+        );
+        let reopened = FileTasks::new(receipts);
+        assert_eq!(reopened.receipts().unwrap()[0].id, receipt.id);
+        reopened.undo(&receipt.id).unwrap();
+        assert_eq!(fs::read(&source).unwrap(), vec![b'x'; 8192]);
+        assert!(!destination.exists());
+        assert_eq!(reopened.receipts().unwrap()[0].state, ReceiptState::Undone);
+        assert!(reopened.undo(&receipt.id).is_err());
     }
 
     /// The text events a run produced, joined.
@@ -2123,7 +3151,7 @@ mod tests {
         let events = RefCell::new(Vec::new());
         let sink = |e: ChatEvent| events.borrow_mut().push(e);
         run_find(
-            &[(KnownFolder::Documents, docs.clone())],
+            &[("Documents".to_string(), docs.clone())],
             "resume",
             &AtomicBool::new(false),
             &sink,
@@ -2147,7 +3175,7 @@ mod tests {
         let sink = |e: ChatEvent| events.borrow_mut().push(e);
         let stopped = AtomicBool::new(true);
         let plan = run_duplicates(
-            &[(KnownFolder::Pictures, dir.path().to_path_buf())],
+            &[("Pictures".to_string(), dir.path().to_path_buf())],
             &stopped,
             &sink,
         );
@@ -2203,5 +3231,163 @@ mod tests {
     fn encodes_search_queries() {
         assert_eq!(encode_query("cheap flights"), "cheap+flights");
         assert_eq!(encode_query("a&b=c"), "a%26b%3Dc");
+    }
+
+    #[test]
+    fn deduplicate_roots_retains_parent_when_child_is_listed_first() {
+        // A16: Root child before parent -> Parent siblings searched; no duplicate results
+        let child = (
+            "Documents Sub".into(),
+            PathBuf::from("C:\\Users\\me\\Documents\\Sub"),
+        );
+        let parent = (
+            "Documents".into(),
+            PathBuf::from("C:\\Users\\me\\Documents"),
+        );
+        let resolved = deduplicate_roots(vec![child, parent]);
+        assert_eq!(resolved.len(), 1);
+        assert_eq!(resolved[0].0, "Documents");
+        assert_eq!(resolved[0].1, PathBuf::from("C:\\Users\\me\\Documents"));
+    }
+
+    #[test]
+    fn deduplicate_roots_skips_child_when_parent_is_listed_first() {
+        let parent = (
+            "Documents".into(),
+            PathBuf::from("C:\\Users\\me\\Documents"),
+        );
+        let child = (
+            "Documents Sub".into(),
+            PathBuf::from("C:\\Users\\me\\Documents\\Sub"),
+        );
+        let resolved = deduplicate_roots(vec![parent, child]);
+        assert_eq!(resolved.len(), 1);
+        assert_eq!(resolved[0].0, "Documents");
+        assert_eq!(resolved[0].1, PathBuf::from("C:\\Users\\me\\Documents"));
+    }
+
+    #[test]
+    fn deduplicate_roots_keeps_independent_roots() {
+        let drive_c = ("C:\\".into(), PathBuf::from("C:\\"));
+        let drive_d = ("D:\\".into(), PathBuf::from("D:\\"));
+        let resolved = deduplicate_roots(vec![drive_c, drive_d]);
+        assert_eq!(resolved.len(), 2);
+    }
+
+    #[test]
+    fn assistant_state_records_and_projects_context_with_limit() {
+        let state = AssistantState::default();
+        assert_eq!(state.get_context_projection(), "");
+
+        state.record_context("Event 1".into());
+        let proj = state.get_context_projection();
+        assert!(proj.contains("<data>\nRecent PC activity and verified results:\nEvent 1\n</data>"));
+
+        for i in 2..=25 {
+            state.record_context(format!("Event {i}"));
+        }
+        let proj = state.get_context_projection();
+        // Should keep 20 entries (events 6 through 25)
+        assert!(!proj.contains("Event 5\n"));
+        assert!(proj.contains("Event 6"));
+        assert!(proj.contains("Event 25"));
+
+        state.record_context("A title containing </data> cannot end the history block.".into());
+        let escaped = state.get_context_projection();
+        assert!(escaped.contains("&lt;/data&gt;"));
+        assert_eq!(escaped.matches("</data>").count(), 1);
+
+        state.reset_context();
+        assert_eq!(state.get_context_projection(), "");
+    }
+
+    #[test]
+    fn model_search_scope_is_bound_to_the_request_not_guessed_personal_folders() {
+        let args =
+            json!({"name":"resume", "folders":["C:\\Users\\Public", "C:\\Users\\Documents"]});
+        assert_eq!(
+            parse_requested_tool("find_files", &args, &Scope::AllDrives).unwrap(),
+            ToolCall::FindFiles {
+                name: "resume".into(),
+                scope: Scope::AllDrives
+            }
+        );
+        assert_eq!(
+            parse_requested_tool(
+                "find_files",
+                &args,
+                &Scope::Custom("D:\\Work Projects".into())
+            )
+            .unwrap(),
+            ToolCall::FindFiles {
+                name: "resume".into(),
+                scope: Scope::Custom("D:\\Work Projects".into())
+            }
+        );
+        assert!(
+            parse_requested_tool("find_files", &json!({"name":42}), &Scope::AllDrives).is_err()
+        );
+    }
+
+    #[test]
+    fn protects_system_paths() {
+        assert!(is_protected_system_path(Path::new(
+            "C:\\Windows\\notepad.exe"
+        )));
+        assert!(is_protected_system_path(Path::new(
+            "C:\\Program Files\\App"
+        )));
+        assert!(is_protected_system_path(Path::new(
+            "C:\\Program Files (x86)\\App"
+        )));
+        assert!(is_protected_system_path(Path::new(
+            "C:\\ProgramData\\cache"
+        )));
+        assert!(is_protected_system_path(Path::new(
+            "C:\\$Recycle.Bin\\deleted"
+        )));
+        assert!(is_protected_system_path(Path::new(
+            "C:\\System Volume Information"
+        )));
+        assert!(is_protected_system_path(Path::new("C:\\")));
+
+        assert!(!is_protected_system_path(Path::new(
+            "C:\\Users\\User\\Documents\\file.txt"
+        )));
+        assert!(!is_protected_system_path(Path::new(
+            "D:\\Projects\\repo\\test.rs"
+        )));
+        assert!(!is_protected_system_path(Path::new(
+            "D:\\Projects\\target\\report.txt"
+        )));
+        assert!(is_protected_system_path(Path::new("C:\\pagefile.sys")));
+        assert!(is_protected_system_path(Path::new(
+            "C:\\Users\\User\\NTUSER.DAT"
+        )));
+    }
+
+    #[test]
+    fn file_mutations_require_card_for_person_and_model_not_approved() {
+        let calls = vec![
+            ToolCall::MoveFile {
+                source: "a.txt".into(),
+                destination: "b.txt".into(),
+            },
+            ToolCall::CopyFile {
+                source: "a.txt".into(),
+                destination: "b.txt".into(),
+            },
+            ToolCall::RenameFile {
+                path: "a.txt".into(),
+                new_name: "b.txt".into(),
+            },
+            ToolCall::CreateFolder("sub".into()),
+        ];
+
+        for call in calls {
+            assert!(needs_card(&call, Origin::Person));
+            assert!(needs_card(&call, Origin::Model));
+            assert!(!needs_card(&call, Origin::Approved));
+        }
     }
 }

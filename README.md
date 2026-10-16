@@ -2,13 +2,17 @@
 
 **Tidy your computer without fear. Every change comes with a way back.**
 
-Custodian is a local, open-source AI companion for Windows 11. It understands
-what is on your disk, frees space safely, tests every change in a sandbox
-first, keeps all data on your machine, and proves every undo with a checksum.
-A small on-screen companion, **Cubby**, is the user interface.
+Custodian is a local, open-source AI companion for Windows 11, with **Cubby**
+as its on-screen interface. The current offline foundation supports permitted
+local-file discovery and approved file operations with verification and undo.
+Private-location controls are implemented for supported file tools; general
+desktop automation and full security acceptance remain unfinished.
 
 > **Status:** early development. Many components are placeholders with their
 > final interfaces; [`HONESTY.md`](HONESTY.md) lists exactly what is stubbed.
+
+See the [current implementation and verification report](docs/OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md)
+for supported scope, paused capabilities, package hashes and remaining gates.
 
 ## Architecture
 
@@ -136,8 +140,9 @@ Without a GPU, the smallest pinned chat model is used in place of a default over
 On Windows the AI runs inside an AppContainer: no network, and read access only
 to Node, the agent's code and packages, and `models/`. The first start grants
 that read access (about 15 seconds for `node_modules`). If the model cannot load
-inside the container, the agent runs normally and "is my data safe?" says so;
-`CUSTODIAN_AGENT_SANDBOX=0` turns the container off.
+inside the container, AI startup fails closed and deterministic desktop tools
+remain available. `CUSTODIAN_AGENT_SANDBOX=0` explicitly enables unrestricted
+development startup.
 
 App icons are generated from `apps/desktop/src-tauri/icons/custodian.svg`. After
 editing it, run `npm run icons -w apps/desktop` from the repository root.
@@ -158,11 +163,18 @@ CI runs the same commands on every pull request:
 
 ## Documentation
 
+The offline Windows installer requires a preinstalled Microsoft Edge WebView2
+Runtime. It does not download that prerequisite automatically. Clean-profile
+installation acceptance remains open; see the current implementation report.
+
+- [Current offline implementation and limits](docs/OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md)
+
 - [Master document](docs/design/CUSTODIAN_MASTER_DOCUMENT.md): what we build and why
 - [Architecture](docs/design/CUSTODIAN_ARCHITECTURE.md): how it is built
 - [Build plan](docs/design/CUSTODIAN_BUILD_PLAN.md): the ordered build steps
 - [Roadmap to the real product](docs/ADVANCE.md): current status and step-by-step phases
 - [Verification log](docs/VERIFY-LOG.md) and [component versions](docs/VERSIONS.md)
+- [Current verified behavior and limits](docs/VERIFICATION-2026-10-16.md) and [completion requirements](docs/ACCEPTANCE.md)
 
 ## Contributing and security
 

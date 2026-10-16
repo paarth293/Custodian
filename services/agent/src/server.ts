@@ -35,6 +35,13 @@ export interface CancelRequest {
 export interface PingRequest {
   type: 'ping';
   id: number;
+  deep?: boolean;
+}
+
+/** Reset the chat history for a fresh conversation. */
+export interface ResetRequest {
+  type: 'reset';
+  id: number;
 }
 
 /** Frames the agent sends back. A `tool` frame asks the desktop to run a tool. */
@@ -106,6 +113,11 @@ function isPingRequest(value: unknown): value is PingRequest {
   return !!v && v.type === 'ping' && typeof v.id === 'number';
 }
 
+function isResetRequest(value: unknown): value is ResetRequest {
+  const v = value as Partial<ResetRequest> | null;
+  return !!v && v.type === 'reset' && typeof v.id === 'number';
+}
+
 /**
  * Answers chat requests one at a time with `engine`, or explains why no
  * model is available when `engine` is null. Tools the model calls are sent to
@@ -142,7 +154,7 @@ export function createHandler(
         send({ type: 'pong', id, ready: false, error: unavailable });
         return Promise.resolve();
       }
-      return (engine.check?.() ?? Promise.resolve(null)).then(
+      return (engine.check?.(request.deep) ?? Promise.resolve(null)).then(
         (problem) =>
           send(
             problem
@@ -158,6 +170,22 @@ export function createHandler(
           }),
       );
     }
+    if (isResetRequest(request)) {
+      const { id } = request;
+      if (!engine) {
+        send({ type: 'done', id });
+        return Promise.resolve();
+      }
+      queue = queue.then(async () => {
+        try {
+          await engine.reset?.();
+          send({ type: 'done', id });
+        } catch (err) {
+          send({ type: 'error', id, error: err instanceof Error ? err.message : String(err) });
+        }
+      });
+      return queue;
+    }
     if (!isChatRequest(request)) return queue;
     const { id, message } = request;
     const stop = new AbortController();
@@ -165,16 +193,22 @@ export function createHandler(
     let calls = 0;
     const runTool: ToolRunner = (name, args) =>
       new Promise((resolve) => {
+        if (stop.signal.aborted) {
+          resolve('The person stopped this request. Do not continue.');
+          return;
+        }
         const call = ++calls;
         const key = `${id}:${call}`;
-        const timer = setTimeout(() => {
-          waiting.delete(key);
-          resolve('The PC did not answer in time.');
-        }, toolTimeoutMs);
-        waiting.set(key, (result) => {
+        const finish = (result: string) => {
           clearTimeout(timer);
+          waiting.delete(key);
+          stop.signal.removeEventListener('abort', onAbort);
           resolve(result);
-        });
+        };
+        const onAbort = () => finish('The person stopped this request. Do not continue.');
+        const timer = setTimeout(() => finish('The PC did not answer in time.'), toolTimeoutMs);
+        waiting.set(key, finish);
+        stop.signal.addEventListener('abort', onAbort, { once: true });
         send({ type: 'tool', id, call, name, args });
       });
 
@@ -201,6 +235,9 @@ export function createHandler(
         if (stop.signal.aborted) send({ type: 'done', id });
         else send({ type: 'error', id, error: err instanceof Error ? err.message : String(err) });
       } finally {
+        for (const [key, finish] of waiting) {
+          if (key.startsWith(`${id}:`)) finish('This request has ended. Do not continue.');
+        }
         stops.delete(id);
       }
     });
