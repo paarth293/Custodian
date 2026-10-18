@@ -23,7 +23,9 @@ use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{self, Read};
 use std::path::{Component, Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
+#[cfg(test)]
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 use thiserror::Error;
 
 const MAX_TARGETS: usize = 50_000;
@@ -300,6 +302,9 @@ impl<P: RecoveryProvider> GovernedRecycle<P> {
         verifier: &Verifier,
         now_unix: u64,
     ) -> Result<RecycleOutcome, RecycleError> {
+        let _mutation = crate::mutation_lock::MUTATIONS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         self.require_supported()?;
         verifier.verify(&plan.digest(), approval, now_unix)?;
         if plan.provider_id != self.capability().provider_id {
@@ -383,6 +388,9 @@ impl<P: RecoveryProvider> GovernedRecycle<P> {
         verifier: &Verifier,
         now_unix: u64,
     ) -> Result<CleanupOutcome, RecycleError> {
+        let _mutation = crate::mutation_lock::MUTATIONS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         self.require_supported()?;
         verifier.verify(&plan.digest(), approval, now_unix)?;
         if plan.provider_id != self.capability().provider_id {
@@ -466,6 +474,9 @@ impl<P: RecoveryProvider> GovernedRecycle<P> {
         verifier: &Verifier,
         now_unix: u64,
     ) -> Result<(), RecycleError> {
+        let _mutation = crate::mutation_lock::MUTATIONS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         self.require_supported()?;
         verifier.verify(&plan.digest(), approval, now_unix)?;
         if plan.receipt.provider_id != self.capability().provider_id {
@@ -527,6 +538,8 @@ fn capture_target(
     allowed: &dyn Fn(&Path) -> bool,
 ) -> Result<RecycleTarget, RecycleError> {
     let path = canonical_file(path)?;
+    crate::privacy::check(&path)
+        .map_err(|_| RecycleError::Invalid("target is private or not permitted".into()))?;
     if !allowed(&path) {
         return Err(RecycleError::Invalid(
             "target is outside the native recycle authority scope".into(),
@@ -609,6 +622,14 @@ fn modified_nanos(metadata: &fs::Metadata) -> u128 {
         .unwrap_or(0)
 }
 
+#[cfg(test)]
+fn now_unix() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .unwrap_or(0)
+}
+
 fn is_reparse_point(metadata: &fs::Metadata) -> bool {
     if metadata.file_type().is_symlink() {
         return true;
@@ -617,7 +638,7 @@ fn is_reparse_point(metadata: &fs::Metadata) -> bool {
     {
         use std::os::windows::fs::MetadataExt;
         const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
-        return metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0;
+        metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
     }
     #[cfg(not(windows))]
     false
@@ -646,14 +667,8 @@ fn digest_json<T: Serialize>(domain: &[u8], value: &T) -> PlanHash {
     hasher.finalize().into()
 }
 
-fn now_unix() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs())
-        .unwrap_or(0)
-}
-
 #[cfg(test)]
+#[allow(clippy::cloned_ref_to_slice_refs)]
 mod tests {
     use super::*;
     use std::sync::Mutex;
@@ -751,7 +766,7 @@ mod tests {
         let file = fixture.path().join("important.txt");
         fs::write(&file, b"keep me").unwrap();
         let service = GovernedRecycle::new(UnsupportedRecoveryProvider);
-        let result = service.prepare_recycle(&[file.clone()], &|_| true);
+        let result = service.prepare_recycle(std::slice::from_ref(&file), &|_| true);
         assert!(matches!(result, Err(RecycleError::Unsupported(_))));
         assert_eq!(fs::read(file).unwrap(), b"keep me");
     }
@@ -767,7 +782,9 @@ mod tests {
             restored: Mutex::new(Vec::new()),
         };
         let service = GovernedRecycle::new(provider);
-        let plan = service.prepare_recycle(&[file.clone()], &|_| true).unwrap();
+        let plan = service
+            .prepare_recycle(std::slice::from_ref(&file), &|_| true)
+            .unwrap();
         let wrong_key = custodian_approval::ApprovalKey::generate();
         let now = now_unix();
         let approval = wrong_key.sign(&[3u8; 32], now, 300);
@@ -789,7 +806,9 @@ mod tests {
             verify_recycle: true,
             restored: Mutex::new(Vec::new()),
         });
-        let plan = service.prepare_recycle(&[file.clone()], &|_| true).unwrap();
+        let plan = service
+            .prepare_recycle(std::slice::from_ref(&file), &|_| true)
+            .unwrap();
         let (approval, verifier, now) = approve(plan.digest());
         let outcome = service
             .recycle_approved(&plan, &approval, &verifier, now)
@@ -816,7 +835,9 @@ mod tests {
             verify_recycle: false,
             restored: Mutex::new(Vec::new()),
         });
-        let plan = service.prepare_recycle(&[file.clone()], &|_| true).unwrap();
+        let plan = service
+            .prepare_recycle(std::slice::from_ref(&file), &|_| true)
+            .unwrap();
         let (approval, verifier, now) = approve(plan.digest());
         let outcome = service
             .recycle_approved(&plan, &approval, &verifier, now)

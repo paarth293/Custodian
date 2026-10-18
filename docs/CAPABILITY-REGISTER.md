@@ -15,10 +15,10 @@ Statuses describe stated subsets. No row establishes whole-product acceptance. C
 | F03 | files: Move/copy/rename/create folder with exact approval | verified_subset | desktop assistant / custodian-core file tasks | Stage 5 | S02, S04 |
 | F04 | files: Automatic single largest-file copy | verified_subset | desktop routine / native backup | Stage 5 | S04 |
 | F05 | files: Bounded document/image collection compositions | verified_subset | desktop workflow / sandboxed Qwen / native core | Stage 5 | S04, P02 |
-| F06 | files: General batch organization and tree operations | missing | desktop assistant / custodian-core file tasks | Stage 5 | P01, S05 |
-| F07 | files: Compress/extract archives | missing | unconnected parser/reader and missing artifact executor | Stage 5 | S01, F06 |
-| F08 | files: Versioned backup and restore | partial | desktop routine / native backup | Stage 5 | F06, S05 |
-| F09 | files: Governed delete and disk cleanup | paused | native privacy and tool dispatcher | Stage 5 | S01, S05 |
+| F06 | files: General batch organization and tree operations | partial (core manifest only; route open) | desktop assistant / custodian-core file tasks | Stage 5 | P01, S05 |
+| F07 | files: Compress/extract archives | partial (bounded core ZIP only; route open) | custodian-core batch archive primitive | Stage 5 | S01, F06 |
+| F08 | files: Versioned backup and restore | partial (core version store; route open) | custodian-core versioned backup | Stage 5 | F06, S05 |
+| F09 | files: Governed delete and disk cleanup | paused (provider unavailable) | native privacy and tool dispatcher | Stage 5 | S01, S05 |
 | F10 | files: Unicode/long paths, unavailable drives and locked files | partial | desktop assistant / custodian-core file tasks | Stage 5 | S05 |
 | C01 | content: Grounded local content extraction and summarization | missing | unconnected parser/reader and missing artifact executor | Stage 6 | S02, S07 |
 | C02 | content: Create/edit text, Markdown and structured CSV | missing | unconnected parser/reader and missing artifact executor | Stage 6 | S01, P01 |
@@ -224,4 +224,3 @@ stage pinned runtime -> Tauri NSIS bundle; existing unsigned installer requires 
 Each of the 58 requirements has a task and expected result in the canonical JSON.
 The [fixture specification](STAGE-0-ACCEPTANCE-FIXTURES.json) contains 15 representative authored cases with fixed source text and expected effects.
 Their [acceptance lock](EVIDENCE/stage-0/acceptance-lock.json) detects expectation changes; none of these specifications is automatically labelled an executed result.
-

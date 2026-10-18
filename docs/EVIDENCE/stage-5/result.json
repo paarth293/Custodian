@@ -1,0 +1,42 @@
+{
+  "stage": 5,
+  "status": "incomplete",
+  "stage4PrerequisiteAccepted": false,
+  "coreImplementation": {
+    "batchManifestAndZip": "implemented_and_exported",
+    "versionedBackupAndRestore": "implemented_and_exported",
+    "governedRecycle": "implemented_and_exported_but_provider_unavailable",
+    "desktopRoutes": "not_integrated",
+    "nativePlannerPermissionCards": "not_integrated",
+    "windowsRecycleProvider": "not_qualified"
+  },
+  "checks": {
+    "cargoCheckCoreLocked": "passed",
+    "cargoClippyCoreAllTargetsLockedDWarnings": "passed",
+    "cargoTestCoreLibLocked": {"passed": 198, "failed": 0, "ignored": 2},
+    "cargoTestWorkspaceLocked": "passed; full log target/stage5-workspace-tests.txt",
+    "cargoFmtWorkspaceCheck": "blocked_by_preexisting_unformatted_stage4_worktree_files"
+  },
+  "scopeLimits": {
+    "zipMaxEntries": 1000,
+    "zipMaxExpandedBytes": 536870912,
+    "zipMaxExpansionRatio": 100,
+    "legacyCollectionGrantPreserved": true,
+    "contentFiltering": "unavailable_until_stage6"
+  },
+  "sourceHashes": {
+    "crates/custodian-core/src/batch_archive.rs": "3acf8665ca37dce28bc834ad409f8fea160123f66ba7b29a99afac3186265c0c",
+    "crates/custodian-core/src/versioned_backup.rs": "3672750d9c1a5d69db32dc869608a94f2c29188d608cc70e2788cc8e0f15ff35",
+    "crates/custodian-core/src/governed_recycle.rs": "eb55291997ca9379ba2607437ed6d743153657e5c414c76771dbc6141f6b62d0",
+    "crates/custodian-core/src/lib.rs": "4198d4ce591fbe256edc5285227dd13242d62fcc2adb74e0e0694af65424106b",
+    "docs/STAGE-5-EXECUTION-RECORD-2026-10-18.md": "5a3ae3f5dececbd1080456c4806f93801f9f607a5a5d2616f32a52180f61d599",
+    "docs/CAPABILITY-REGISTER.json": "789e1c9b86f3a1227242e4bbc4560a999a5064c81b544f37e2408fa85e1f9bb4"
+  },
+  "blockers": [
+    "Stage 4 real app acceptance remains open.",
+    "Archive, backup and recycle primitives are not connected to desktop language/planner/permission routes.",
+    "No qualified Windows Recycle Bin provider or actual recycle restore drill was available.",
+    "Optimized packaged C:/D:/custom-volume and process-kill acceptance was not run."
+  ],
+  "acceptanceClaim": "Core implementation evidence only; Stage 5 acceptance is not claimed."
+}

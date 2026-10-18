@@ -29,7 +29,9 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+#[cfg(test)]
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 use thiserror::Error;
 
 const OWNER_FILE: &str = "owner.json";
@@ -229,17 +231,12 @@ impl VerifiedVersion {
 
 /// Restore to a new location by default. `PreserveExisting` is explicit and
 /// never overwrites a destination file that differs from the verified backup.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum RestoreMode {
+    #[default]
     NewLocation,
     PreserveExisting,
-}
-
-impl Default for RestoreMode {
-    fn default() -> Self {
-        Self::NewLocation
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -406,6 +403,9 @@ impl BackupStore {
         now_unix: u64,
         cancel: &AtomicBool,
     ) -> Result<VersionSummary, BackupError> {
+        let _mutation = crate::mutation_lock::MUTATIONS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         verifier.verify(&plan.digest(), approval, now_unix)?;
         self.validate_plan_destination(plan)?;
         verify_source_snapshot(plan)?;
@@ -420,12 +420,8 @@ impl BackupStore {
         };
         write_json_atomic(&version_dir.join(STATE_FILE), &state)?;
         let files_dir = version_dir.join(FILES_DIR);
-        if let Err(error) = self.copy_entries(plan, &files_dir, cancel) {
-            return Err(error);
-        }
-        if let Err(error) = verify_source_snapshot(plan) {
-            return Err(error);
-        }
+        self.copy_entries(plan, &files_dir, cancel)?;
+        verify_source_snapshot(plan)?;
 
         let entries = plan
             .entries
@@ -604,6 +600,9 @@ impl BackupStore {
         now_unix: u64,
         cancel: &AtomicBool,
     ) -> Result<RestoreOutcome, BackupError> {
+        let _mutation = crate::mutation_lock::MUTATIONS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         verifier.verify(&plan.digest(), approval, now_unix)?;
         let version = self.verify_version(&plan.version_id)?;
         if version.manifest_digest != plan.manifest_digest {
@@ -668,6 +667,9 @@ impl BackupStore {
         verifier: &Verifier,
         now_unix: u64,
     ) -> Result<RetentionOutcome, BackupError> {
+        let _mutation = crate::mutation_lock::MUTATIONS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         verifier.verify(&plan.digest(), approval, now_unix)?;
         if plan.owner_id != self.owner_id {
             return Err(BackupError::NotOwned);
@@ -925,6 +927,14 @@ struct RestoreState {
     complete: bool,
 }
 
+#[cfg(test)]
+fn now_unix() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .unwrap_or(0)
+}
+
 fn digest_json<T: Serialize>(domain: &[u8], value: &T) -> PlanHash {
     let bytes = serde_json::to_vec(value).expect("backup plan serialization is infallible");
     let mut hasher = blake3::Hasher::new();
@@ -932,13 +942,6 @@ fn digest_json<T: Serialize>(domain: &[u8], value: &T) -> PlanHash {
     hasher.update(&(bytes.len() as u64).to_le_bytes());
     hasher.update(&bytes);
     hasher.finalize().into()
-}
-
-fn now_unix() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs())
-        .unwrap_or(0)
 }
 
 fn canonical_dir(path: &Path) -> Result<PathBuf, BackupError> {
@@ -954,6 +957,8 @@ fn canonical_dir(path: &Path) -> Result<PathBuf, BackupError> {
 
 fn canonical_source(path: &Path, store_root: &Path) -> Result<PathBuf, BackupError> {
     let path = fs::canonicalize(path)?;
+    crate::privacy::check(&path)
+        .map_err(|_| BackupError::Invalid("backup source is private or not permitted".into()))?;
     if path == store_root || path.starts_with(store_root) {
         return Err(BackupError::Invalid(
             "a source cannot be inside the backup store".into(),
@@ -1018,7 +1023,7 @@ fn is_reparse_point(metadata: &fs::Metadata) -> bool {
     {
         use std::os::windows::fs::MetadataExt;
         const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
-        return metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0;
+        metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
     }
     #[cfg(not(windows))]
     false
@@ -1031,6 +1036,8 @@ fn collect_source(
     occupied: &mut BTreeSet<PathBuf>,
 ) -> Result<(), BackupError> {
     ensure_relative(relative)?;
+    crate::privacy::check(source)
+        .map_err(|_| BackupError::Invalid("backup selection includes a private path".into()))?;
     let metadata = fs::symlink_metadata(source)?;
     if is_reparse_point(&metadata) {
         return Err(BackupError::Invalid(
@@ -1515,6 +1522,7 @@ fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> Result<(), BackupError> {
 }
 
 #[cfg(test)]
+#[allow(clippy::cloned_ref_to_slice_refs)]
 mod tests {
     use super::*;
     use std::time::Duration;
@@ -1734,7 +1742,7 @@ mod tests {
         for body in [b"one".as_slice(), b"two".as_slice()] {
             fs::write(source.join("nested/b.bin"), body).unwrap();
             let plan = store
-                .prepare_backup(&[source.clone()], RetentionPolicy::default())
+                .prepare_backup(std::slice::from_ref(&source), RetentionPolicy::default())
                 .unwrap();
             let (approval, verifier, now) = approve_plan(&plan);
             healthy.push(
