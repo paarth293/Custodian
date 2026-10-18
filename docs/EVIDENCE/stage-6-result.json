@@ -42,7 +42,7 @@
   "sourceHashes": {
     "crates/custodian-core/src/content.rs": "496aa29656f61c08fd0d286db98c9deff1704de42a7730fb9099a5d38224ec23",
     "crates/custodian-core/src/lib.rs": "bb324585101a4ed8f240f840f5f122987aa8b900bc489b704188e95cf2874d1f",
-    "docs/STAGE-6-EXECUTION-RECORD-2026-10-18.md": "844ca0b425d35700744f7b2a6209dec8b986ee9d34ca4c4b49e62417202b527a",
+    "docs/STAGE-6-EXECUTION-RECORD-2026-10-18.md": "189b0b349a809b3608792a2d4dfc04c4ffdd381301c33ce6fe253f61aa052f6c",
     "docs/CAPABILITY-REGISTER.json": "0eacf13960384f7c8f512b71e13e6cf743a8b06512058a06f1e9eb76aa4c99a3"
   },
   "acceptanceClaim": "Stage 6 acceptance is not claimed; only the bounded TXT/Markdown/CSV core is verified."

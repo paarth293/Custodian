@@ -49,6 +49,12 @@ staged structured verification. The module's tests run inside the core suite.
 - `cargo fmt --all -- --check` — implementing session reported pass before
   unrelated worktree formatting was reintroduced; full current worktree status
   must be rerun before delivery.
+- `cargo test --workspace --locked` — attempted after the content change, but
+  the host terminated the concurrent/serial workspace rustc process while
+  compiling the desktop crate. The retained logs are
+  `target/stage6-workspace-tests.txt` and
+  `target/stage6-workspace-tests-serial.txt`; this is an environment-limited
+  check, not a passing workspace result.
 - Stage 4/5 prior workspace evidence remains historical and is not repeated as
   Stage 6 acceptance.
 
