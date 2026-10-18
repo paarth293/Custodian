@@ -442,6 +442,7 @@ impl<P: RecoveryProvider> GovernedRecycle<P> {
                 "receipt belongs to another provider".into(),
             ));
         }
+        self.provider.verify_recycled(receipt)?;
         let destination = clean_destination(destination)?;
         if destination.exists() {
             return Err(RecycleError::RestoreDestinationChanged);
