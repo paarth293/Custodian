@@ -15,7 +15,12 @@
     "cargoClippyCoreAllTargetsLockedDWarnings": "passed",
     "cargoTestCoreLibLocked": {"passed": 198, "failed": 0, "ignored": 2},
     "cargoTestWorkspaceLocked": "passed; full log target/stage5-workspace-tests.txt",
-    "cargoFmtWorkspaceCheck": "blocked_by_preexisting_unformatted_stage4_worktree_files"
+    "cargoFmtWorkspaceCheck": "blocked_by_preexisting_unformatted_stage4_worktree_files",
+    "npmTypecheck": "passed",
+    "npmTests": "passed; desktop 27, agent 104, broker 7, editor adapter 6",
+    "pythonTests": "passed; 70",
+    "secretScan": "passed; 0 findings",
+    "workspaceClippy": "passed"
   },
   "scopeLimits": {
     "zipMaxEntries": 1000,
@@ -29,7 +34,7 @@
     "crates/custodian-core/src/versioned_backup.rs": "3672750d9c1a5d69db32dc869608a94f2c29188d608cc70e2788cc8e0f15ff35",
     "crates/custodian-core/src/governed_recycle.rs": "eb55291997ca9379ba2607437ed6d743153657e5c414c76771dbc6141f6b62d0",
     "crates/custodian-core/src/lib.rs": "4198d4ce591fbe256edc5285227dd13242d62fcc2adb74e0e0694af65424106b",
-    "docs/STAGE-5-EXECUTION-RECORD-2026-10-18.md": "5a3ae3f5dececbd1080456c4806f93801f9f607a5a5d2616f32a52180f61d599",
+    "docs/STAGE-5-EXECUTION-RECORD-2026-10-18.md": "543c10615199f3eb11798ec9c71e5c55929b4a1488965a8070c943b227296e4d",
     "docs/CAPABILITY-REGISTER.json": "789e1c9b86f3a1227242e4bbc4560a999a5064c81b544f37e2408fa85e1f9bb4"
   },
   "blockers": [

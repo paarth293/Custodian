@@ -33,6 +33,12 @@ file work is independently actionable; no Stage 5 claim upgrades Stage 4.
 - The focused standalone harness was removed after the modules were exported;
   their 12 backup/recycle tests now run as part of the core library suite.
 - `cargo clippy -p custodian-core --all-targets --locked -- -D warnings` — passed.
+- `cargo clippy --workspace --all-targets --locked -- -D warnings` — passed;
+  hard-link cache warnings are environment warnings, not lint failures.
+- `npm run typecheck` — passed.
+- `npm test -- --run` — passed (desktop 27, agent 104, broker 7, editor adapter 6).
+- `python -m pytest` — passed (70).
+- `python tests/security/scan_secrets.py` — passed (0 findings).
 - `cargo fmt --all -- --check` — not clean because unrelated existing Stage 4
   worktree files are not formatted; the new module code was formatted.
 
