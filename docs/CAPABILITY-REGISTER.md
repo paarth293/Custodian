@@ -20,10 +20,10 @@ Statuses describe stated subsets. No row establishes whole-product acceptance. C
 | F08 | files: Versioned backup and restore | partial (core version store; route open) | custodian-core versioned backup | Stage 5 | F06, S05 |
 | F09 | files: Governed delete and disk cleanup | paused (provider unavailable) | native privacy and tool dispatcher | Stage 5 | S01, S05 |
 | F10 | files: Unicode/long paths, unavailable drives and locked files | partial | desktop assistant / custodian-core file tasks | Stage 5 | S05 |
-| C01 | content: Grounded local content extraction and summarization | missing | unconnected parser/reader and missing artifact executor | Stage 6 | S02, S07 |
-| C02 | content: Create/edit text, Markdown and structured CSV | missing | unconnected parser/reader and missing artifact executor | Stage 6 | S01, P01 |
+| C01 | content: Grounded local content extraction and summarization | missing (typed core provenance only) | content core; unconnected model/reader route | Stage 6 | S02, S07 |
+| C02 | content: Create/edit text, Markdown and structured CSV | partial (offline core; route open) | custodian-core content module | Stage 6 | S01, P01 |
 | C03 | content: Create/edit DOCX and PDF | missing | unconnected parser/reader and missing artifact executor | Stage 6 | C01, D03 |
-| C04 | content: Create/edit spreadsheets and formulas | missing | unconnected parser/reader and missing artifact executor | Stage 6 | C02, D03 |
+| C04 | content: Create/edit spreadsheets and formulas | partial (strict existing subset; general route open) | custodian-core workbook / native Excel adapter | Stage 6 | C02, D03 |
 | C05 | content: Create/edit presentations | missing | unconnected parser/reader and missing artifact executor | Stage 6 | C01 |
 | C06 | content: Image/media transformation, OCR and conversion | missing | unconnected parser/reader and missing artifact executor | Stage 6 | S07 |
 | P01 | planning: General heterogeneous task engine | partial | core coordinator / desktop | Stage 2 | S01, S05, S06 |

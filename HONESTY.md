@@ -34,6 +34,46 @@ non-ASCII goals are clarified. Laya remains inactive after historical paired
 advisory replay; no new live safeguard is claimed. The report tracks exact
 desktop/artifact acceptance separately.
 Historical phase entries based on simulations are not product acceptance.
+The [Stage 4 foundation review](docs/STAGE-4-FOUNDATION-REVIEW-2026-10-18.md)
+distinguishes typed app contracts/native admission tests from real app execution.
+Process probes read executable/creation metadata only. Private-app policy is a
+native library boundary, not a persisted user setting or qualified UIA adapter.
+The subsequent [supervised worker increment](docs/STAGE-4-SUPERVISED-WORKER-2026-10-18.md)
+adds process-enforced deadlines, authenticated bounded IPC and worker-only cleanup.
+This trusted normal-user worker is resource-contained, not an AppContainer or
+filesystem/network sandbox. Its production operations probe its own identity
+and empty message-only window; all real app operations return unavailable.
+Durable app-journal integration, persisted privacy controls and qualified real
+application adapters remain unfinished. The worker is not wired into live chat
+or packaged into a new desktop/installer by that increment. The subsequent
+[persistent app privacy increment](docs/STAGE-4-APP-PRIVACY-2026-10-18.md) adds
+encrypted native app exclusions and a desktop executable exclusion list.
+Native window/session/document exclusions share the policy; their real-world
+binding and user selection remain part of adapter qualification. General
+content observation stays disabled. These rules do not disable the excluded
+application or apply its exclusion to file tools; private file locations remain
+a separate control. Those reports describe historical increments. The subsequent
+[real application implementation](docs/STAGE-4-REAL-APP-IMPLEMENTATION-2026-10-18.md)
+adds actual version-qualified VS Code and Excel workflows, native desktop
+approval, independent output verification, publication undo and encrypted app
+recovery inspection. General window reading and screen capture remain disabled.
+Stage 4 acceptance is separate from implementation and requires the repeated
+packaged checks and disposable offline installation evidence in that report.
+The [Stage 5 execution record](docs/STAGE-5-EXECUTION-RECORD-2026-10-18.md)
+adds exported, offline-tested core primitives for exact batch manifests,
+bounded ZIP round trips, immutable versioned backup/restore and separately
+authorized governed recycle. These are not yet desktop language/planner routes;
+the Windows recovery provider is intentionally unavailable, so no recycle or
+Stage 5 whole-system acceptance is claimed. Same-machine backups are not
+ransomware-proof and unsupported metadata, reparse points, cloud placeholders,
+hardlinks and network volumes remain refused.
+The [Stage 6 execution record](docs/STAGE-6-EXECUTION-RECORD-2026-10-18.md)
+adds a bounded native TXT/Markdown/CSV reader and staged structured verifier
+with source hashes, identities, locations, warnings and explicit partial
+results. It is a core subset only: it is not connected to the chat planner or
+contained parser worker, and no DOCX/PDF/PPTX/image/OCR/audio/video support is
+claimed. The existing parser binary and web-marker reader remain unavailable
+content routes.
 The [offline foundation implementation](docs/OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md)
 supersedes earlier live-capability claims for the current source. File privacy
 controls and offline refusals are implemented; legacy cleanup/purge and broad

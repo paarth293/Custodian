@@ -35,6 +35,31 @@ desktop acceptance status. The supported combinations are files/documents/images
 optionally selecting the largest. General app automation, content-based
 exclusions and multilingual execution remain unfinished; Laya stays inactive.
 
+The [Stage 4 foundation review](docs/STAGE-4-FOUNDATION-REVIEW-2026-10-18.md)
+records the current app-contract and admission work.
+The [supervised worker report](docs/STAGE-4-SUPERVISED-WORKER-2026-10-18.md)
+adds a one-shot native worker with authenticated IPC, enforced deadlines and
+bounded cleanup. The [persistent app privacy increment](docs/STAGE-4-APP-PRIVACY-2026-10-18.md)
+adds encrypted exclusions and desktop controls. The subsequent
+[real application implementation](docs/STAGE-4-REAL-APP-IMPLEMENTATION-2026-10-18.md)
+adds bound VS Code text editing, a supervised Excel adapter, verified publication,
+undo and encrypted recovery evidence. These are version-qualified, task-owned
+document workflows; general desktop observation remains disabled. Stage 4
+acceptance and installation status are recorded in that report.
+
+The [Stage 5 execution record](docs/STAGE-5-EXECUTION-RECORD-2026-10-18.md)
+records bounded batch manifests, ZIP creation/extraction, versioned backup and
+restore, and governed recycle core increments. These primitives have offline
+tests, but Stage 5 is not accepted: desktop routes, a qualified Windows
+Recycle Bin provider, and optimized crash/recovery/package evidence remain
+open.
+
+The [Stage 6 execution record](docs/STAGE-6-EXECUTION-RECORD-2026-10-18.md)
+records the bounded, offline TXT/Markdown/CSV content core and its typed
+provenance and verification contracts. DOCX, PDF, PPTX, image, OCR and
+audio/video capabilities remain unavailable until their workers, dependencies,
+assets and independent verifiers are qualified; Stage 6 is not accepted.
+
 See the [offline foundation report](docs/OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md)
 for baseline scope, paused capabilities and remaining gates.
 The [routine backup increment](docs/ROUTINE-BACKUP-IMPLEMENTATION-2026-10-17.md)
@@ -71,11 +96,13 @@ over HMAC-authenticated IPC frames (`custodian-ipc`).
 | Crate                | Purpose                                                         |
 | -------------------- | --------------------------------------------------------------- |
 | `custodian-core`     | Duplicate finder, safe quarantine with undo, supervisor         |
+| `custodian-core::content` | Bounded TXT/Markdown/CSV provenance, parsing and staged verification |
 | `custodian-engine`   | Approval verification, reversible operations, recovery, undo    |
 | `custodian-journal`  | File-system watcher, debouncer, CRC-checked write-ahead journal |
 | `custodian-ledger`   | Hash-chained, tamper-evident transaction ledger                 |
 | `custodian-ipc`      | Authenticated framing and per-role key matrix                   |
 | `custodian-winsec`   | `SafePath`, AppContainer, job objects, DPAPI                    |
+| `custodian-appworker` | Authenticated native probes and supervised, bound Excel sessions |
 | `custodian-digest`   | Streaming BLAKE3 file digests                                   |
 | `custodian-store`    | PostgreSQL persistence (transactions, pgvector, TimescaleDB)    |
 | `custodian-proto`    | Shared wire types                                               |

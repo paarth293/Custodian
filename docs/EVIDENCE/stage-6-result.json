@@ -1,0 +1,49 @@
+{
+  "stage": 6,
+  "status": "incomplete",
+  "stage4Accepted": false,
+  "stage5Accepted": false,
+  "verifiedCoreSubset": {
+    "module": "crates/custodian-core/src/content.rs",
+    "formats": ["txt", "markdown", "csv"],
+    "features": [
+      "typed provenance and source identity/hash",
+      "privacy-admitted local reads",
+      "64 MiB input bound",
+      "UTF-8 and UTF-16 decoding",
+      "newline detection and normalization",
+      "quoted/multiline CSV",
+      "typed CSV values and explicit conversion warnings",
+      "formula-like CSV values remain text",
+      "partial/malformed result status",
+      "create-new staged writes and structured reopen verification"
+    ]
+  },
+  "existingNarrowSubsets": {
+    "xlsx": "strict workbook/native Excel subset only",
+    "textEditor": "qualified VS Code task-owned bounded text workflow only"
+  },
+  "unsupported": [
+    "connected desktop content planner/reader route",
+    "contained read-only parser worker and packaged Stage 6 assets",
+    "DOCX",
+    "general PDF",
+    "PPTX",
+    "image transformation",
+    "OCR",
+    "audio/video conversion",
+    "transcription"
+  ],
+  "checks": {
+    "cargoTestCoreLocked": {"passed": 207, "failed": 0, "ignored": 2},
+    "cargoClippyCoreAllTargetsLockedDWarnings": "passed",
+    "cargoFmtWorkspaceCheck": "passed in current run"
+  },
+  "sourceHashes": {
+    "crates/custodian-core/src/content.rs": "496aa29656f61c08fd0d286db98c9deff1704de42a7730fb9099a5d38224ec23",
+    "crates/custodian-core/src/lib.rs": "bb324585101a4ed8f240f840f5f122987aa8b900bc489b704188e95cf2874d1f",
+    "docs/STAGE-6-EXECUTION-RECORD-2026-10-18.md": "844ca0b425d35700744f7b2a6209dec8b986ee9d34ca4c4b49e62417202b527a",
+    "docs/CAPABILITY-REGISTER.json": "0eacf13960384f7c8f512b71e13e6cf743a8b06512058a06f1e9eb76aa4c99a3"
+  },
+  "acceptanceClaim": "Stage 6 acceptance is not claimed; only the bounded TXT/Markdown/CSV core is verified."
+}
