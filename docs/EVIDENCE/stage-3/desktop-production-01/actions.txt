@@ -1,0 +1,48 @@
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Send : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Privacy and capabilities : ExpandCollapse
+Add location : Invoke
+Add location : Invoke
+Save privacy rules : Invoke
+Privacy and capabilities : ExpandCollapse
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Not now : Invoke
+Send : Invoke
+Move : Invoke
+Captured test descendant 25124 msedgewebview2.exe 2026-10-18T02:56:02.5321140Z
+Captured test descendant 33396 msedgewebview2.exe 2026-10-18T02:56:02.9128810Z
+Captured test descendant 36280 msedgewebview2.exe 2026-10-18T02:56:03.6064110Z
+Captured test descendant 31692 msedgewebview2.exe 2026-10-18T02:56:03.6077450Z
+Captured test descendant 35196 msedgewebview2.exe 2026-10-18T02:56:03.6999660Z
+Captured test descendant 19352 msedgewebview2.exe 2026-10-18T02:56:03.9600330Z
+Captured test descendant 1212 node.exe 2026-10-18T02:56:33.9415300Z
+Captured test descendant 25152 conhost.exe 2026-10-18T02:56:35.0236970Z
+Exited test descendant 33396
+Exited test descendant 36280
+Exited test descendant 31692
+Exited test descendant 35196
+Exited test descendant 19352
+Exited test descendant 1212
+Exited test descendant 25152

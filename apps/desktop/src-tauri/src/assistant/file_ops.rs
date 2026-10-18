@@ -76,7 +76,7 @@ fn resolve_source(
     })
 }
 
-fn store(app: &AppHandle) -> Result<FileTasks, String> {
+pub(super) fn store(app: &AppHandle) -> Result<FileTasks, String> {
     let dir = crate::paths::data_dir(app).map_err(|err| err.to_string())?;
     if history_ledger::check(&dir.join("ledger"))? != history_ledger::LedgerStatus::Intact {
         return Err(
@@ -158,7 +158,7 @@ fn perform_checked(
     if let Some(source) = &source {
         resources.push(source.clone());
     }
-    let (task_id, cancel) = match state.coordinator.create_task(
+    let (task_id, cancel) = match state.create_task(
         format!("{action:?}: {}", destination.display()),
         TaskState::Preparing,
         &resources,
@@ -333,7 +333,7 @@ pub(super) fn undo_latest_if_newer(
     if let Some(source) = &receipt.source {
         resources.push(source.clone());
     }
-    let (task_id, _) = match state.coordinator.create_task(
+    let (task_id, _) = match state.create_task(
         format!("Undo {}", receipt.destination.display()),
         TaskState::Running,
         &resources,

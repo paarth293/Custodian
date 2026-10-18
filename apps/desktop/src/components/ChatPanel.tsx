@@ -1,12 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ActionCard } from '../chat/events';
 import { call } from '../lib/tauri';
+import TaskBoard from './TaskBoard';
 
 export interface ActiveTask {
   id: string;
   description: string;
   state: string;
   progress?: string;
+  execution?: {
+    program: {
+      goal: string;
+      constraints: string[];
+      steps: { title: string; kind: string; capability?: string }[];
+    };
+    outputs: Record<string, { receipts: string[] }>;
+    skipped: number[];
+    in_flight: number | null;
+    pause_requested: boolean;
+    paused: boolean;
+    verified: boolean;
+    failure: { class: string; detail: string } | null;
+  };
 }
 
 export type Message = {
@@ -129,6 +144,16 @@ export default function ChatPanel({
     }
   };
 
+  const handlePauseTask = async (taskId: string, paused: boolean) => {
+    try {
+      await call('pause_task', { taskId, paused });
+      const list = await call<ActiveTask[]>('list_active_tasks');
+      if (list) setActiveTasks(list);
+    } catch (error) {
+      console.error('Could not change task pause state:', error);
+    }
+  };
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -187,33 +212,12 @@ export default function ChatPanel({
         <div ref={endOfMessagesRef} />
       </div>
 
-      {activeTasks.length > 0 && (
-        <aside className="active-tasks-board" aria-label="Background tasks">
-          <div className="active-tasks-header">Tasks ({activeTasks.length})</div>
-          <ul className="active-tasks-list">
-            {activeTasks.map((task) => (
-              <li key={task.id} className="active-task-item">
-                <span className="task-desc" title={task.description}>
-                  {task.description}
-                  {task.progress && <small>{task.progress}</small>}
-                </span>
-                {task.state === 'recovery-required' ? (
-                  <span role="status">Needs review before retrying</span>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn-cancel-task"
-                    onClick={() => void handleCancelTask(task.id)}
-                    aria-label={`Cancel ${task.description}`}
-                  >
-                    Cancel
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </aside>
-      )}
+      <TaskBoard
+        activeTasks={activeTasks}
+        onCancelTask={handleCancelTask}
+        onPauseTask={handlePauseTask}
+        onInspectWorkflow={() => onSendMessage('show workflow status')}
+      />
 
       <form
         className="chat-input-form"

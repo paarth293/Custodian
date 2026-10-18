@@ -35,6 +35,15 @@ pub enum AgentError {
 #[derive(Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 enum Request<'a> {
+    IntentPlan {
+        id: u64,
+        message: &'a str,
+    },
+    WorkflowPlan {
+        id: u64,
+        message: &'a str,
+        selection: custodian_core::workflow::Selection,
+    },
     Chat {
         id: u64,
         message: &'a str,
@@ -110,6 +119,10 @@ pub struct Connection<R: Read + Send + 'static, W: Write> {
     key: Vec<u8>,
     next_id: u64,
     _marker: std::marker::PhantomData<R>,
+}
+enum Planning {
+    Workflow(custodian_core::workflow::Selection),
+    Intent,
 }
 
 impl<R: Read + Send + 'static, W: Write> Connection<R, W> {
@@ -241,13 +254,40 @@ impl<R: Read + Send + 'static, W: Write> Connection<R, W> {
         on_text: &mut dyn FnMut(&str),
         on_tool: ToolHandler<'_>,
     ) -> Result<(), AgentError> {
+        self.exchange(message, cancel, on_text, on_tool, None)
+    }
+
+    fn exchange(
+        &mut self,
+        message: &str,
+        cancel: &AtomicBool,
+        on_text: &mut dyn FnMut(&str),
+        on_tool: ToolHandler<'_>,
+        planning: Option<Planning>,
+    ) -> Result<(), AgentError> {
         let id = self.next_id;
         self.next_id += 1;
-        write_frame(&mut self.writer, &Request::Chat { id, message }, &self.key)?;
+        let request = match planning {
+            Some(Planning::Workflow(selection)) => Request::WorkflowPlan {
+                id,
+                message,
+                selection,
+            },
+            Some(Planning::Intent) => Request::IntentPlan { id, message },
+            None => Request::Chat { id, message },
+        };
+        write_frame(&mut self.writer, &request, &self.key)?;
         let mut stopped = false;
         let mut cancel_sent_at: Option<std::time::Instant> = None;
         let mut last_activity = std::time::Instant::now();
+        let started = std::time::Instant::now();
         loop {
+            if matches!(request, Request::IntentPlan { .. })
+                && started.elapsed() > std::time::Duration::from_secs(90)
+            {
+                let _ = write_frame(&mut self.writer, &Request::Cancel { id }, &self.key);
+                return Err(AgentError::Timeout("intent planning total deadline".into()));
+            }
             if !stopped && cancel.load(Ordering::Relaxed) {
                 let _ = write_frame(&mut self.writer, &Request::Cancel { id }, &self.key);
                 stopped = true;
@@ -317,13 +357,14 @@ impl<R: Read + Send + 'static, W: Write> Connection<R, W> {
     }
 }
 
-/// Limits for the agent process: room for a small chat model and its
-/// context, below-normal priority so the desktop stays responsive, and no CPU
-/// cap, which would only slow replies down.
+/// Limits for the agent process: room for a small chat model and its context.
+/// Keep ordinary scheduling: below-normal priority can starve model file reads
+/// and module loading even before inference begins. CPU concurrency is bounded
+/// by the inference runtime; resource containment and deadlines remain separate.
 const AGENT_LIMITS: JobLimits = JobLimits {
     memory_mb: Some(4096),
     cpu_percent: None,
-    below_normal_priority: true,
+    below_normal_priority: false,
 };
 
 /// The agent's process, started normally or inside its sandbox.
@@ -545,6 +586,69 @@ impl AgentProcess {
             #[cfg(windows)]
             Runner::Contained(child) => matches!(child.try_wait(), Ok(None)),
         }
+    }
+
+    pub fn workflow_plan(
+        &mut self,
+        goal: &str,
+        selection: custodian_core::workflow::Selection,
+        cancel: &AtomicBool,
+    ) -> Result<custodian_core::workflow::Proposal, AgentError> {
+        let mut text = String::new();
+        let mut overflow = false;
+        let mut tool_attempt = false;
+        self.connection.exchange(
+            goal,
+            cancel,
+            &mut |chunk| {
+                if text.len() + chunk.len() <= 2048 {
+                    text.push_str(chunk);
+                } else {
+                    overflow = true;
+                }
+            },
+            &mut |_, _| {
+                tool_attempt = true;
+                "Tools are forbidden while planning".into()
+            },
+            Some(Planning::Workflow(selection)),
+        )?;
+        if overflow || tool_attempt || cancel.load(Ordering::Relaxed) {
+            return Err(AgentError::Model(
+                "Workflow proposal was stopped or invalid".into(),
+            ));
+        }
+        serde_json::from_str(&text)
+            .map_err(|_| AgentError::Model("Invalid workflow proposal; no task started".into()))
+    }
+
+    pub fn intent_plan(
+        &mut self,
+        message: &str,
+        cancel: &AtomicBool,
+    ) -> Result<custodian_core::intent_plan::IntentPlan, AgentError> {
+        let mut text = String::new();
+        let invalid = std::cell::Cell::new(false);
+        self.connection.exchange(
+            message,
+            cancel,
+            &mut |chunk| {
+                if text.len() + chunk.len() <= 4096 {
+                    text.push_str(chunk)
+                } else {
+                    invalid.set(true)
+                }
+            },
+            &mut |_, _| {
+                invalid.set(true);
+                "No tools during planning".into()
+            },
+            Some(Planning::Intent),
+        )?;
+        if invalid.get() || cancel.load(Ordering::Relaxed) {
+            return Err(AgentError::Model("Invalid or stopped intent plan".into()));
+        }
+        serde_json::from_str(&text).map_err(|_| AgentError::Model("Malformed intent plan".into()))
     }
 }
 

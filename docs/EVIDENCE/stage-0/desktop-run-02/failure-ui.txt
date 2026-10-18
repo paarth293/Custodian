@@ -1,0 +1,36 @@
+
+Custodian
+
+Custodian - Web content
+
+
+
+
+
+
+
+
+
+Custodian
+
+
+Cubby is sleeping
+Cubby
+Offline
+New conversation
+Close chat
+Privacy and capabilities
+Routine permissions
+Conversation
+You
+Collect documents from "C:\Users\paagu\.codex\visualizations\2026\10\16\01a142c7-c123-7122-873a-8f2707fc4063\desktop-acceptance-stage-0-02\custom-source" to "D:/Custodian/fixture/desktop-acceptance-stage-0-destination-02"
+Cubby
+Workflow not completed: The AI agent could not be started securely in its sandbox: agent operation timed out: agent ping timed out. Unrestricted child startup is refused. Deterministic tools remain available.. Nothing was copied for this request; earlier saved workflows are unchanged.
+Chat input
+Send
+
+Cubby. Click to talk, drag to move, right-click for options.
+Cubby is sleeping
+
+
+

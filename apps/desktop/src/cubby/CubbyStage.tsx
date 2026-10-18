@@ -32,6 +32,13 @@ const CubbyStage = forwardRef<HTMLDivElement, CubbyStageProps>(function CubbySta
   const press = useRef<{ x: number; y: number; dragging: boolean } | null>(null);
   const clickTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
+  const activate = () => {
+    clearTimeout(clickTimer.current);
+    clickTimer.current = undefined;
+    press.current = null;
+    onClick();
+  };
+
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     press.current = { x: e.clientX, y: e.clientY, dragging: false };
@@ -75,8 +82,16 @@ const CubbyStage = forwardRef<HTMLDivElement, CubbyStageProps>(function CubbySta
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={() => (press.current = null)}
+        onClick={(event) => {
+          // Accessibility/default-action clicks have no pointer click count.
+          // Physical pointer clicks already use the gesture timer above.
+          if (event.detail === 0) activate();
+        }}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') onClick();
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            activate();
+          }
         }}
         onContextMenu={(e) => {
           e.preventDefault();

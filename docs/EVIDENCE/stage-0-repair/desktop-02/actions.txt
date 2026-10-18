@@ -1,0 +1,94 @@
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Privacy and capabilities : ExpandCollapse
+Add location : Invoke
+Add location : Invoke
+Save privacy rules : Invoke
+Privacy and capabilities : ExpandCollapse
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Not now : Invoke
+Send : Invoke
+Move : Invoke
+Captured test child 23756 msedgewebview2
+Captured test child 20828 node
+Exited test child 23756
+Exited test child 20828
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Send : Invoke
+Send : Invoke
+Routine permissions : Expand
+Save routine permissions : Invoke
+Routine permissions : Collapse
+Send : Invoke
+Send : Invoke
+Captured test child 29476 msedgewebview2
+Captured test child 24224 node
+Exited test child 29476
+Exited test child 24224
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Stop current work : Invoke
+Send : Invoke
+Routine permissions : Expand
+Save routine permissions : Invoke
+Routine permissions : Collapse
+Send : Invoke
+Send : Invoke
+Routine permissions : Expand
+Save routine permissions : Invoke
+Routine permissions : Collapse
+Send : Invoke
+Send : Invoke
+Captured test child 25104 msedgewebview2
+Captured test child 35136 node
+Exited test child 25104
+Exited test child 35136
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Show workflow status : Invoke
+Routine permissions : Expand
+Undo workflow : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Routine permissions : Expand
+Save routine permissions : Invoke
+Routine permissions : Collapse
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Captured test child 35972 msedgewebview2
+Captured test child 20452 node
+Exited test child 35972
+Exited test child 20452

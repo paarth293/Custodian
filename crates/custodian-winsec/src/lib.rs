@@ -10,6 +10,7 @@ pub mod apps;
 pub mod dialog;
 pub mod dpapi;
 pub mod fsops;
+pub mod guarded_copy;
 pub mod hello;
 pub mod job;
 pub mod power;

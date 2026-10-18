@@ -1,0 +1,1 @@
+Rejected development-mode executable SHA256: 6DACB59D632857012E0F83225813E2D30D5B9081B9688C31203EE6E699253C5F. Plain cargo release build omitted tauri/custom-protocol; live UI showed localhost ERR_CONNECTION_REFUSED before app checks. This executable is not accepted or deliverable.

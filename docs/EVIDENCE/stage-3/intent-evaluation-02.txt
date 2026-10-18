@@ -1,0 +1,9 @@
+[agent] model integrity verified (1.4s)
+[agent] model runtime imported (3.4s)
+[node-llama-cpp] load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+[agent] qwen2.5-1.5b-instruct-q4_k_m.gguf on the CPU, 4096 tokens of context
+[agent] model ready (9.0s)
+p01: FAIL 10100ms "Error: Invalid native selection"
+p02: FAIL 8156ms "Error: Invalid native selection"
+p03: FAIL 8834ms "Error: Invalid native selection"
+p04: FAIL 8640ms "Error: Invalid native selection"

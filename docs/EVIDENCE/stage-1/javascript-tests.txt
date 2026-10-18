@@ -1,0 +1,47 @@
+
+> test
+> npm run test --workspaces --if-present
+
+
+> @custodian/desktop@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 D:/Custodian/apps/desktop
+
+
+ Test Files  3 passed (3)
+      Tests  24 passed (24)
+   Start at  01:46:55
+   Duration  6.60s (import 52%, transform 32%, worker 13%, tests 3%)
+
+  Transform  transforming modules took 2.04s · 32% of tracked time, re-done on every run
+             persist transforms across runs with fsModuleCache: true
+             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns
+
+
+> @custodian/agent@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 D:/Custodian/services/agent
+
+
+ Test Files  9 passed (9)
+      Tests  100 passed (100)
+   Start at  01:47:07
+   Duration  8.91s (import 55%, tests 23%, transform 21%, worker 1%)
+
+
+> @custodian/broker@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 D:/Custodian/services/broker
+
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  01:47:19
+   Duration  1.76s (transform 57%, import 38%, tests 3%, worker 2%)
+

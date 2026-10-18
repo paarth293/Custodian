@@ -1,0 +1,47 @@
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Send : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Privacy and capabilities : ExpandCollapse
+Add location : Invoke
+Add location : Invoke
+Save privacy rules : Invoke
+Privacy and capabilities : ExpandCollapse
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Not now : Invoke
+Send : Invoke
+Move : Invoke
+Captured test descendant 26444 msedgewebview2.exe 2026-10-18T02:58:50.6301620Z
+Captured test descendant 26948 msedgewebview2.exe 2026-10-18T02:58:50.7431810Z
+Captured test descendant 33240 msedgewebview2.exe 2026-10-18T02:58:51.2639010Z
+Captured test descendant 5736 msedgewebview2.exe 2026-10-18T02:58:51.2718690Z
+Captured test descendant 26212 msedgewebview2.exe 2026-10-18T02:58:51.5321600Z
+Captured test descendant 28400 msedgewebview2.exe 2026-10-18T02:58:51.6455950Z
+Captured test descendant 6572 node.exe 2026-10-18T02:58:58.2039710Z
+Captured test descendant 33548 conhost.exe 2026-10-18T02:58:58.9824690Z
+Exited test descendant 26948
+Exited test descendant 33240
+Exited test descendant 5736
+Exited test descendant 26212
+Exited test descendant 6572
+Exited test descendant 33548

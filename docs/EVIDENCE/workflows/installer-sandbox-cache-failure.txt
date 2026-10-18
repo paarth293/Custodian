@@ -1,0 +1,5 @@
+        Warn Skipping binary patching for D:\Custodian\target\release\custodian-desktop.exe due to --no-binary-patching flag.
+        Info Verifying NSIS package
+ Downloading https://github.com/tauri-apps/binary-releases/releases/download/nsis-3.11/nsis-3.11.zip
+failed to bundle project: `io: No such host is known. (os error 11001)`
+       Error failed to bundle project: `io: No such host is known. (os error 11001)`

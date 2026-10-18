@@ -1,0 +1,1 @@
+PASS: 313 snapshot members decode to their recorded bytes and hashes and match the current selected dirty source.

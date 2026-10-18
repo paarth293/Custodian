@@ -40,6 +40,42 @@ describe('FrameReader', () => {
 });
 
 describe('createHandler', () => {
+  it('keeps structured interpretation separate from chat tools and supports cancellation', async () => {
+    const replies: Reply[] = [];
+    let calls = 0;
+    const engine: ChatEngine = {
+      chat: async () => {
+        throw Error('Chat must not be used');
+      },
+      planIntent: async (_goal, signal) => {
+        calls++;
+        await new Promise<void>((resolve) =>
+          signal?.addEventListener('abort', () => resolve(), { once: true }),
+        );
+        return {
+          decision: 'clarify',
+          filter: 'any',
+          largest: false,
+          source: 0,
+          destination: 1,
+          nodes: [],
+          completion: 'all_copies_verified',
+        };
+      },
+    };
+    const handle = createHandler(engine, 'n/a', (r) => replies.push(r));
+    const pending = handle({
+      type: 'intent_plan',
+      id: 500,
+      message: 'Copy documents from LOCATION_0 to LOCATION_1',
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await handle({ type: 'cancel', id: 500 });
+    await pending;
+    expect(calls).toBe(1);
+    expect(replies.some((r) => r.type === 'tool' || r.type === 'token')).toBe(false);
+    expect(replies).toContainEqual({ type: 'done', id: 500 });
+  });
   const fakeEngine: ChatEngine = {
     async chat(message, onText) {
       onText('You said: ');

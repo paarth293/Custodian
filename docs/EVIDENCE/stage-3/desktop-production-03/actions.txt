@@ -1,0 +1,177 @@
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Send : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Routine permissions : Collapse
+Privacy and capabilities : ExpandCollapse
+Add location : Invoke
+Add location : Invoke
+Save privacy rules : Invoke
+Privacy and capabilities : ExpandCollapse
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Not now : Invoke
+Send : Invoke
+Move : Invoke
+Captured test descendant 20632 msedgewebview2.exe 2026-10-18T03:03:09.9633830Z
+Captured test descendant 17308 msedgewebview2.exe 2026-10-18T03:03:10.5492810Z
+Captured test descendant 22192 msedgewebview2.exe 2026-10-18T03:03:11.0651240Z
+Captured test descendant 26576 msedgewebview2.exe 2026-10-18T03:03:11.3105380Z
+Captured test descendant 29124 msedgewebview2.exe 2026-10-18T03:03:11.3396380Z
+Captured test descendant 24716 msedgewebview2.exe 2026-10-18T03:03:11.4417710Z
+Captured test descendant 35520 node.exe 2026-10-18T03:03:17.6113900Z
+Captured test descendant 34732 conhost.exe 2026-10-18T03:03:17.9876800Z
+Exited test descendant 20632
+Exited test descendant 17308
+Exited test descendant 22192
+Exited test descendant 26576
+Exited test descendant 29124
+Exited test descendant 24716
+Exited test descendant 35520
+Exited test descendant 34732
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Send : Invoke
+Send : Invoke
+Routine permissions : Expand
+Save routine permissions : Invoke
+Routine permissions : Collapse
+Send : Invoke
+Send : Invoke
+Captured test descendant 29772 msedgewebview2.exe 2026-10-18T03:03:53.1782850Z
+Captured test descendant 19652 msedgewebview2.exe 2026-10-18T03:03:53.4288100Z
+Captured test descendant 6512 msedgewebview2.exe 2026-10-18T03:03:53.8472500Z
+Captured test descendant 28880 msedgewebview2.exe 2026-10-18T03:03:53.8487680Z
+Captured test descendant 3516 msedgewebview2.exe 2026-10-18T03:03:54.1411640Z
+Captured test descendant 34148 msedgewebview2.exe 2026-10-18T03:03:54.5347250Z
+Captured test descendant 22044 node.exe 2026-10-18T03:03:57.4710870Z
+Captured test descendant 1200 conhost.exe 2026-10-18T03:03:57.6607050Z
+Exited test descendant 29772
+Exited test descendant 19652
+Exited test descendant 6512
+Exited test descendant 28880
+Exited test descendant 3516
+Exited test descendant 34148
+Exited test descendant 22044
+Exited test descendant 1200
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Routine permissions : Expand
+Save routine permissions : Invoke
+Routine permissions : Collapse
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Captured test descendant 31900 msedgewebview2.exe 2026-10-18T03:04:13.4257610Z
+Captured test descendant 3788 msedgewebview2.exe 2026-10-18T03:04:13.6287110Z
+Captured test descendant 596 msedgewebview2.exe 2026-10-18T03:04:14.1732490Z
+Captured test descendant 30952 msedgewebview2.exe 2026-10-18T03:04:14.1743970Z
+Captured test descendant 10412 msedgewebview2.exe 2026-10-18T03:04:14.2121650Z
+Captured test descendant 8980 msedgewebview2.exe 2026-10-18T03:04:14.5155620Z
+Captured test descendant 10456 node.exe 2026-10-18T03:04:23.8378980Z
+Captured test descendant 19532 conhost.exe 2026-10-18T03:04:23.9838360Z
+Exited test descendant 31900
+Exited test descendant 3788
+Exited test descendant 596
+Exited test descendant 30952
+Exited test descendant 10412
+Exited test descendant 8980
+Exited test descendant 10456
+Exited test descendant 19532
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Send : Invoke
+Routine permissions : Expand
+Save routine permissions : Invoke
+Routine permissions : Collapse
+Send : Invoke
+Send : Invoke
+Stop current work : Invoke
+Send : Invoke
+Routine permissions : Expand
+Save routine permissions : Invoke
+Routine permissions : Collapse
+Send : Invoke
+Send : Invoke
+Routine permissions : Expand
+Save routine permissions : Invoke
+Routine permissions : Collapse
+Send : Invoke
+Execution evidence · 3 of 3 steps recorded : ExpandCollapse
+Inspect latest collection : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Captured test descendant 6916 msedgewebview2.exe 2026-10-18T03:04:34.8055200Z
+Captured test descendant 552 msedgewebview2.exe 2026-10-18T03:04:35.0811700Z
+Captured test descendant 29116 msedgewebview2.exe 2026-10-18T03:04:36.0959550Z
+Captured test descendant 22832 msedgewebview2.exe 2026-10-18T03:04:36.2826630Z
+Captured test descendant 30740 msedgewebview2.exe 2026-10-18T03:04:36.3090930Z
+Captured test descendant 36536 msedgewebview2.exe 2026-10-18T03:04:36.3180940Z
+Captured test descendant 34028 node.exe 2026-10-18T03:04:52.0346110Z
+Captured test descendant 26972 conhost.exe 2026-10-18T03:04:52.2169470Z
+Exited test descendant 6916
+Exited test descendant 552
+Exited test descendant 29116
+Exited test descendant 22832
+Exited test descendant 30740
+Exited test descendant 36536
+Exited test descendant 34028
+Exited test descendant 26972
+Cubby. Click to talk, drag to move, right-click for options. : Invoke
+Routine permissions : Expand
+Show workflow status : Invoke
+Routine permissions : Expand
+Undo workflow : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Routine permissions : Expand
+Save routine permissions : Invoke
+Routine permissions : Collapse
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Send : Invoke
+Stop current work : Invoke
+Captured test descendant 20552 msedgewebview2.exe 2026-10-18T03:06:29.2485560Z
+Captured test descendant 5740 msedgewebview2.exe 2026-10-18T03:06:29.5144630Z
+Captured test descendant 24672 msedgewebview2.exe 2026-10-18T03:06:30.1283370Z
+Captured test descendant 27056 msedgewebview2.exe 2026-10-18T03:06:30.1306920Z
+Captured test descendant 4736 msedgewebview2.exe 2026-10-18T03:06:30.6752950Z
+Captured test descendant 10232 msedgewebview2.exe 2026-10-18T03:06:30.8702300Z
+Captured test descendant 33208 node.exe 2026-10-18T03:06:39.3919630Z
+Captured test descendant 26072 conhost.exe 2026-10-18T03:06:39.5146070Z
+Exited test descendant 20552
+Exited test descendant 5740
+Exited test descendant 24672
+Exited test descendant 27056
+Exited test descendant 4736
+Exited test descendant 10232
+Exited test descendant 33208
+Exited test descendant 26072

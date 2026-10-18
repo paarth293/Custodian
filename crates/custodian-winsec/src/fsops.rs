@@ -14,6 +14,40 @@ pub struct FileIdentity {
     pub index: u64,
 }
 
+#[cfg(windows)]
+#[allow(unsafe_code)]
+pub fn available_bytes(directory: &Path) -> io::Result<u64> {
+    use std::os::windows::ffi::OsStrExt;
+    let mut wide: Vec<u16> = directory.as_os_str().encode_wide().collect();
+    if wide.last() != Some(&(b'\\' as u16)) {
+        wide.push(b'\\' as u16);
+    }
+    wide.push(0);
+    let mut available = 0u64;
+    // SAFETY: terminated UTF-16 input and writable u64 output live through the call;
+    // the two optional total-capacity output pointers may be null.
+    if unsafe {
+        windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW(
+            wide.as_ptr(),
+            &mut available,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+        )
+    } == 0
+    {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(available)
+}
+
+#[cfg(not(windows))]
+pub fn available_bytes(_directory: &Path) -> io::Result<u64> {
+    Err(io::Error::new(
+        io::ErrorKind::Unsupported,
+        "backup capacity checks require Windows",
+    ))
+}
+
 /// Security-only metadata query; no file contents are read.
 #[cfg(windows)]
 #[allow(unsafe_code)]

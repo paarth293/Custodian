@@ -1,0 +1,181 @@
+{
+  "caseSha256": "00cf566d68b45394c303ebcfc9b1937b130008233e43c64e855ddba9825deac3",
+  "modelSha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+  "model": "models\\qwen2.5-1.5b-instruct-q4_k_m.gguf",
+  "loadMs": 9267.453300000001,
+  "condition": "Native unsupported-constraint guard plus actual Qwen interpretation, no native selection contract supplied. Synthetic authored regression, not independent evaluation or execution evidence.",
+  "rows": [
+    {
+      "id": "p01",
+      "split": "development",
+      "message": "Collect documents from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_documents",
+            "after": 0
+          },
+          {
+            "op": "select_all",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 30658
+    },
+    {
+      "id": "p02",
+      "split": "development",
+      "message": "Gather photos from LOCATION_0 into LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "select_all",
+            "after": 0
+          },
+          {
+            "op": "copy",
+            "after": 1
+          },
+          {
+            "op": "verify",
+            "after": 2
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": false,
+      "elapsedMs": 27949
+    },
+    {
+      "id": "p03",
+      "split": "development",
+      "message": "Copy the biggest file from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "select_all",
+            "after": 0
+          },
+          {
+            "op": "copy",
+            "after": 1
+          },
+          {
+            "op": "verify",
+            "after": 2
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": false,
+      "elapsedMs": 25409
+    },
+    {
+      "id": "p04",
+      "split": "development",
+      "message": "Back up the largest document in LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_documents",
+            "after": 0
+          },
+          {
+            "op": "select_all",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": false,
+      "elapsedMs": 31898
+    }
+  ]
+}

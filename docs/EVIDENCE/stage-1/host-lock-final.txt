@@ -1,0 +1,13 @@
+   Compiling custodian-winsec v0.1.0 (D:\Custodian\crates\custodian-winsec)
+   Compiling custodian-approval v0.1.0 (D:\Custodian\crates\custodian-approval)
+   Compiling custodian-core v0.1.0 (D:\Custodian\crates\custodian-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 23.73s
+     Running unittests src\lib.rs (target\debug\deps\custodian_core-a3fc6586b0b9759e.exe)
+
+running 3 tests
+test instance::tests::lock_owner_child ... ok
+test instance::tests::linked_lock_file_is_rejected_before_state_can_be_loaded ... ok
+test instance::tests::second_process_is_excluded_and_killed_owner_releases_authority ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 99 filtered out; finished in 0.14s
+

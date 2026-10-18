@@ -6,6 +6,7 @@ import './App.css';
 import ApprovalView from './components/ApprovalView';
 import ChatPanel, { Message } from './components/ChatPanel';
 import PrivacyControls from './components/PrivacyControls';
+import RoutineControls from './components/RoutineControls';
 import { appendReply, bubbleText, decideCard, type ChatEvent } from './chat/events';
 import { updateWork, type ConversationWork } from './chat/work';
 import CubbyCharacter from './cubby/CubbyCharacter';
@@ -354,6 +355,14 @@ function App() {
             </button>
           </header>
           <PrivacyControls
+            onChanged={() => {
+              conversationGeneration.current++;
+              setMessages([]);
+              setWork((previous) => updateWork(previous, { kind: 'reset' }));
+            }}
+          />
+          <RoutineControls
+            onRequest={(text) => void handleSendMessage(text)}
             onChanged={() => {
               conversationGeneration.current++;
               setMessages([]);

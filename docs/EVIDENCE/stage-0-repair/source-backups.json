@@ -1,0 +1,14 @@
+[
+  {
+    "label": "before",
+    "path": "C:/Users/paagu/.codex/visualizations/2026/10/16/01a142c7-c123-7122-873a-8f2707fc4063/stage0-before-source-snapshot.json",
+    "sha256": "44b3888afc5f02bc2466eb6ed46d39d92b2f034d66feeeb28dbd8a416b109b49",
+    "files": 313
+  },
+  {
+    "label": "repaired",
+    "path": "C:/Users/paagu/.codex/visualizations/2026/10/16/01a142c7-c123-7122-873a-8f2707fc4063/stage0-repaired-source-snapshot.json",
+    "sha256": "7f36e0f7b6d3a0b5ced066fd89d5780ffb6af35f73a1ace09e7b14f14b1f566b",
+    "files": 314
+  }
+]

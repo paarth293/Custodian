@@ -1,0 +1,57 @@
+   Compiling custodian-core v0.1.0 (D:\Custodian\crates\custodian-core)
+   Compiling custodian-desktop v0.1.0 (D:\Custodian\apps\desktop\src-tauri)
+error[E0433]: cannot find module or crate `fs` in this scope
+  --> apps\desktop\src-tauri\src\assistant\language.rs:76:9
+   |
+76 |         fs::create_dir(&a).unwrap();
+   |         ^^ use of unresolved module or unlinked crate `fs`
+   |
+   = help: if you wanted to use a crate named `fs`, use `cargo add fs` to add it to your `Cargo.toml`
+   = note: module `crate::assistant::tasks::tests::fs` exists but is inaccessible
+help: consider importing this module
+   |
+70 +     use std::fs;
+   |
+
+error[E0433]: cannot find module or crate `fs` in this scope
+  --> apps\desktop\src-tauri\src\assistant\language.rs:77:9
+   |
+77 |         fs::create_dir(&b).unwrap();
+   |         ^^ use of unresolved module or unlinked crate `fs`
+   |
+   = help: if you wanted to use a crate named `fs`, use `cargo add fs` to add it to your `Cargo.toml`
+   = note: module `crate::assistant::tasks::tests::fs` exists but is inaccessible
+help: consider importing this module
+   |
+70 +     use std::fs;
+   |
+
+error[E0433]: cannot find module or crate `fs` in this scope
+  --> apps\desktop\src-tauri\src\assistant\language.rs:87:9
+   |
+87 |         fs::rename(&a, root.path().join("old")).unwrap();
+   |         ^^ use of unresolved module or unlinked crate `fs`
+   |
+   = help: if you wanted to use a crate named `fs`, use `cargo add fs` to add it to your `Cargo.toml`
+   = note: module `crate::assistant::tasks::tests::fs` exists but is inaccessible
+help: consider importing this module
+   |
+70 +     use std::fs;
+   |
+
+error[E0433]: cannot find module or crate `fs` in this scope
+  --> apps\desktop\src-tauri\src\assistant\language.rs:88:9
+   |
+88 |         fs::create_dir(&a).unwrap();
+   |         ^^ use of unresolved module or unlinked crate `fs`
+   |
+   = help: if you wanted to use a crate named `fs`, use `cargo add fs` to add it to your `Cargo.toml`
+   = note: module `crate::assistant::tasks::tests::fs` exists but is inaccessible
+help: consider importing this module
+   |
+70 +     use std::fs;
+   |
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `custodian-desktop` (lib test) due to 4 previous errors
+warning: build failed, waiting for other jobs to finish...

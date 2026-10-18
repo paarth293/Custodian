@@ -1,0 +1,284 @@
+{
+  "model": "models\\qwen2.5-1.5b-instruct-q4_k_m.gguf",
+  "modelSha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+  "note": "Author-written synthetic cases, not independent external evaluation. Held-out wording frozen before the first run.",
+  "cases": [
+    {
+      "id": "dev-documents",
+      "split": "development",
+      "goal": "Collect documents from SOURCE to DESTINATION",
+      "expected": [
+        "discover",
+        "filter_documents",
+        "select_all",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_documents",
+          "select_all",
+          "select_all",
+          "select_all"
+        ]
+      },
+      "passed": false,
+      "elapsedMs": 10190
+    },
+    {
+      "id": "dev-images",
+      "split": "development",
+      "goal": "Gather photos from SOURCE to DESTINATION",
+      "expected": [
+        "discover",
+        "filter_images",
+        "select_all",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_images",
+          "select_all",
+          "select_all",
+          "select_all"
+        ]
+      },
+      "passed": false,
+      "elapsedMs": 13896
+    },
+    {
+      "id": "dev-largest",
+      "split": "development",
+      "goal": "Copy the largest file from SOURCE to DESTINATION",
+      "expected": [
+        "discover",
+        "select_largest",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "select_largest",
+          "verify",
+          "copy"
+        ]
+      },
+      "passed": false,
+      "elapsedMs": 6123
+    },
+    {
+      "id": "dev-largest-document",
+      "split": "development",
+      "goal": "Copy the largest document from SOURCE to DESTINATION",
+      "expected": [
+        "discover",
+        "filter_documents",
+        "select_largest",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_documents",
+          "select_largest",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": true,
+      "elapsedMs": 21131
+    },
+    {
+      "id": "dev-largest-image",
+      "split": "development",
+      "goal": "Collect the biggest picture in SOURCE to DESTINATION",
+      "expected": [
+        "discover",
+        "filter_images",
+        "select_largest",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_images",
+          "select_largest",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": true,
+      "elapsedMs": 14353
+    },
+    {
+      "id": "dev-backup",
+      "split": "development",
+      "goal": "Backup docs from SOURCE into DESTINATION",
+      "expected": [
+        "discover",
+        "filter_documents",
+        "select_all",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_documents",
+          "select_all",
+          "verify",
+          "copy"
+        ]
+      },
+      "passed": false,
+      "elapsedMs": 15381
+    },
+    {
+      "id": "heldout-documents",
+      "split": "held-out",
+      "goal": "Could you gather all my documents in SOURCE into DESTINATION",
+      "expected": [
+        "discover",
+        "filter_documents",
+        "select_all",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_documents",
+          "select_all",
+          "verify",
+          "copy"
+        ]
+      },
+      "passed": false,
+      "elapsedMs": 5699
+    },
+    {
+      "id": "heldout-images",
+      "split": "held-out",
+      "goal": "Please backup my images from SOURCE to DESTINATION",
+      "expected": [
+        "discover",
+        "filter_images",
+        "select_all",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_images",
+          "select_all",
+          "select_all",
+          "select_all"
+        ]
+      },
+      "passed": false,
+      "elapsedMs": 8473
+    },
+    {
+      "id": "heldout-largest",
+      "split": "held-out",
+      "goal": "Can you collect the biggest file in SOURCE into DESTINATION",
+      "expected": [
+        "discover",
+        "select_largest",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "select_largest",
+          "verify",
+          "copy"
+        ]
+      },
+      "passed": false,
+      "elapsedMs": 7223
+    },
+    {
+      "id": "heldout-largest-document",
+      "split": "held-out",
+      "goal": "Please gather my biggest document from SOURCE into DESTINATION",
+      "expected": [
+        "discover",
+        "filter_documents",
+        "select_largest",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_documents",
+          "select_largest",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": true,
+      "elapsedMs": 6845
+    },
+    {
+      "id": "heldout-largest-image",
+      "split": "held-out",
+      "goal": "Could you copy the largest photo in SOURCE to DESTINATION",
+      "expected": [
+        "discover",
+        "filter_images",
+        "select_largest",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_images",
+          "select_largest",
+          "verify",
+          "copy"
+        ]
+      },
+      "passed": false,
+      "elapsedMs": 7195
+    },
+    {
+      "id": "heldout-docs",
+      "split": "held-out",
+      "goal": "Can you copy all my docs from SOURCE into DESTINATION",
+      "expected": [
+        "discover",
+        "filter_documents",
+        "select_all",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_documents",
+          "select_all",
+          "select_all",
+          "select_all"
+        ]
+      },
+      "passed": false,
+      "elapsedMs": 6453
+    }
+  ],
+  "warmupMs": 32600,
+  "nativeSelectionContractProvided": true,
+  "condition": "Constrained plan assembly with the authoritative native selection contract. Previously evaluated wording is reused as regression evidence, not an unseen-language accuracy score.",
+  "passed": 3,
+  "total": 12
+}

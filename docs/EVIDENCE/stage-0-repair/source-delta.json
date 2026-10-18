@@ -1,0 +1,7 @@
+{
+  "changedBaselineMembers": [
+    "apps/desktop/src-tauri/src/agent.rs",
+    "scripts/stage-zero.mjs"
+  ],
+  "addedDiagnostic": "services/agent/eval/runtime-startup.mjs"
+}

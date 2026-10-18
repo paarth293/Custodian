@@ -1,0 +1,54 @@
+{
+  "stage": 3,
+  "stageAcceptance": "passed for the declared registered file-language increment",
+  "nativeTestsPassed": 383,
+  "nativeTestsIgnored": 5,
+  "javascriptTestsPassed": 138,
+  "strictClippy": "passed",
+  "frontendLint": "passed",
+  "frontendBuild": "passed",
+  "supportedIntentCasesPassed": 24,
+  "negativeIntentCasesBlocked": 12,
+  "sourceDestinationRoleErrors": 0,
+  "warmIntentP95Ms": 11272,
+  "actualModelToNativeFileExecutions": 24,
+  "actualModelToNativeUndoChecks": 24,
+  "isolatedRuntimeSandbox": "passed",
+  "developmentDesktopChecks": 29,
+  "developmentDesktopExitCode": null,
+  "optimizedDesktopChecks": 29,
+  "optimizedDesktopExitCode": 0,
+  "nativeSha256": "1841cb92fc7d0c7e7948d3572b858e1595097003a84be5f91903c523b79889ad",
+  "appAdapter": "mock fixture only; no real app control enabled",
+  "laya": "inactive; historical paired replay only, activation gates not met",
+  "allFutureCasesExecuted": false,
+  "nextStageStarted": false,
+  "installerStage": 0,
+  "installerIncludesStage3": false,
+  "installationAccepted": false,
+  "fullProductAccepted": false,
+  "capturedAtUtc": "2026-10-18T03:09:36.543722+00:00",
+  "priorFailedDesktopRuns": [
+    {
+      "evidence": "docs/EVIDENCE/stage-3/desktop-production-01.txt",
+      "exitCode": 1,
+      "completedChecks": 8,
+      "reason": "Captured WebView cleanup timeout; not accepted"
+    },
+    {
+      "evidence": "docs/EVIDENCE/stage-3/desktop-production-02.txt",
+      "exitCode": 1,
+      "completedChecks": 8,
+      "reason": "Captured WebView cleanup timeout; not accepted"
+    }
+  ],
+  "sourceSnapshotVerified": true,
+  "selectedSourceFiles": 330,
+  "selectedSourceBytes": 2248795,
+  "sourceSnapshot": {
+    "path": "target/stage-0/stage-3-accepted-source-snapshot.json",
+    "sha256": "c9988443209ad50760c7c400c52b38c857e9e3efa07642efb08033739eb49699"
+  },
+  "acceptanceSha256": "20d15ee73ce2b261a4905fd303776cdc7682f158f72686fe84a015e5cbc1d281",
+  "authoredFutureAcceptanceCases": 15
+}

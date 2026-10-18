@@ -1,0 +1,61 @@
+{
+  "caseSha256": "00cf566d68b45394c303ebcfc9b1937b130008233e43c64e855ddba9825deac3",
+  "modelSha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+  "model": "models\\qwen2.5-1.5b-instruct-q4_k_m.gguf",
+  "loadMs": 33052.815,
+  "condition": "Native unsupported-constraint guard plus actual Qwen interpretation, no native selection contract supplied. Synthetic authored regression, not independent evaluation or execution evidence.",
+  "rows": [
+    {
+      "id": "p01",
+      "split": "development",
+      "message": "Collect documents from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "unavailable",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "copy",
+            "after": -1
+          },
+          {
+            "op": "copy",
+            "after": 0
+          },
+          {
+            "op": "copy",
+            "after": 1
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": false,
+      "elapsedMs": 59415
+    },
+    {
+      "id": "p02",
+      "split": "development",
+      "message": "Gather photos from LOCATION_0 into LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "error": "Error: Intent planning stopped",
+      "passed": false,
+      "elapsedMs": 60018
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+   Compiling custodian-desktop v0.1.0 (D:\Custodian\apps\desktop\src-tauri)
+    Finished `release` profile [optimized] target(s) in 5m 48s

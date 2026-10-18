@@ -1,0 +1,398 @@
+{
+  "version": 1,
+  "note": "Author-written synthetic, frozen before implementation; not independent unseen evaluation. Agent inputs use native location IDs, never actual path text.",
+  "gates": {
+    "positive_correct_minimum": 22,
+    "positive_total": 24,
+    "negative_execution_maximum": 0,
+    "warm_p95_ms_maximum": 30000,
+    "per_request_deadline_ms": 60000,
+    "repair_attempts_maximum": 2
+  },
+  "cases": [
+    {
+      "id": "p01",
+      "split": "development",
+      "message": "Collect documents from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p02",
+      "split": "development",
+      "message": "Gather photos from LOCATION_0 into LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p03",
+      "split": "development",
+      "message": "Copy the biggest file from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p04",
+      "split": "development",
+      "message": "Back up the largest document in LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p05",
+      "split": "development",
+      "message": "Save a copy of the largest photo in LOCATION_0 into LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p06",
+      "split": "development",
+      "message": "Copy all files from LOCATION_0 into LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p07",
+      "split": "development",
+      "message": "Please back up my paperwork in LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p08",
+      "split": "development",
+      "message": "Make copies of the pictures in LOCATION_0 in LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p09",
+      "split": "reserved-regression",
+      "message": "Put copies of my documents from LOCATION_0 in LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p10",
+      "split": "reserved-regression",
+      "message": "I need a backup of the images in LOCATION_0 at LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p11",
+      "split": "reserved-regression",
+      "message": "Duplicate the docs in LOCATION_0 into LOCATION_1; keep the originals",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p12",
+      "split": "reserved-regression",
+      "message": "Could you preserve the photos in LOCATION_0 by copying them to LOCATION_1?",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p13",
+      "split": "reserved-regression",
+      "message": "From LOCATION_0, take a copy of the biggest document to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p14",
+      "split": "reserved-regression",
+      "message": "Send a local copy of the biggest picture in LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p15",
+      "split": "reserved-regression",
+      "message": "Back up everything in LOCATION_0 into LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p16",
+      "split": "reserved-regression",
+      "message": "To LOCATION_0, copy the documents from LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 1,
+        "destination": 0
+      }
+    },
+    {
+      "id": "p17",
+      "split": "reserved-regression",
+      "message": "In LOCATION_0 put copies of the photos from LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 1,
+        "destination": 0
+      }
+    },
+    {
+      "id": "p18",
+      "split": "reserved-regression",
+      "message": "Please duplicate the biggest file in LOCATION_0 into LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p19",
+      "split": "reserved-regression",
+      "message": "Can you gather all docs from LOCATION_0 into LOCATION_1?",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p20",
+      "split": "reserved-regression",
+      "message": "Create a local backup of the pictures stored in LOCATION_0 at LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p21",
+      "split": "reserved-regression",
+      "message": "I want copies of all documents in LOCATION_0 in LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p22",
+      "split": "reserved-regression",
+      "message": "Copy the largest image from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p23",
+      "split": "reserved-regression",
+      "message": "Make a backup of the biggest document in LOCATION_0 at LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "p24",
+      "split": "reserved-regression",
+      "message": "Copy every file in LOCATION_0 to LOCATION_1, preserving originals",
+      "expected": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      }
+    },
+    {
+      "id": "n01",
+      "split": "reserved-regression",
+      "message": "Copy documents except invoices from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      }
+    },
+    {
+      "id": "n02",
+      "split": "reserved-regression",
+      "message": "Move documents from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      }
+    },
+    {
+      "id": "n03",
+      "split": "reserved-regression",
+      "message": "Copy photos from LOCATION_0 to LOCATION_1 then delete originals",
+      "expected": {
+        "must_not_execute": true
+      }
+    },
+    {
+      "id": "n04",
+      "split": "reserved-regression",
+      "message": "Email the files in LOCATION_0 to LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      }
+    },
+    {
+      "id": "n05",
+      "split": "reserved-regression",
+      "message": "Copy documents newer than yesterday from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      }
+    },
+    {
+      "id": "n06",
+      "split": "reserved-regression",
+      "message": "Copy documents and images from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      }
+    },
+    {
+      "id": "n07",
+      "split": "reserved-regression",
+      "message": "Copy those to LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      }
+    },
+    {
+      "id": "n08",
+      "split": "reserved-regression",
+      "message": "Copy from LOCATION_0 to LOCATION_1 only if the disk is healthy",
+      "expected": {
+        "must_not_execute": true
+      }
+    },
+    {
+      "id": "n09",
+      "split": "reserved-regression",
+      "message": "Copy documents from LOCATION_0 to LOCATION_1 and overwrite existing files",
+      "expected": {
+        "must_not_execute": true
+      }
+    },
+    {
+      "id": "n10",
+      "split": "reserved-regression",
+      "message": "Copy files containing bank passwords from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      }
+    },
+    {
+      "id": "n11",
+      "split": "reserved-regression",
+      "message": "LOCATION_0 के दस्तावेज LOCATION_1 में कॉपी करो",
+      "expected": {
+        "must_not_execute": true
+      }
+    },
+    {
+      "id": "n12",
+      "split": "reserved-regression",
+      "message": "What is a document? LOCATION_0 LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      }
+    }
+  ]
+}

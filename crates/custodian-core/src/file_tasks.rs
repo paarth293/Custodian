@@ -1,11 +1,13 @@
 //! Sealed write-ahead receipts and verified undo for approved desktop file tasks.
-//! This module does not grant authority: callers must obtain approval before execution.
+//! This module does not grant authority: callers must obtain an exact approval
+//! or enforce a current bounded standing permission before execution.
 
 use crate::hashing::hash_file;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,6 +47,13 @@ pub struct FileTasks {
     root: PathBuf,
 }
 
+#[derive(Clone, Copy)]
+pub struct CopyLimits {
+    pub max_bytes: u64,
+    pub min_free_bytes: u64,
+    pub max_space_percent: u8,
+}
+
 /// Exact objects and content shown for approval. Preparing this never writes.
 #[derive(Debug, Clone)]
 pub struct FileTaskPlan {
@@ -59,6 +68,9 @@ pub struct FileTaskPlan {
 }
 
 impl FileTaskPlan {
+    pub fn bytes(&self) -> u64 {
+        self.bytes
+    }
     pub fn prepare(
         action: FileAction,
         source: Option<&Path>,
@@ -68,6 +80,14 @@ impl FileTaskPlan {
         if let Some(source) = source {
             crate::privacy::check(source)?;
         }
+        let _copy_guard = if action == FileAction::Copy {
+            Some(custodian_winsec::guarded_copy::CopyGuard::open(
+                source.ok_or_else(|| invalid("a source file is required"))?,
+                destination,
+            )?)
+        } else {
+            None
+        };
         let destination = checked_destination(destination)?;
         if let Some(source) = source {
             check_regular(source)?;
@@ -105,7 +125,7 @@ impl FileTaskPlan {
         })
     }
 
-    fn validate(&self) -> io::Result<()> {
+    pub(crate) fn validate(&self) -> io::Result<()> {
         if crate::privacy::current().revision() != self.policy_revision {
             return Err(invalid("privacy rules changed since approval; ask again"));
         }
@@ -127,12 +147,36 @@ impl FileTaskPlan {
                 return Err(invalid("the source file changed since approval; ask again"));
             }
         }
+        // Approval does not waive capacity protection. A same-volume rename
+        // does not duplicate content; copies and cross-volume moves do.
+        if self.action == FileAction::Copy
+            || self
+                .source_identity
+                .is_some_and(|source| source.volume != self.parent_identity.volume)
+        {
+            check_capacity(self.bytes, self.destination.parent().unwrap())?;
+        }
         Ok(())
     }
 }
 
 fn invalid(message: impl Into<String>) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidInput, message.into())
+}
+
+fn check_capacity(bytes: u64, destination_parent: &Path) -> io::Result<()> {
+    let free = custodian_winsec::fsops::available_bytes(destination_parent)?;
+    #[cfg(all(test, windows))]
+    let free = crate::crash_probe::free_bytes(free);
+    if free
+        .checked_sub(bytes)
+        .is_none_or(|left| left < crate::routine::FREE_RESERVE)
+    {
+        return Err(invalid(
+            "The file operation would exceed destination capacity or its 1 GiB free-space reserve",
+        ));
+    }
+    Ok(())
 }
 fn check_regular(path: &Path) -> io::Result<()> {
     #[cfg(windows)]
@@ -255,10 +299,75 @@ impl FileTasks {
 
     /// Recheck the approved snapshot rather than resolving its names a second time.
     pub fn execute_plan(&self, plan: &FileTaskPlan) -> io::Result<FileReceipt> {
-        crate::privacy::with_mutation(|| self.execute_checked(plan))
+        crate::privacy::with_mutation(|| self.execute_checked(plan, None, None))
     }
 
-    fn execute_checked(&self, plan: &FileTaskPlan) -> io::Result<FileReceipt> {
+    pub fn execute_bounded_copy(
+        &self,
+        plan: &FileTaskPlan,
+        limits: CopyLimits,
+        cancel: &AtomicBool,
+    ) -> io::Result<FileReceipt> {
+        if plan.action != FileAction::Copy || !(1..=100).contains(&limits.max_space_percent) {
+            return Err(invalid("invalid bounded-copy request"));
+        }
+        crate::privacy::with_mutation(|| self.execute_checked(plan, Some((limits, cancel)), None))
+    }
+
+    /// A workflow journals this ID before calling the executor, closing the
+    /// crash gap between file completion and its parent step's completion.
+    pub fn execute_workflow_copy(
+        &self,
+        plan: &FileTaskPlan,
+        limits: CopyLimits,
+        cancel: &AtomicBool,
+        receipt_id: &str,
+    ) -> io::Result<FileReceipt> {
+        if plan.action != FileAction::Copy
+            || !(1..=100).contains(&limits.max_space_percent)
+            || !uuid::Uuid::parse_str(receipt_id).is_ok_and(|value| value.to_string() == receipt_id)
+        {
+            return Err(invalid("invalid workflow copy"));
+        }
+        crate::privacy::with_mutation(|| {
+            self.execute_checked(plan, Some((limits, cancel)), Some(receipt_id))
+        })
+    }
+
+    /// Inspect without replaying a mutation. Used after restart and before
+    /// reporting a whole workflow verified.
+    pub fn verify_copy(&self, receipt: &FileReceipt) -> io::Result<()> {
+        if receipt.action != FileAction::Copy || receipt.state != ReceiptState::Completed {
+            return Err(invalid("copy is not completed"));
+        }
+        let source = receipt
+            .source
+            .as_deref()
+            .ok_or_else(|| invalid("missing source"))?;
+        crate::privacy::check(source)?;
+        crate::privacy::check(&receipt.destination)?;
+        let _guard = custodian_winsec::guarded_copy::CopyGuard::open(source, &receipt.destination)?;
+        let _output_guard =
+            custodian_winsec::guarded_copy::CopyGuard::open(&receipt.destination, source)?;
+        if Some(custodian_winsec::fsops::file_identity(
+            &receipt.destination,
+        )?) != receipt.destination_identity
+            || fs::metadata(source)?.len() != receipt.bytes
+            || fs::metadata(&receipt.destination)?.len() != receipt.bytes
+            || Some(hash_file(source)?) != receipt.hash
+            || Some(hash_file(&receipt.destination)?) != receipt.hash
+        {
+            return Err(invalid("source or copy changed; verification failed"));
+        }
+        Ok(())
+    }
+
+    fn execute_checked(
+        &self,
+        plan: &FileTaskPlan,
+        bounded: Option<(CopyLimits, &AtomicBool)>,
+        receipt_id: Option<&str>,
+    ) -> io::Result<FileReceipt> {
         crate::privacy::check(&plan.destination)?;
         if let Some(source) = &plan.source {
             crate::privacy::check(source)?;
@@ -266,10 +375,51 @@ impl FileTasks {
         let _writer = crate::mutation_lock::MUTATIONS
             .lock()
             .unwrap_or_else(|e| e.into_inner());
+        // A corrupt or inaccessible prior journal is a recovery problem,
+        // never permission to append new mutations beside unreadable history.
+        let receipts = self.receipts()?;
+        if let Some(id) = receipt_id {
+            if receipts.iter().any(|receipt| receipt.id == id) {
+                return Err(invalid(
+                    "workflow receipt already exists; inspect instead of replaying",
+                ));
+            }
+        }
+        let mut copy_guard = if plan.action == FileAction::Copy {
+            Some(custodian_winsec::guarded_copy::CopyGuard::open(
+                plan.source
+                    .as_deref()
+                    .ok_or_else(|| invalid("missing source"))?,
+                &plan.destination,
+            )?)
+        } else {
+            None
+        };
         plan.validate()?;
+        if let Some((limits, cancel)) = bounded {
+            let free =
+                custodian_winsec::fsops::available_bytes(plan.destination.parent().unwrap())?;
+            if plan.bytes > limits.max_bytes
+                || u128::from(plan.bytes) * 100
+                    > u128::from(free) * u128::from(limits.max_space_percent)
+                || free.saturating_sub(plan.bytes) < limits.min_free_bytes
+            {
+                return Err(invalid(
+                    "The backup exceeds its size or destination free-space budget",
+                ));
+            }
+            if cancel.load(Ordering::Relaxed) {
+                return Err(io::Error::new(
+                    io::ErrorKind::Interrupted,
+                    "Backup stopped before copying",
+                ));
+            }
+        }
         let action = plan.action;
         let mut receipt = FileReceipt {
-            id: uuid::Uuid::new_v4().to_string(),
+            id: receipt_id
+                .map(str::to_owned)
+                .unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
             action,
             source: plan.source.clone(),
             destination: plan.destination.clone(),
@@ -284,39 +434,40 @@ impl FileTasks {
             destination_identity: None,
         };
         self.save(&receipt)?;
-        let result = match action {
-            FileAction::CreateFolder => fs::create_dir(&receipt.destination),
-            FileAction::Move | FileAction::Rename => {
-                let expected = receipt.hash.as_deref().unwrap();
-                custodian_winsec::fsops::move_no_replace(
-                    receipt.source.as_deref().unwrap(),
-                    &receipt.destination,
-                    |path| Ok(hash_file(path)? == expected),
-                )
-            }
-            FileAction::Copy => {
-                let source = receipt.source.as_deref().unwrap();
-                let expected = receipt.hash.as_deref().unwrap();
-                (|| {
-                    let mut input = File::open(source)?;
-                    let mut output = OpenOptions::new()
-                        .write(true)
-                        .create_new(true)
-                        .open(&receipt.destination)?;
-                    let copied = io::copy(&mut input, &mut output)?;
-                    output.sync_all()?;
-                    drop(output);
-                    if copied != receipt.bytes
-                        || hash_file(source)? != expected
-                        || hash_file(&receipt.destination)? != expected
-                    {
-                        return Err(io::Error::new(
-                            io::ErrorKind::InvalidData,
-                            "copy content verification failed; keep the receipt for recovery",
-                        ));
-                    }
-                    Ok(())
-                })()
+        #[cfg(all(test, windows))]
+        crate::crash_probe::checkpoint("before-mutation")?;
+        let result = if bounded.is_some_and(|(_, cancel)| cancel.load(Ordering::Relaxed)) {
+            Err(io::Error::new(
+                io::ErrorKind::Interrupted,
+                "Backup stopped before copying",
+            ))
+        } else {
+            match action {
+                FileAction::CreateFolder => fs::create_dir(&receipt.destination),
+                FileAction::Move | FileAction::Rename => {
+                    let expected = receipt.hash.as_deref().unwrap();
+                    custodian_winsec::fsops::move_no_replace(
+                        receipt.source.as_deref().unwrap(),
+                        &receipt.destination,
+                        |path| Ok(hash_file(path)? == expected),
+                    )
+                }
+                FileAction::Copy => {
+                    let expected = receipt.hash.as_deref().unwrap();
+                    copy_guard
+                        .as_mut()
+                        .unwrap()
+                        .copy_verified_with_progress(
+                            receipt.bytes,
+                            |file| Ok(crate::hashing::hash_reader(file)? == expected),
+                            &mut |_copied| {
+                                #[cfg(all(test, windows))]
+                                crate::crash_probe::checkpoint("mid-copy")?;
+                                Ok(())
+                            },
+                        )
+                        .map(|_| ())
+                }
             }
         };
         if let Err(err) = result {
@@ -338,6 +489,8 @@ impl FileTasks {
             .min(u64::MAX as u128) as u64;
         receipt.state = ReceiptState::Completed;
         self.save(&receipt).map_err(|err| io::Error::other(format!("The file operation ran, but its completion record could not be saved: {err}. Its prepared recovery record remains.")))?;
+        #[cfg(all(test, windows))]
+        crate::crash_probe::checkpoint("child-persisted")?;
         Ok(receipt)
     }
 
@@ -374,6 +527,17 @@ impl FileTasks {
         if let Some(source) = &receipt.source {
             crate::privacy::check(source)?;
         }
+        let _copy_guard = if receipt.action == FileAction::Copy {
+            Some(custodian_winsec::guarded_copy::CopyGuard::open(
+                receipt
+                    .source
+                    .as_deref()
+                    .ok_or_else(|| invalid("missing source"))?,
+                &receipt.destination,
+            )?)
+        } else {
+            None
+        };
         if custodian_winsec::fsops::file_identity(&receipt.destination)? != identity {
             return Err(invalid("the destination was replaced; it was left alone"));
         }
@@ -407,6 +571,12 @@ impl FileTasks {
                     .ok_or_else(|| invalid("missing content hash"))?;
                 if hash_file(&receipt.destination)? != expected {
                     return Err(invalid("the moved file changed; it was left alone"));
+                }
+                let parent = source
+                    .parent()
+                    .ok_or_else(|| invalid("missing original parent"))?;
+                if custodian_winsec::fsops::file_identity(parent)?.volume != identity.volume {
+                    check_capacity(receipt.bytes, parent)?;
                 }
                 custodian_winsec::fsops::move_no_replace(&receipt.destination, source, |path| {
                     Ok(hash_file(path)? == expected)
@@ -452,6 +622,34 @@ impl FileTasks {
 #[cfg(all(test, windows))]
 mod tests {
     use super::*;
+    #[test]
+    fn unavailable_destination_and_corrupt_history_refuse_new_mutations() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("source.txt");
+        let parent = dir.path().join("destination");
+        fs::write(&source, b"unchanged original").unwrap();
+        fs::create_dir(&parent).unwrap();
+        let plan = FileTaskPlan::prepare(FileAction::Copy, Some(&source), &parent.join("copy.txt"))
+            .unwrap();
+        fs::remove_dir(&parent).unwrap();
+        let tasks = FileTasks::new(dir.path().join("journal"));
+        assert!(tasks.execute_plan(&plan).is_err());
+        assert!(tasks.receipts().unwrap().is_empty());
+        fs::create_dir(&parent).unwrap();
+        let plan = FileTaskPlan::prepare(FileAction::Copy, Some(&source), &parent.join("copy.txt"))
+            .unwrap();
+        fs::create_dir(dir.path().join("journal")).unwrap();
+        fs::write(
+            dir.path()
+                .join("journal")
+                .join(format!("{}.dpapi", uuid::Uuid::new_v4())),
+            b"corrupt sealed record",
+        )
+        .unwrap();
+        assert!(tasks.execute_plan(&plan).is_err());
+        assert!(!parent.join("copy.txt").exists());
+        assert_eq!(fs::read(source).unwrap(), b"unchanged original");
+    }
     #[test]
     fn approval_rejects_changed_content_and_same_content_replacement() {
         let dir = tempfile::tempdir().unwrap();

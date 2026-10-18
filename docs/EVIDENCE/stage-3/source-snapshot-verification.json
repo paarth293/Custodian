@@ -1,0 +1,28 @@
+{
+  "verified": true,
+  "selectedFiles": 330,
+  "selectedBytes": 2248795,
+  "restoredDirectory": "D:\\Custodian\\target\\stage-3\\restored-accepted",
+  "sourceSnapshot": {
+    "path": "target/stage-0/stage-3-accepted-source-snapshot.json",
+    "sha256": "c9988443209ad50760c7c400c52b38c857e9e3efa07642efb08033739eb49699"
+  },
+  "backupPath": "C:\\Users\\paagu\\.codex\\visualizations\\2026\\10\\16\\01a142c7-c123-7122-873a-8f2707fc4063\\Custodian-stage3-source-snapshot.json",
+  "backupSha256": "c9988443209ad50760c7c400c52b38c857e9e3efa07642efb08033739eb49699",
+  "historicalBackupsVerified": [
+    {
+      "stage": 1,
+      "path": "C:\\Users\\paagu\\.codex\\visualizations\\2026\\10\\16\\01a142c7-c123-7122-873a-8f2707fc4063\\Custodian-stage1-source-snapshot.json",
+      "sha256": "056f84ccf1d92452c25ab56bd8d4ed590370ec5dd302e5b1c490605e82ae3a2c"
+    },
+    {
+      "stage": 2,
+      "path": "C:\\Users\\paagu\\.codex\\visualizations\\2026\\10\\16\\01a142c7-c123-7122-873a-8f2707fc4063\\Custodian-stage2-source-snapshot.json",
+      "sha256": "300681ba0e45eebe85eed5932713996082fdf229902bcc2b14b858f4d2b6bcd2"
+    }
+  ],
+  "limitations": [
+    "Selected source excludes dependencies, models, generated outputs and general docs.",
+    "No bit-for-bit build reproducibility or installation acceptance claimed."
+  ]
+}

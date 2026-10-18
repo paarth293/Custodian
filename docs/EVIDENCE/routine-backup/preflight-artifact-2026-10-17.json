@@ -1,0 +1,7 @@
+{
+  "kind": "intermediate preflight, not final artifact acceptance",
+  "sha256": "510BB14E2C4218EC84AC7C3DEA599929FA92E65A37ED5FDD917317167F51B4AE",
+  "checks": 13,
+  "result": "passed",
+  "invalidPriorRun": "preflight-01 invoked older copied executable after a wrong source filename; excluded"
+}

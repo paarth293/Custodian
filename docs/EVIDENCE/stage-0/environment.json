@@ -1,0 +1,80 @@
+{
+  "capturedAtUtc": "2026-10-17T17:20:38.7684619Z",
+  "os": [
+    {
+      "Caption": "Microsoft Windows 11 Home Single Language",
+      "Version": "10.0.26300",
+      "BuildNumber": "26300",
+      "OSArchitecture": "64-bit"
+    }
+  ],
+  "memoryBytes": 14968041472,
+  "cpu": [
+    {
+      "Name": "AMD Ryzen 5 3550H with Radeon Vega Mobile Gfx  ",
+      "NumberOfCores": 4,
+      "NumberOfLogicalProcessors": 8
+    }
+  ],
+  "graphics": [
+    {
+      "Name": "NVIDIA GeForce GTX 1650",
+      "DriverVersion": "32.0.16.1714"
+    },
+    {
+      "Name": "AMD Radeon(TM) Vega 8 Graphics",
+      "DriverVersion": "27.20.1028.1"
+    }
+  ],
+  "volumes": [
+    {
+      "DriveLetter": "D",
+      "FileSystem": "NTFS",
+      "Size": 197137440768,
+      "SizeRemaining": 99094843392
+    },
+    {
+      "DriveLetter": "C",
+      "FileSystem": "NTFS",
+      "Size": 313803350016,
+      "SizeRemaining": 125364617216
+    }
+  ],
+  "tools": [
+    {
+      "Name": "cargo.exe",
+      "Source": "C:\\Users\\paagu\\.cargo\\bin\\cargo.exe"
+    },
+    {
+      "Name": "rustc.exe",
+      "Source": "C:\\Users\\paagu\\.cargo\\bin\\rustc.exe"
+    },
+    {
+      "Name": "python.exe",
+      "Source": "D:\\paagu\\Python311\\python.exe"
+    },
+    {
+      "Name": "git.exe",
+      "Source": "D:\\paagu\\Git\\cmd\\git.exe"
+    }
+  ],
+  "node": "v24.18.0",
+  "rust": "rustc 1.97.0 (2d8144b78 2026-07-07)",
+  "notepad": [
+    {
+      "FullName": "C:\\Windows\\System32\\notepad.exe",
+      "Version": "10.0.26100.8457 (WinBuild.160101.0800)"
+    }
+  ],
+  "installedAdapterCandidates": [
+    {
+      "FullName": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
+      "Version": "16.0.20430.20146"
+    }
+  ],
+  "webview2": [
+    "155.0.4283.45",
+    "155.0.4283.60",
+    "SetupMetrics"
+  ]
+}

@@ -1,0 +1,1319 @@
+{
+  "caseSha256": "00cf566d68b45394c303ebcfc9b1937b130008233e43c64e855ddba9825deac3",
+  "modelSha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+  "model": "models\\qwen2.5-1.5b-instruct-q4_k_m.gguf",
+  "loadMs": 8256.2397,
+  "condition": "Native unsupported-constraint guard plus actual Qwen semantic operator selection; no expected selection supplied initially. Native consistency feedback can request one repair. Dependencies and completion are compiled from the registered capability contracts. Synthetic authored regression, not independent evaluation or execution evidence.",
+  "rows": [
+    {
+      "id": "p01",
+      "split": "development",
+      "message": "Collect documents from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_documents",
+            "after": 0
+          },
+          {
+            "op": "select_all",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 11619
+    },
+    {
+      "id": "p02",
+      "split": "development",
+      "message": "Gather photos from LOCATION_0 into LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_images",
+            "after": 0
+          },
+          {
+            "op": "select_all",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 9553
+    },
+    {
+      "id": "p03",
+      "split": "development",
+      "message": "Copy the biggest file from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": true,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "select_largest",
+            "after": 0
+          },
+          {
+            "op": "copy",
+            "after": 1
+          },
+          {
+            "op": "verify",
+            "after": 2
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 10539
+    },
+    {
+      "id": "p04",
+      "split": "development",
+      "message": "Back up the largest document in LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": true,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_documents",
+            "after": 0
+          },
+          {
+            "op": "select_largest",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 4912
+    },
+    {
+      "id": "p05",
+      "split": "development",
+      "message": "Save a copy of the largest photo in LOCATION_0 into LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": true,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_images",
+            "after": 0
+          },
+          {
+            "op": "select_largest",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 9030
+    },
+    {
+      "id": "p06",
+      "split": "development",
+      "message": "Copy all files from LOCATION_0 into LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "select_all",
+            "after": 0
+          },
+          {
+            "op": "copy",
+            "after": 1
+          },
+          {
+            "op": "verify",
+            "after": 2
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 9095
+    },
+    {
+      "id": "p07",
+      "split": "development",
+      "message": "Please back up my paperwork in LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_documents",
+            "after": 0
+          },
+          {
+            "op": "select_all",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 5647
+    },
+    {
+      "id": "p08",
+      "split": "development",
+      "message": "Make copies of the pictures in LOCATION_0 in LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_images",
+            "after": 0
+          },
+          {
+            "op": "select_all",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 5150
+    },
+    {
+      "id": "p09",
+      "split": "reserved-regression",
+      "message": "Put copies of my documents from LOCATION_0 in LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_documents",
+            "after": 0
+          },
+          {
+            "op": "select_all",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 4989
+    },
+    {
+      "id": "p10",
+      "split": "reserved-regression",
+      "message": "I need a backup of the images in LOCATION_0 at LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_images",
+            "after": 0
+          },
+          {
+            "op": "select_all",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 4583
+    },
+    {
+      "id": "p11",
+      "split": "reserved-regression",
+      "message": "Duplicate the docs in LOCATION_0 into LOCATION_1; keep the originals",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_documents",
+            "after": 0
+          },
+          {
+            "op": "select_all",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 4744
+    },
+    {
+      "id": "p12",
+      "split": "reserved-regression",
+      "message": "Could you preserve the photos in LOCATION_0 by copying them to LOCATION_1?",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_images",
+            "after": 0
+          },
+          {
+            "op": "select_all",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 4476
+    },
+    {
+      "id": "p13",
+      "split": "reserved-regression",
+      "message": "From LOCATION_0, take a copy of the biggest document to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": true,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_documents",
+            "after": 0
+          },
+          {
+            "op": "select_largest",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 4612
+    },
+    {
+      "id": "p14",
+      "split": "reserved-regression",
+      "message": "Send a local copy of the biggest picture in LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": true,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_images",
+            "after": 0
+          },
+          {
+            "op": "select_largest",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 7222
+    },
+    {
+      "id": "p15",
+      "split": "reserved-regression",
+      "message": "Back up everything in LOCATION_0 into LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "select_all",
+            "after": 0
+          },
+          {
+            "op": "copy",
+            "after": 1
+          },
+          {
+            "op": "verify",
+            "after": 2
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 3610
+    },
+    {
+      "id": "p16",
+      "split": "reserved-regression",
+      "message": "To LOCATION_0, copy the documents from LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 1,
+        "destination": 0
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 1,
+        "destination": 0,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_documents",
+            "after": 0
+          },
+          {
+            "op": "select_all",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 4522
+    },
+    {
+      "id": "p17",
+      "split": "reserved-regression",
+      "message": "In LOCATION_0 put copies of the photos from LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 1,
+        "destination": 0
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 1,
+        "destination": 0,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_images",
+            "after": 0
+          },
+          {
+            "op": "select_all",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 5912
+    },
+    {
+      "id": "p18",
+      "split": "reserved-regression",
+      "message": "Please duplicate the biggest file in LOCATION_0 into LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": true,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "select_largest",
+            "after": 0
+          },
+          {
+            "op": "copy",
+            "after": 1
+          },
+          {
+            "op": "verify",
+            "after": 2
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 5602
+    },
+    {
+      "id": "p19",
+      "split": "reserved-regression",
+      "message": "Can you gather all docs from LOCATION_0 into LOCATION_1?",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_documents",
+            "after": 0
+          },
+          {
+            "op": "select_all",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 5296
+    },
+    {
+      "id": "p20",
+      "split": "reserved-regression",
+      "message": "Create a local backup of the pictures stored in LOCATION_0 at LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_images",
+            "after": 0
+          },
+          {
+            "op": "select_all",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 5043
+    },
+    {
+      "id": "p21",
+      "split": "reserved-regression",
+      "message": "I want copies of all documents in LOCATION_0 in LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_documents",
+            "after": 0
+          },
+          {
+            "op": "select_all",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 3935
+    },
+    {
+      "id": "p22",
+      "split": "reserved-regression",
+      "message": "Copy the largest image from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": true,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_images",
+            "after": 0
+          },
+          {
+            "op": "select_largest",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 9038
+    },
+    {
+      "id": "p23",
+      "split": "reserved-regression",
+      "message": "Make a backup of the biggest document in LOCATION_0 at LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": true,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "filter_documents",
+            "after": 0
+          },
+          {
+            "op": "select_largest",
+            "after": 1
+          },
+          {
+            "op": "copy",
+            "after": 2
+          },
+          {
+            "op": "verify",
+            "after": 3
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 6322
+    },
+    {
+      "id": "p24",
+      "split": "reserved-regression",
+      "message": "Copy every file in LOCATION_0 to LOCATION_1, preserving originals",
+      "expected": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "proposal": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [
+          {
+            "op": "discover",
+            "after": -1
+          },
+          {
+            "op": "select_all",
+            "after": 0
+          },
+          {
+            "op": "copy",
+            "after": 1
+          },
+          {
+            "op": "verify",
+            "after": 2
+          }
+        ],
+        "completion": "all_copies_verified",
+        "attempts": 1
+      },
+      "passed": true,
+      "elapsedMs": 11272
+    },
+    {
+      "id": "n01",
+      "split": "reserved-regression",
+      "message": "Copy documents except invoices from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      },
+      "proposal": {
+        "decision": "clarify",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [],
+        "completion": "all_copies_verified",
+        "attempts": 0
+      },
+      "passed": true,
+      "elapsedMs": 1
+    },
+    {
+      "id": "n02",
+      "split": "reserved-regression",
+      "message": "Move documents from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      },
+      "proposal": {
+        "decision": "clarify",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [],
+        "completion": "all_copies_verified",
+        "attempts": 0
+      },
+      "passed": true,
+      "elapsedMs": 1
+    },
+    {
+      "id": "n03",
+      "split": "reserved-regression",
+      "message": "Copy photos from LOCATION_0 to LOCATION_1 then delete originals",
+      "expected": {
+        "must_not_execute": true
+      },
+      "proposal": {
+        "decision": "clarify",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [],
+        "completion": "all_copies_verified",
+        "attempts": 0
+      },
+      "passed": true,
+      "elapsedMs": 1
+    },
+    {
+      "id": "n04",
+      "split": "reserved-regression",
+      "message": "Email the files in LOCATION_0 to LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      },
+      "proposal": {
+        "decision": "clarify",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [],
+        "completion": "all_copies_verified",
+        "attempts": 0
+      },
+      "passed": true,
+      "elapsedMs": 1
+    },
+    {
+      "id": "n05",
+      "split": "reserved-regression",
+      "message": "Copy documents newer than yesterday from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      },
+      "proposal": {
+        "decision": "clarify",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [],
+        "completion": "all_copies_verified",
+        "attempts": 0
+      },
+      "passed": true,
+      "elapsedMs": 1
+    },
+    {
+      "id": "n06",
+      "split": "reserved-regression",
+      "message": "Copy documents and images from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      },
+      "proposal": {
+        "decision": "clarify",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [],
+        "completion": "all_copies_verified",
+        "attempts": 0
+      },
+      "passed": true,
+      "elapsedMs": 1
+    },
+    {
+      "id": "n07",
+      "split": "reserved-regression",
+      "message": "Copy those to LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      },
+      "proposal": {
+        "decision": "clarify",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [],
+        "completion": "all_copies_verified",
+        "attempts": 0
+      },
+      "passed": true,
+      "elapsedMs": 1
+    },
+    {
+      "id": "n08",
+      "split": "reserved-regression",
+      "message": "Copy from LOCATION_0 to LOCATION_1 only if the disk is healthy",
+      "expected": {
+        "must_not_execute": true
+      },
+      "proposal": {
+        "decision": "clarify",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [],
+        "completion": "all_copies_verified",
+        "attempts": 0
+      },
+      "passed": true,
+      "elapsedMs": 1
+    },
+    {
+      "id": "n09",
+      "split": "reserved-regression",
+      "message": "Copy documents from LOCATION_0 to LOCATION_1 and overwrite existing files",
+      "expected": {
+        "must_not_execute": true
+      },
+      "proposal": {
+        "decision": "clarify",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [],
+        "completion": "all_copies_verified",
+        "attempts": 0
+      },
+      "passed": true,
+      "elapsedMs": 1
+    },
+    {
+      "id": "n10",
+      "split": "reserved-regression",
+      "message": "Copy files containing bank passwords from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      },
+      "proposal": {
+        "decision": "clarify",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [],
+        "completion": "all_copies_verified",
+        "attempts": 0
+      },
+      "passed": true,
+      "elapsedMs": 1
+    },
+    {
+      "id": "n11",
+      "split": "reserved-regression",
+      "message": "LOCATION_0 के दस्तावेज LOCATION_1 में कॉपी करो",
+      "expected": {
+        "must_not_execute": true
+      },
+      "proposal": {
+        "decision": "clarify",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [],
+        "completion": "all_copies_verified",
+        "attempts": 0
+      },
+      "passed": true,
+      "elapsedMs": 1
+    },
+    {
+      "id": "n12",
+      "split": "reserved-regression",
+      "message": "What is a document? LOCATION_0 LOCATION_1",
+      "expected": {
+        "must_not_execute": true
+      },
+      "proposal": {
+        "decision": "clarify",
+        "filter": "any",
+        "largest": false,
+        "source": 0,
+        "destination": 1,
+        "nodes": [],
+        "completion": "all_copies_verified",
+        "attempts": 0
+      },
+      "passed": true,
+      "elapsedMs": 1
+    }
+  ],
+  "summary": {
+    "positivePassed": 24,
+    "positiveTotal": 24,
+    "negativePassed": 12,
+    "negativeTotal": 12,
+    "roleErrors": 0,
+    "p95Ms": 11272,
+    "modelAssessedRequests": 24
+  },
+  "gatesPassed": true
+}

@@ -1,0 +1,28 @@
+{
+  "stage": 0,
+  "stageAcceptance": "passed",
+  "scope": "Capability audit and existing reference-machine baseline only",
+  "registerRequirements": 58,
+  "tracedRoutes": 17,
+  "frozenRepresentativeCases": 15,
+  "frozenExpectationsUnchanged": true,
+  "selectedSnapshotFiles": 314,
+  "defaultRustPassed": 342,
+  "defaultRustIgnored": 4,
+  "javascriptPassed": 131,
+  "repairedIsolatedSandboxProbePassed": 1,
+  "acceptedProductionDesktopRuns": 2,
+  "liveDesktopChecksPerRun": 23,
+  "acceptedDesktopEvidence": [
+    "docs/EVIDENCE/stage-0-repair/desktop-final-02.txt",
+    "docs/EVIDENCE/stage-0-repair/desktop-final-03.txt"
+  ],
+  "historicalFailuresRetained": true,
+  "nextStageStarted": false,
+  "applicationCapabilitiesExpanded": false,
+  "artifactManifest": "docs/EVIDENCE/stage-0-repair/artifacts.json",
+  "sourceBaseline": "docs/EVIDENCE/stage-0/baseline-repaired.json",
+  "snapshotVerification": "docs/EVIDENCE/stage-0-repair/final-snapshot-verification.txt",
+  "installerExecuted": false,
+  "nextAction": "Stage 1: shared authority, private observation boundaries, cross-process coordination and real crash recovery, as one separate validated increment."
+}

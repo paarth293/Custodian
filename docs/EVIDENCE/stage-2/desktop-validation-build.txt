@@ -1,0 +1,3 @@
+   Compiling custodian-core v0.1.0 (D:\Custodian\crates\custodian-core)
+   Compiling custodian-desktop v0.1.0 (D:\Custodian\apps\desktop\src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 27s

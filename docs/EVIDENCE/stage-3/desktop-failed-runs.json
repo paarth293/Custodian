@@ -1,0 +1,14 @@
+[
+  {
+    "evidence": "docs/EVIDENCE/stage-3/desktop-production-01.txt",
+    "exitCode": 1,
+    "completedChecks": 8,
+    "reason": "Captured WebView cleanup timeout; not accepted"
+  },
+  {
+    "evidence": "docs/EVIDENCE/stage-3/desktop-production-02.txt",
+    "exitCode": 1,
+    "completedChecks": 8,
+    "reason": "Captured WebView cleanup timeout; not accepted"
+  }
+]

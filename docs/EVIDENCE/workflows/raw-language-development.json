@@ -1,0 +1,146 @@
+{
+  "model": "models\\qwen2.5-1.5b-instruct-q4_k_m.gguf",
+  "modelSha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+  "note": "Author-written synthetic cases, not independent external evaluation. Held-out wording frozen before the first run.",
+  "cases": [
+    {
+      "id": "dev-documents",
+      "split": "development",
+      "goal": "Collect documents from SOURCE to DESTINATION",
+      "expected": [
+        "discover",
+        "filter_documents",
+        "select_all",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_documents",
+          "select_all",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": true,
+      "elapsedMs": 5060
+    },
+    {
+      "id": "dev-images",
+      "split": "development",
+      "goal": "Gather photos from SOURCE to DESTINATION",
+      "expected": [
+        "discover",
+        "filter_images",
+        "select_all",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_images",
+          "select_all",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": true,
+      "elapsedMs": 4629
+    },
+    {
+      "id": "dev-largest",
+      "split": "development",
+      "goal": "Copy the largest file from SOURCE to DESTINATION",
+      "expected": [
+        "discover",
+        "select_largest",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "select_largest",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": true,
+      "elapsedMs": 1434
+    },
+    {
+      "id": "dev-largest-document",
+      "split": "development",
+      "goal": "Copy the largest document from SOURCE to DESTINATION",
+      "expected": [
+        "discover",
+        "filter_documents",
+        "select_largest",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_documents",
+          "select_largest",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": true,
+      "elapsedMs": 1572
+    },
+    {
+      "id": "dev-largest-image",
+      "split": "development",
+      "goal": "Collect the biggest picture in SOURCE to DESTINATION",
+      "expected": [
+        "discover",
+        "filter_images",
+        "select_largest",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_images",
+          "select_largest",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": true,
+      "elapsedMs": 1509
+    },
+    {
+      "id": "dev-backup",
+      "split": "development",
+      "goal": "Backup docs from SOURCE into DESTINATION",
+      "expected": [
+        "discover",
+        "filter_documents",
+        "select_all",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_documents",
+          "select_all",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": true,
+      "elapsedMs": 1460
+    }
+  ],
+  "warmupMs": 29927,
+  "passed": 6,
+  "total": 6
+}

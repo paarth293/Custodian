@@ -195,6 +195,7 @@ struct PendingAction {
     call: ToolCall,
     created: Instant,
     file_plan: Option<FileTaskPlan>,
+    privacy_revision: u64,
 }
 
 impl PendingActions {
@@ -242,6 +243,7 @@ impl PendingActions {
                 call,
                 created: now,
                 file_plan: plan,
+                privacy_revision: custodian_core::privacy::request_revision(),
             },
         );
         Some(ActionCard {
@@ -269,8 +271,10 @@ impl PendingActions {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .remove(id)?;
-        (now.saturating_duration_since(action.created) < CARD_LIFETIME)
-            .then_some((action.call, action.file_plan))
+        (now.saturating_duration_since(action.created) < CARD_LIFETIME
+            && action.privacy_revision == custodian_core::privacy::current().revision()
+            && custodian_core::privacy::request_is_current())
+        .then_some((action.call, action.file_plan))
     }
 }
 
@@ -285,6 +289,20 @@ fn uuid_like() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn late_published_cards_keep_original_privacy_revision() {
+        let actions = PendingActions::default();
+        let policy = std::sync::Arc::new(custodian_core::privacy::AccessPolicy::default());
+        let queued = policy.revision();
+        policy.replace_private_paths(vec![]).unwrap();
+        let now = Instant::now();
+        let card = custodian_core::privacy::with_policy_revision(policy.clone(), queued, || {
+            actions.add(ToolCall::UndoLastCleanup, now).unwrap()
+        });
+        custodian_core::privacy::with_policy(policy, || {
+            assert!(actions.take(&card.id, now).is_none());
+        });
+    }
 
     #[test]
     fn cards_only_for_actions_that_send_or_change_something() {

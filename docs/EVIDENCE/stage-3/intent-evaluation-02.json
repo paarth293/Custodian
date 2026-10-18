@@ -1,0 +1,69 @@
+{
+  "caseSha256": "00cf566d68b45394c303ebcfc9b1937b130008233e43c64e855ddba9825deac3",
+  "modelSha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+  "model": "models\\qwen2.5-1.5b-instruct-q4_k_m.gguf",
+  "loadMs": 8976.8019,
+  "condition": "Native unsupported-constraint guard plus actual Qwen interpretation, no native selection contract supplied. Synthetic authored regression, not independent evaluation or execution evidence.",
+  "rows": [
+    {
+      "id": "p01",
+      "split": "development",
+      "message": "Collect documents from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "error": "Error: Invalid native selection",
+      "passed": false,
+      "elapsedMs": 10100
+    },
+    {
+      "id": "p02",
+      "split": "development",
+      "message": "Gather photos from LOCATION_0 into LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "images",
+        "largest": false,
+        "source": 0,
+        "destination": 1
+      },
+      "error": "Error: Invalid native selection",
+      "passed": false,
+      "elapsedMs": 8156
+    },
+    {
+      "id": "p03",
+      "split": "development",
+      "message": "Copy the biggest file from LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "any",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      },
+      "error": "Error: Invalid native selection",
+      "passed": false,
+      "elapsedMs": 8834
+    },
+    {
+      "id": "p04",
+      "split": "development",
+      "message": "Back up the largest document in LOCATION_0 to LOCATION_1",
+      "expected": {
+        "decision": "copy",
+        "filter": "documents",
+        "largest": true,
+        "source": 0,
+        "destination": 1
+      },
+      "error": "Error: Invalid native selection",
+      "passed": false,
+      "elapsedMs": 8640
+    }
+  ]
+}

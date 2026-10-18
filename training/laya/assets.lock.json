@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "repository": "convaiinnovations/laya-typed-decisions",
+  "revision": "e929ae5cf69bc34259cd2f95c9e91145b818b1f0",
+  "sdk_version": "0.4.8",
+  "sdk_revision": "4ac226d5ee88ed6df8db288a05c766d7a34ee682",
+  "sdk_archive_sha256": "ce312c6f8e61549015dbfa6aaf565762f75bc9180301554e4d7bbd101fb0e514",
+  "files": {
+    "config.json": {
+      "bytes": 160,
+      "sha256": "7add7c041b53f7091e65908553af79ab3f077946e5f2312d510ae13b17c7c134"
+    },
+    "encoder/config.json": {
+      "bytes": 2084,
+      "sha256": "5268d24ad3b77c8151de5dcb0762ba4391619aad9ab0bda33e36fb083cfeae6d"
+    },
+    "model.safetensors": {
+      "bytes": 842609220,
+      "sha256": "4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e"
+    },
+    "rl_agent_config.json": {
+      "bytes": 847,
+      "sha256": "ebf0cd524d92342a6be5e48e9fca3d7c2babfb5a56ccd79d2171ef5d8c7f7be8"
+    },
+    "tokenizer/tokenizer.json": {
+      "bytes": 3583228,
+      "sha256": "6c8aaa9a542084f2457eab775d4eeb51f92a70c0fd9de28d5edb0ddec3c08d30"
+    },
+    "tokenizer/tokenizer_config.json": {
+      "bytes": 337,
+      "sha256": "08d4cf3ac4dca381759441b85b91a6d40e688471dcd33d15d6649eb0a9a854d1"
+    }
+  }
+}

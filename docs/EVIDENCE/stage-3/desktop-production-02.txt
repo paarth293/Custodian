@@ -1,0 +1,8 @@
+Exception: D:\Custodian\scripts\verify-desktop.ps1:239
+Line |
+ 239 |  … if ($cleanupErrors.Count -gt 0) { throw ($cleanupErrors -join "`n") }
+     |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Captured descendant 26444 did not exit after test cleanup. Captured descendant 28400 did not exit after test
+     | cleanup.
+
+

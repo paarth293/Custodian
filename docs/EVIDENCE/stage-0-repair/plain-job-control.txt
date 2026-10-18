@@ -1,0 +1,18 @@
+
+running 1 test
+[agent] chat model: D:\Custodian\models\qwen2.5-1.5b-instruct-q4_k_m.gguf
+[agent] model integrity verified (31.0s)
+test agent::tests::real_model_answers_under_job_limits has been running for over 60 seconds
+
+thread 'agent::tests::real_model_answers_under_job_limits' (28528) panicked at apps\desktop\src-tauri\src\agent.rs:1053:14:
+called `Result::unwrap()` on an `Err` value: Timeout("agent inactive for too long")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test agent::tests::real_model_answers_under_job_limits ... FAILED
+
+failures:
+
+failures:
+    agent::tests::real_model_answers_under_job_limits
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 147 filtered out; finished in 128.88s
+

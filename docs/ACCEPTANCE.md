@@ -8,6 +8,34 @@ establish product completion.
 Backend tests, model evaluations, packaging checks and interactive desktop
 checks are different evidence and cannot substitute for one another.
 
+The [Stage 3 language/planning report](STAGE-3-LANGUAGE-AND-PLANNING-2026-10-18.md)
+records the frozen 36-case file-language evaluation separately from actual
+native file execution, sandboxed runtime checks and desktop acceptance. It
+accepts only the declared registered file combinations. General references,
+content exclusions, multilingual execution, real app control and a new clean
+installation remain open; Laya is inactive.
+
+The [Stage 2 coordinator report](STAGE-2-TASK-COORDINATOR-2026-10-18.md) separates
+real receipt-backed file composition from mocked app steps. Its stage gate is
+the bounded coordinator foundation; it does not accept general language
+planning, real multi-app execution or installation of a new product build.
+
+The [17 October routine backup increment](ROUTINE-BACKUP-IMPLEMENTATION-2026-10-17.md)
+adds separately recorded standing-permission and automatic-copy evidence. It
+does not close the broader operator, model reliability or installation gates
+below; the 16 October table remains a historical foundation snapshot.
+The [model-planned collections report](MODEL-PLANNED-WORKFLOWS-2026-10-17.md)
+separately records constrained model planning, group recovery and actual desktop
+workflow outcomes. Its model score is not general language-understanding or
+whole-product acceptance.
+
+The [Stage 1 authority/recovery report](STAGE-1-AUTHORITY-AND-RECOVERY-2026-10-18.md)
+records 361 native tests, 131 JavaScript tests, four actual process-kill boundaries
+and 27 checks on the optimized desktop. Its scope is native authority, scoped
+copy grants, private-observation refusal, one user-level host lease and recovery.
+It does not close general app control, compiler hardening, signing, installation
+or independent full-product acceptance.
+
 | Requirement | Required evidence | Current evidence, 16 October 2026 |
 | --- | --- | --- |
 | Offline chat responds | Bundled pinned model answers inside the default AppContainer within the existing 120-second inactivity deadline | Real CPU-model smoke passes, including a tool request; broader reliability and latency remain open |

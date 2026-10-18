@@ -1,0 +1,146 @@
+{
+  "model": "models\\qwen2.5-1.5b-instruct-q4_k_m.gguf",
+  "modelSha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+  "note": "Author-written synthetic cases, not independent external evaluation. Held-out wording frozen before the first run.",
+  "cases": [
+    {
+      "id": "heldout-documents",
+      "split": "held-out",
+      "goal": "Could you gather all my documents in SOURCE into DESTINATION",
+      "expected": [
+        "discover",
+        "filter_documents",
+        "select_all",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_documents",
+          "select_all",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": true,
+      "elapsedMs": 10214
+    },
+    {
+      "id": "heldout-images",
+      "split": "held-out",
+      "goal": "Please backup my images from SOURCE to DESTINATION",
+      "expected": [
+        "discover",
+        "filter_images",
+        "select_all",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_images",
+          "select_largest",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": false,
+      "elapsedMs": 4618
+    },
+    {
+      "id": "heldout-largest",
+      "split": "held-out",
+      "goal": "Can you collect the biggest file in SOURCE into DESTINATION",
+      "expected": [
+        "discover",
+        "select_largest",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "select_largest",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": true,
+      "elapsedMs": 1522
+    },
+    {
+      "id": "heldout-largest-document",
+      "split": "held-out",
+      "goal": "Please gather my biggest document from SOURCE into DESTINATION",
+      "expected": [
+        "discover",
+        "filter_documents",
+        "select_largest",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_documents",
+          "select_largest",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": true,
+      "elapsedMs": 5371
+    },
+    {
+      "id": "heldout-largest-image",
+      "split": "held-out",
+      "goal": "Could you copy the largest photo in SOURCE to DESTINATION",
+      "expected": [
+        "discover",
+        "filter_images",
+        "select_largest",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_images",
+          "select_largest",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": true,
+      "elapsedMs": 1946
+    },
+    {
+      "id": "heldout-docs",
+      "split": "held-out",
+      "goal": "Can you copy all my docs from SOURCE into DESTINATION",
+      "expected": [
+        "discover",
+        "filter_documents",
+        "select_all",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_documents",
+          "select_all",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": true,
+      "elapsedMs": 1717
+    }
+  ],
+  "warmupMs": 28444,
+  "passed": 5,
+  "total": 6
+}

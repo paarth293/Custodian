@@ -1,0 +1,24 @@
+PASS: Five repeated accessibility activations opened/closed the mascot chat and routine controls without keyboard fallback.
+PASS: Opening a private known folder was refused before handing it to Explorer.
+PASS: Native privacy controls excluded the larger private canary from the actual desktop search.
+PASS: Live search displayed the measured 8192-byte fixture file.
+PASS: Declining the live approval left both locations unchanged.
+PASS: Live approval executed a verified move with matching bytes.
+PASS: Restarted desktop reopened the undo record and restored identical bytes.
+PASS: Routine backup defaulted off and changed no fixture files.
+PASS: One native goal selected the permitted largest file and copied C:-to-D: without a per-file approval; both hashes matched.
+PASS: Repeating the backup refused to overwrite its existing destination.
+PASS: Standing permission and verified copy undo survived restart; undo removed only the copy.
+PASS: Whole-PC backup discovery answered an independent question and stopped before copying.
+PASS: Revoking the standing permission stopped pending discovery and prevented subsequent automatic backup.
+PASS: Collections defaulted off separately from the single-file backup grant.
+PASS: Real Qwen proposed a document collection; native execution verified two copies and preserved originals/private exclusions.
+PASS: A repeated planned collection refused existing destinations without replacing either output.
+PASS: Restart inspected both step receipts without replay; one group undo removed only the verified copies.
+PASS: With one edited output, group undo removed the other verified copy and preserved the user edit and both originals.
+PASS: The same engine executed an unfamiliar photo-collection request and undid its verified output.
+PASS: A third composition selected the largest document; changed-output inspection and undo retained the user edit.
+PASS: Unsupported selection semantics requested clarification without copying a substitute collection.
+PASS: Whole-PC collection discovery respected permission revocation and could not execute a later request.
+PASS: Private-zone rules survived restart and the desktop refused an online handoff.
+Fixture preserved at C:\Users\paagu\.codex\visualizations\2026\10\16\01a142c7-c123-7122-873a-8f2707fc4063\desktop-acceptance-stage0-repair-03

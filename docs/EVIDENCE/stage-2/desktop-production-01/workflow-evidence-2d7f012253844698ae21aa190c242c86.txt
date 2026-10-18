@@ -1,0 +1,62 @@
+
+Custodian
+
+Custodian - Web content
+
+
+
+
+
+
+
+
+
+Custodian
+
+
+Cubby is idle
+Cubby
+Offline
+New conversation
+Close chat
+Privacy and capabilities
+Routine permissions
+Conversation
+You
+Collect documents from "C:\Users\paagu\.codex\visualizations\2026\10\16\01a142c7-c123-7122-873a-8f2707fc4063\desktop-stage2-production-01\custom-source" to "D:/Custodian/fixture/desktop-stage2-production-01"
+Cubby
+Plan validated after 1 model attempt(s): discover → filter_documents → select_all → copy → verify. Paths and permission are bound by the desktop; nothing copied yet.Workflow verified: 2 copies; originals preserved. Checked 3 files, with 1 exclusions and 0 inaccessible locations. Saved step receipts support inspection and group undo after restart.
+Workflow 63e0bd2a-ea50-4605-9964-f8646a5be4f1: Completed.
+Verified 2 copies; originals preserved
+Verified: \\?\D:\Custodian\fixture\desktop-stage2-production-01\acceptance-largest.txt
+Verified: \\?\D:\Custodian\fixture\desktop-stage2-production-01\small.txt
+Say "undo workflow" to remove only its verified copies. Partial or changed outputs are retained for review.
+Background tasks
+TASKS (
+1
+)
+Inspect latest collection
+For recovery or undo, inspect the latest saved collection first. Changed files are retained.
+
+Planning and executing a verified file collectionAll completion checks passedExecution evidence · 3 of 3 steps recordedCompletion checked
+
+Planning and executing a verified file collection
+All completion checks passed
+
+Execution evidence · 3 of 3 steps recorded
+Execution evidence
+ · 
+3
+ of
+ 
+3
+ steps recorded
+
+Completion checked
+Chat input
+Send
+
+Cubby. Click to talk, drag to move, right-click for options.
+Cubby is idle
+
+

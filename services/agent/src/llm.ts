@@ -26,6 +26,14 @@ import {
   unsupportedDestructiveRequest,
 } from './tool-selection';
 import { toolPlanSchema } from './tool-plan';
+import { INTENT_SCHEMA, INTENT_SYSTEM, proposeIntent, type IntentPlan } from './intent-plan';
+import {
+  workflowSchema,
+  WORKFLOW_SYSTEM,
+  proposeWorkflow,
+  type WorkflowProposal,
+  type WorkflowSelection,
+} from './workflow-plan';
 import { wrapData } from './wrap';
 
 /** Tools that alter PC state (open apps, move/cleanup files, change settings, modify tasks). */
@@ -83,6 +91,12 @@ export const SYSTEM_PROMPT = [
 
 /** A model that can answer a chat message, streaming text as it goes. */
 export interface ChatEngine {
+  planIntent?(message: string, signal?: AbortSignal): Promise<IntentPlan>;
+  planWorkflow?(
+    goal: string,
+    selection: WorkflowSelection,
+    signal?: AbortSignal,
+  ): Promise<WorkflowProposal>;
   /**
    * Answers `message`; desktop tools the model calls are run by `runTool`.
    * When `signal` aborts, the answer ends where it is.
@@ -96,9 +110,9 @@ export interface ChatEngine {
   /** Loads the model ahead of the first message. */
   warmUp?(): Promise<void>;
   /**
-   * Checks quickly, without loading the model, that it could be used here:
-   * the runtime loads and the model file can be read. Returns the problem, or
-   * null. When probeDeep is true, also loads the session to verify model compatibility.
+   * A quick configuration/liveness check: model header and runtime entry exist.
+   * It does not import native libraries or certify inference readiness.
+   * A deep check awaits the integrity-checked, initialized model session.
    */
   check?(probeDeep?: boolean): Promise<string | null>;
   /** Forgets the conversation so far (a new chat). */
@@ -306,6 +320,7 @@ async function loadModel(
     const context = await loaded.createContext({
       contextSize: { min: MIN_CONTEXT_TOKENS, max: CONTEXT_TOKENS },
       flashAttention: true,
+      ...(!onGpu ? { threads: 4 } : {}),
     });
     return { model: loaded, context };
   } catch (err) {
@@ -430,9 +445,11 @@ export function createLlamaEngine(model: ChatModel, small: ChatModel | null = nu
       );
       // Do not preload every tool: it stalls CPU startup even for ordinary chat.
       // Each request gets only relevant schemas, while Rust still validates every call.
-      stage('preparing system prompt');
-      await chat.preloadPrompt('');
-      stage('ready for chat');
+      // A workflow replaces the ordinary chat history with its own system
+      // prompt. Preloading chat here wastes a full CPU prompt evaluation before
+      // that replacement, and can consume the native inactivity deadline.
+      // Each actual request evaluates its own history through chat.prompt.
+      stage('model ready');
       return { chat, functions, llama };
     })();
     session.catch(() => {
@@ -442,6 +459,53 @@ export function createLlamaEngine(model: ChatModel, small: ChatModel | null = nu
   };
 
   return {
+    async planIntent(message, signal) {
+      const deadline = AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout(60_000)]);
+      const { chat, llama } = await getSession();
+      const grammar = await llama.createGrammarForJsonSchema(INTENT_SCHEMA);
+      const history = chat.getChatHistory();
+      chat.setChatHistory([{ type: 'system', text: INTENT_SYSTEM }]);
+      try {
+        const intent = await proposeIntent(
+          message,
+          (prompt) =>
+            chat.prompt(prompt, {
+              grammar,
+              temperature: 0,
+              maxTokens: 64,
+              signal: deadline,
+              stopOnAbortSignal: true,
+            }),
+          deadline,
+        );
+        return intent;
+      } finally {
+        chat.setChatHistory(history);
+      }
+    },
+    async planWorkflow(goal, selection, signal) {
+      if (signal?.aborted) throw new Error('Workflow planning stopped');
+      const { chat, llama } = await getSession();
+      const grammar = await llama.createGrammarForJsonSchema(workflowSchema(selection));
+      const history = chat.getChatHistory();
+      chat.setChatHistory([{ type: 'system', text: WORKFLOW_SYSTEM }]);
+      try {
+        return await proposeWorkflow(
+          goal,
+          selection,
+          (prompt) =>
+            chat.prompt(prompt, {
+              grammar,
+              temperature: 0,
+              maxTokens: 128,
+              ...(signal ? { signal, stopOnAbortSignal: true } : {}),
+            }),
+          signal,
+        );
+      } finally {
+        chat.setChatHistory(history);
+      }
+    },
     async chat(message, onText, runTool, signal) {
       if (signal?.aborted) return;
       const selectedTools = selectToolNames(message);
@@ -590,7 +654,7 @@ export function createLlamaEngine(model: ChatModel, small: ChatModel | null = nu
             return `${path.basename(small.path)} is not a valid GGUF model file`;
           }
         }
-        await import('node-llama-cpp');
+        fs.accessSync(require.resolve('node-llama-cpp'), fs.constants.R_OK);
         if (probeDeep) {
           await getSession();
         }

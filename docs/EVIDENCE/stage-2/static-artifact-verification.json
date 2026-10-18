@@ -1,0 +1,15 @@
+{
+  "nativeSha256": "BF2144648D70A586AD5262181D1BCA1DCFB46816B513BF3422D6DBC853E8E204",
+  "bytes": 6341120,
+  "pe64": true,
+  "aslr": true,
+  "dep": true,
+  "guardCF": false,
+  "certificateTablePresent": false,
+  "testFaultHooksAbsent": true,
+  "productionDesktopChecks": 28,
+  "productionDesktopExitCode": 0,
+  "compilerHardeningAccepted": false,
+  "installerStage": 0,
+  "installerExecuted": false
+}

@@ -1,0 +1,38 @@
+   Compiling custodian-winsec v0.1.0 (D:\Custodian\crates\custodian-winsec)
+   Compiling custodian-approval v0.1.0 (D:\Custodian\crates\custodian-approval)
+   Compiling custodian-ledger v0.1.0 (D:\Custodian\crates\custodian-ledger)
+   Compiling custodian-core v0.1.0 (D:\Custodian\crates\custodian-core)
+   Compiling custodian-desktop v0.1.0 (D:\Custodian\apps\desktop\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 43s
+     Running unittests src\lib.rs (target\debug\deps\custodian_desktop_lib-a91c1b96e3d7c539.exe)
+
+running 20 tests
+test assistant::tests::assistant_state_records_and_projects_context_with_limit ... ok
+test assistant::tests::catalogued_launches_resolve_absolute_protected_windows_paths ... ok
+test assistant::tests::deduplicate_roots_skips_child_when_parent_is_listed_first ... ok
+test assistant::tests::a_settings_card_is_asked_for_once_and_the_click_ends_it ... ok
+test assistant::tests::deduplicate_roots_keeps_independent_roots ... ok
+test assistant::tests::deduplicate_roots_retains_parent_when_child_is_listed_first ... ok
+test assistant::tests::a_stopped_scan_proposes_nothing ... ok
+test assistant::tests::file_mutations_require_card_for_person_and_model_not_approved ... ok
+test assistant::tests::finds_files_by_name_newest_first ... ok
+test assistant::tests::model_search_scope_is_bound_to_the_request_not_guessed_personal_folders ... ok
+test assistant::tests::encodes_search_queries ... ok
+test assistant::tests::duplicates_flow_end_to_end_scan_approve_undo ... ok
+test assistant::tests::folder_counts_exclude_private_children_and_credentials ... ok
+test assistant::tests::largest_files_lists_biggest_first ... ok
+test assistant::tests::new_chat_does_not_revive_stopped_task_or_expose_newly_private_task_resources ... ok
+test assistant::tests::the_model_sees_what_was_shown_as_a_separate_result ... ok
+test assistant::tests::unloads_the_model_only_after_ten_idle_minutes ... ok
+test assistant::tests::protects_system_paths ... ok
+test assistant::tests::stop_and_privacy_changes_invalidate_queued_requests_before_they_can_clear_stop ... ok
+test assistant::tests::file_journey_finds_approves_moves_restarts_and_undoes ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 135 filtered out; finished in 0.51s
+
+     Running unittests src\main.rs (target\debug\deps\custodian_desktop-290ea52fd70753fd.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

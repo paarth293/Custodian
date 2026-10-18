@@ -348,6 +348,9 @@ body,
 /* ---------- Active tasks board ---------- */
 
 .active-tasks-board {
+  max-height: 180px;
+  overflow-y: auto;
+  flex-shrink: 0;
   margin: 6px 12px;
   padding: 8px 12px;
   background: rgba(255, 255, 255, 0.05);
@@ -378,11 +381,23 @@ body,
   gap: 8px;
 }
 .active-task-item .task-desc {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--text);
   flex: 1;
+}
+.task-desc small {
+  display: block;
+}
+.task-desc details {
+  margin-top: 4px;
+}
+.task-desc summary {
+  cursor: pointer;
+}
+.task-desc ol {
+  padding-left: 20px;
 }
 .active-task-item .btn-cancel-task {
   padding: 2px 8px;
@@ -509,11 +524,20 @@ body,
   overflow: auto;
   font-size: 13px;
 }
-.privacy-settings input {
+.routine-settings {
+  max-height: 260px;
+}
+.privacy-settings input,
+.privacy-settings textarea {
   display: block;
   width: 100%;
   box-sizing: border-box;
   margin: 6px 0;
+}
+.privacy-settings input[type='checkbox'] {
+  display: inline-block;
+  width: auto;
+  margin-right: 8px;
 }
 .privacy-settings li {
   overflow-wrap: anywhere;
@@ -523,7 +547,8 @@ body,
   margin-left: 8px;
 }
 .privacy-settings button:focus-visible,
-.privacy-settings input:focus-visible {
+.privacy-settings input:focus-visible,
+.privacy-settings textarea:focus-visible {
   outline: 2px solid #6685e5;
   outline-offset: 2px;
 }

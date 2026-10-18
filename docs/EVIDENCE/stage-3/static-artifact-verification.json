@@ -1,0 +1,21 @@
+{
+  "nativeSha256": "1841cb92fc7d0c7e7948d3572b858e1595097003a84be5f91903c523b79889ad",
+  "bytes": 6379520,
+  "pe64": true,
+  "aslr": true,
+  "dep": true,
+  "guardCF": false,
+  "certificateTablePresent": false,
+  "testFaultHooksAbsent": true,
+  "checkedTestHookNames": [
+    "CUSTODIAN_CRASH_POINT",
+    "CUSTODIAN_CRASH_ROOT",
+    "CUSTODIAN_LOCK_TEST_CHILD",
+    "CUSTODIAN_INTENT_REPORT"
+  ],
+  "productionDesktopChecks": 29,
+  "productionDesktopExitCode": 0,
+  "compilerHardeningAccepted": false,
+  "installerStage": 0,
+  "installerExecuted": false
+}

@@ -4,6 +4,11 @@ This is the first implemented package from the offline master plan. It does
 not complete the general desktop operator or certify the entire M1/M2 gates.
 Older reports and installers describe their earlier source snapshots.
 
+The installer at the output path in this historical report has since been
+replaced by the [17 October workflow increment](MODEL-PLANNED-WORKFLOWS-2026-10-17.md).
+Use that report for current artifact hashes and additional capability evidence;
+the sizes, hashes and counts below describe the earlier foundation build.
+
 ## What changed
 
 - A shared Rust filesystem policy checks supported live file operations and

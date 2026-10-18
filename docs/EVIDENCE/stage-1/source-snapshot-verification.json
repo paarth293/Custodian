@@ -1,0 +1,19 @@
+{
+  "verified": true,
+  "selectedFiles": 318,
+  "selectedBytes": 2125328,
+  "restoredDirectory": "D:\\Custodian\\target\\stage-1\\restored-accepted",
+  "sourceSnapshot": {
+    "path": "target/stage-0/stage-1-accepted-source-snapshot.json",
+    "sha256": "056f84ccf1d92452c25ab56bd8d4ed590370ec5dd302e5b1c490605e82ae3a2c"
+  },
+  "backupPath": "C:/Users/paagu/.codex/visualizations/2026/10/16/01a142c7-c123-7122-873a-8f2707fc4063/Custodian-stage1-source-snapshot.json",
+  "backupSha256": "056f84ccf1d92452c25ab56bd8d4ed590370ec5dd302e5b1c490605e82ae3a2c",
+  "frozenAcceptanceSha256": "20d15ee73ce2b261a4905fd303776cdc7682f158f72686fe84a015e5cbc1d281",
+  "limitations": [
+    "Snapshot excludes dependencies, models, generated outputs, training datasets and general docs.",
+    "Restore into a new directory only; never overwrite the active checkout.",
+    "Rebuild needs pinned dependency/model assets and reference toolchain; bit-for-bit compiler reproducibility is not certified.",
+    "Artifact hash identity is not installation acceptance or code signing."
+  ]
+}

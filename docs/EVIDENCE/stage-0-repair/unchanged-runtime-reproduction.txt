@@ -1,0 +1,22 @@
+
+running 1 test
+[agent] chat model: C:\Users\paagu\.codex\visualizations\2026\10\16\01a142c7-c123-7122-873a-8f2707fc4063\runtime\models\qwen2.5-1.5b-instruct-q4_k_m.gguf
+[agent] model integrity verified (24.1s)
+test agent::tests::installed_runtime_answers_in_sandbox_without_checkout_dependencies has been running for over 60 seconds
+[agent] model runtime imported (124.3s)
+[node-llama-cpp] load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+[agent] qwen2.5-1.5b-instruct-q4_k_m.gguf on the CPU, 4096 tokens of context
+[agent] model ready (127.8s)
+
+thread 'agent::tests::installed_runtime_answers_in_sandbox_without_checkout_dependencies' (27820) panicked at apps\desktop\src-tauri\src\agent.rs:994:14:
+called `Result::unwrap()` on an `Err` value: Timeout("agent inactive for too long")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test agent::tests::installed_runtime_answers_in_sandbox_without_checkout_dependencies ... FAILED
+
+failures:
+
+failures:
+    agent::tests::installed_runtime_answers_in_sandbox_without_checkout_dependencies
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 147 filtered out; finished in 139.63s
+

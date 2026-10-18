@@ -7,12 +7,24 @@ import {
 } from './llm';
 import { MAX_FRAME_SIZE, readFrame, writeFrame } from './ipc';
 import type { ToolRunner } from './tools';
+import { workflowSelection, type WorkflowSelection } from './workflow-plan';
 
 const HEADER_SIZE = 4 + 4 + 32;
 
 /** A message to answer, from the desktop app. */
 export interface ChatRequest {
   type: 'chat';
+  id: number;
+  message: string;
+}
+export interface WorkflowRequest {
+  type: 'workflow_plan';
+  id: number;
+  message: string;
+  selection: WorkflowSelection;
+}
+export interface IntentRequest {
+  type: 'intent_plan';
   id: number;
   message: string;
 }
@@ -50,7 +62,7 @@ export type Reply =
   | { type: 'done'; id: number }
   | { type: 'error'; id: number; error: string }
   | { type: 'tool'; id: number; call: number; name: string; args: Record<string, unknown> }
-  /** `ready` is false when the model runtime or file cannot be used here. */
+  /** A quick pong checks configuration; `deep: true` checks initialized inference. */
   | { type: 'pong'; id: number; ready: boolean; error?: string };
 
 /** How long to wait for the desktop to run one tool (a full scan can take minutes). */
@@ -90,6 +102,16 @@ export class FrameReader {
 function isChatRequest(value: unknown): value is ChatRequest {
   const v = value as Partial<ChatRequest> | null;
   return !!v && v.type === 'chat' && typeof v.id === 'number' && typeof v.message === 'string';
+}
+function isWorkflowRequest(value: unknown): value is WorkflowRequest | IntentRequest {
+  const v = value as Partial<WorkflowRequest> | null;
+  return (
+    !!v &&
+    (v.type === 'workflow_plan' || (v as { type?: string }).type === 'intent_plan') &&
+    typeof v.id === 'number' &&
+    typeof v.message === 'string' &&
+    v.message.length <= 2400
+  );
 }
 
 function isToolResult(value: unknown): value is ToolResult {
@@ -186,7 +208,8 @@ export function createHandler(
       });
       return queue;
     }
-    if (!isChatRequest(request)) return queue;
+    if (!isChatRequest(request) && !isWorkflowRequest(request)) return queue;
+    const planning = request.type === 'workflow_plan' || request.type === 'intent_plan';
     const { id, message } = request;
     const stop = new AbortController();
     stops.set(id, stop);
@@ -222,14 +245,26 @@ export function createHandler(
           send({ type: 'error', id, error: unavailable });
           return;
         }
-        await engine.chat(
-          message,
-          (text) => {
-            if (!stop.signal.aborted) send({ type: 'token', id, text });
-          },
-          runTool,
-          stop.signal,
-        );
+        if (planning) {
+          if (request.type === 'intent_plan') {
+            if (!engine.planIntent) throw new Error('Intent planning unavailable');
+            const proposal = await engine.planIntent(message, stop.signal);
+            if (!stop.signal.aborted) send({ type: 'token', id, text: JSON.stringify(proposal) });
+          } else {
+            if (!engine.planWorkflow) throw new Error('Workflow planning is unavailable');
+            const selection = workflowSelection((request as WorkflowRequest).selection);
+            const proposal = await engine.planWorkflow(message, selection, stop.signal);
+            if (!stop.signal.aborted) send({ type: 'token', id, text: JSON.stringify(proposal) });
+          }
+        } else
+          await engine.chat(
+            message,
+            (text) => {
+              if (!stop.signal.aborted) send({ type: 'token', id, text });
+            },
+            runTool,
+            stop.signal,
+          );
         send({ type: 'done', id });
       } catch (err) {
         if (stop.signal.aborted) send({ type: 'done', id });

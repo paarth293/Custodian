@@ -32,6 +32,24 @@ pub fn run() {
         .manage(cubby_window::CubbyWindowState::default())
         .setup(|app| {
             let data_dir = paths::data_dir(app.handle())?;
+            // Acquire before loading any mutable policy, task or receipt state.
+            // Held by Tauri until exit; a crash releases the OS lock as well.
+            // This root deliberately ignores verification-profile overrides:
+            // every desktop for this OS user shares authority over local files.
+            let authority_dir = app.path().app_local_data_dir()?.join("authority");
+            let host = match custodian_core::instance::InstanceGuard::acquire_for_profile(
+                &authority_dir,
+                &data_dir,
+            ) {
+                Ok(host) => host,
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    eprintln!("[desktop] {error}");
+                    app.handle().exit(0);
+                    return Ok(());
+                }
+                Err(error) => return Err(error.into()),
+            };
+            app.manage(host);
             app.manage(assistant::AssistantState::load(&data_dir).map_err(std::io::Error::other)?);
             cubby_window::create_cubby_window(app.handle())?;
             assistant::start_idle_unloader(app.handle().clone());
@@ -47,6 +65,8 @@ pub fn run() {
             assistant::privacy::get_privacy_settings,
             assistant::privacy::set_private_paths,
             assistant::privacy::get_capabilities,
+            assistant::routine::get_routine_settings,
+            assistant::routine::set_routine_settings,
             assistant::send_chat_message,
             assistant::reset_conversation,
             assistant::approve_plan,
@@ -55,6 +75,7 @@ pub fn run() {
             assistant::cancel_chat,
             assistant::list_active_tasks,
             assistant::cancel_task,
+            assistant::pause_task,
             clipboard::set_private_text,
             placement::set_calm_mode,
             cubby_window::set_panel_open,

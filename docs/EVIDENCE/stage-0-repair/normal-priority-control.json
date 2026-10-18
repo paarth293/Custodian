@@ -1,0 +1,15 @@
+{
+  "model": "D:\\Custodian\\models\\qwen2.5-1.5b-instruct-q4_k_m.gguf",
+  "sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+  "toolCalls": [],
+  "reply": "A duplicate file is another instance of the same file, exactly the same contents even if their names or locations differ.",
+  "elapsedMs": 39384.9009,
+  "memory": {
+    "rss": 1963454464,
+    "heapTotal": 32837632,
+    "heapUsed": 29962136,
+    "external": 2698454,
+    "arrayBuffers": 144967
+  },
+  "success": true
+}

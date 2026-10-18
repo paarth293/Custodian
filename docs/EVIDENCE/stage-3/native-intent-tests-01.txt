@@ -1,0 +1,11 @@
+    Blocking waiting for file lock on build directory
+   Compiling custodian-core v0.1.0 (D:\Custodian\crates\custodian-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 28.48s
+     Running unittests src\lib.rs (target\debug\deps\custodian_core-a3fc6586b0b9759e.exe)
+
+running 2 tests
+test intent_plan::tests::rejects_unknown_effects_dependencies_and_omitted_constraints ... ok
+test intent_plan::tests::frozen_negative_guards_are_not_silent_constraint_dropping ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 121 filtered out; finished in 0.02s
+

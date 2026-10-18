@@ -5,20 +5,7 @@ use custodian_core::privacy::{AccessPolicy, OFFLINE};
 pub(super) const PAUSED: &str = "This capability is paused until it uses the shared privacy and execution boundary. Nothing was changed.";
 
 pub(super) fn unavailable(call: &ToolCall) -> Option<&'static str> {
-    match call {
-        ToolCall::WebSearch(_) | ToolCall::OpenWebsite { .. } => Some(OFFLINE),
-        // Legacy paths enumerate titles, inspect unscoped content, or mutate
-        // through a different recovery contract. Do not bypass policy for them.
-        ToolCall::FindDuplicateFiles(_)
-        | ToolCall::CleanTempFiles
-        | ToolCall::EmptySafePlace
-        | ToolCall::CleanupHistory
-        | ToolCall::Suggestions
-        | ToolCall::ListOpenApps
-        | ToolCall::CloseApp(_)
-        | ToolCall::OpenProgram(_) => Some(PAUSED),
-        _ => None,
-    }
+    capability::Contract::for_call(call).unavailable()
 }
 
 #[derive(Serialize)]
@@ -34,7 +21,7 @@ fn snapshot(policy: &AccessPolicy) -> PrivacySettings {
     let (revision, private_paths) = policy.settings();
     PrivacySettings {
         revision, private_paths, offline: true,
-        notice: "Private locations and common credential files are excluded from supported file tools. Multi-linked files and reparse/cloud paths are refused. App-level private zones and general app control are not implemented. Existing third-party applications are not network-isolated by these controls.",
+        notice: "Private locations and common credential files are excluded from supported file tools. Multi-linked files and reparse/cloud paths are refused. Assistant screen capture, app content extraction, accessibility reading and window-title enumeration are disabled: private app content cannot yet be excluded before observation. Existing third-party applications are not network-isolated by these controls.",
     }
 }
 
@@ -52,8 +39,7 @@ pub async fn set_private_paths(
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AssistantState>();
         if state.privacy.revision() != revision { return Err("Privacy rules changed. Reopen the controls before saving.".into()); }
-        state.cancel.store(true, Ordering::Relaxed);
-        state.coordinator.cancel_all();
+        state.stop_requests();
         state.privacy.replace_if_revision(paths, revision).map_err(|_| "Privacy rules could not be saved. Use existing absolute local paths and reload if another window changed the rules.".to_string())?;
         state.coordinator.cancel_all();
         state.actions.clear();
@@ -76,6 +62,8 @@ pub struct Capability {
 #[tauri::command]
 pub fn get_capabilities() -> Vec<Capability> {
     vec![
+        Capability { name: "Model-planned verified collections", status: "limited", detail: "Qwen proposes typed discovery/filter/select/copy/verify steps. Native goal and standing collection permission bind paths, intent and budgets. Up to 20 files/100 MiB, sealed per-step receipts, restart inspection and group undo. Document/image filters use extensions; no content-based secret detection or archives." },
+        Capability { name: "Verified largest-file backup", status: "limited", detail: "Native find/select/copy/verify workflow with opt-in standing permission, 100 MiB limit, free-space checks and durable undo. Explicit local source and destination; no model permission grants." },
         Capability { name: "Local file search and metadata", status: "available", detail: "Accessible local drives and permitted custom paths; private/credential exclusions apply." },
         Capability { name: "Move, copy, rename, create folder and undo", status: "available", detail: "Ordinary local files; exact-path approval, current privacy checks, verification and durable undo. General path-race hardening remains open." },
         Capability { name: "Windows personal settings", status: "limited", detail: "Six catalogued per-user settings; broader system controls are not implemented." },

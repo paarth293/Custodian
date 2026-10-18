@@ -369,7 +369,30 @@ pub fn current() -> Arc<AccessPolicy> {
         .unwrap_or_else(|| DEFAULT.clone())
 }
 
+pub fn request_revision() -> u64 {
+    ACTIVE
+        .with(|active| active.borrow().as_ref().map(|binding| binding.revision))
+        .unwrap_or_else(|| current().revision())
+}
+
 pub fn with_policy<T>(policy: Arc<AccessPolicy>, work: impl FnOnce() -> T) -> T {
+    let revision = ACTIVE.with(|active| {
+        active
+            .borrow()
+            .as_ref()
+            .filter(|binding| Arc::ptr_eq(&binding.policy, &policy))
+            .map_or_else(|| policy.revision(), |binding| binding.revision)
+    });
+    with_policy_revision(policy, revision, work)
+}
+
+/// Bind the revision captured at IPC ingress, before a worker can be queued.
+/// Nested calls may retain or narrow that authority, never refresh it.
+pub fn with_policy_revision<T>(
+    policy: Arc<AccessPolicy>,
+    revision: u64,
+    work: impl FnOnce() -> T,
+) -> T {
     struct Reset(Option<Binding>);
     impl Drop for Reset {
         fn drop(&mut self) {
@@ -381,7 +404,7 @@ pub fn with_policy<T>(policy: Arc<AccessPolicy>, work: impl FnOnce() -> T) -> T 
             .borrow()
             .as_ref()
             .filter(|binding| Arc::ptr_eq(&binding.policy, &policy))
-            .map_or_else(|| policy.revision(), |binding| binding.revision);
+            .map_or(revision, |binding| binding.revision);
         active.replace(Some(Binding { policy, revision }))
     });
     let _reset = Reset(old);
@@ -397,12 +420,13 @@ pub fn check(path: &Path) -> io::Result<()> {
 }
 
 pub fn request_is_current() -> bool {
-    ACTIVE.with(|active| {
-        active
-            .borrow()
-            .as_ref()
-            .is_none_or(|binding| binding.revision == binding.policy.revision())
-    })
+    crate::request::is_current()
+        && ACTIVE.with(|active| {
+            active
+                .borrow()
+                .as_ref()
+                .is_none_or(|binding| binding.revision == binding.policy.revision())
+        })
 }
 
 pub fn with_mutation<T>(work: impl FnOnce() -> T) -> T {
@@ -414,6 +438,25 @@ pub fn with_mutation<T>(work: impl FnOnce() -> T) -> T {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn queued_revision_cannot_be_refreshed_by_worker_or_nested_helper() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("ordinary.txt");
+        fs::write(&path, b"public").unwrap();
+        let policy = Arc::new(AccessPolicy::default());
+        let queued = policy.revision();
+        policy.replace_private_paths(vec![]).unwrap();
+        with_policy_revision(policy.clone(), queued, || {
+            assert!(!request_is_current());
+            assert_eq!(request_revision(), queued);
+            assert!(check(&path).is_err());
+            with_policy(policy.clone(), || assert!(!request_is_current()));
+            with_policy_revision(policy.clone(), policy.revision(), || {
+                assert!(!request_is_current())
+            });
+        });
+        with_policy(policy, || assert!(check(&path).is_ok()));
+    }
 
     #[test]
     fn whole_local_scope_excludes_private_metadata_and_default_secrets() {

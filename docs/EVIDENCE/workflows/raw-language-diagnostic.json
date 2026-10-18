@@ -1,0 +1,33 @@
+{
+  "model": "models\\qwen2.5-1.5b-instruct-q4_k_m.gguf",
+  "modelSha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+  "note": "Author-written synthetic cases, not independent external evaluation. Held-out wording frozen before the first run.",
+  "cases": [
+    {
+      "id": "dev-documents",
+      "split": "development",
+      "goal": "Collect documents from SOURCE to DESTINATION",
+      "expected": [
+        "discover",
+        "filter_documents",
+        "select_all",
+        "copy",
+        "verify"
+      ],
+      "proposal": {
+        "steps": [
+          "discover",
+          "filter_documents",
+          "select_largest",
+          "copy",
+          "verify"
+        ]
+      },
+      "passed": false,
+      "elapsedMs": 22880
+    }
+  ],
+  "warmupMs": 42587,
+  "passed": 0,
+  "total": 1
+}

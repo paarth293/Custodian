@@ -1,0 +1,21 @@
+{
+  "nativeSha256": "E567F5709F5FAF9D2B4CD2AC6D343A04223DBC30E1C0F62000AC64E70F885702",
+  "testedExecutableSha256": "E567F5709F5FAF9D2B4CD2AC6D343A04223DBC30E1C0F62000AC64E70F885702",
+  "rustPassed": 332,
+  "rustIgnored": 4,
+  "javascriptPassed": 122,
+  "desktopFinalRuns": [
+    {
+      "fixture": "desktop-acceptance-routine-final-01",
+      "passed": true,
+      "checks": 13
+    },
+    {
+      "fixture": "desktop-acceptance-routine-final-02",
+      "passed": true,
+      "checks": 13
+    }
+  ],
+  "modelJudgmentActive": false,
+  "generalOperatorComplete": false
+}

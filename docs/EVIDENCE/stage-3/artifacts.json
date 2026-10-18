@@ -1,0 +1,49 @@
+{
+  "stage": 3,
+  "nativePath": "D:\\Custodian\\target\\release\\custodian-desktop.exe",
+  "nativeBytes": 6379520,
+  "nativeSha256": "1841cb92fc7d0c7e7948d3572b858e1595097003a84be5f91903c523b79889ad",
+  "testedExecutablePath": "C:\\Users\\paagu\\.codex\\visualizations\\2026\\10\\16\\01a142c7-c123-7122-873a-8f2707fc4063\\stage3-bundle\\Custodian-stage3-production.exe",
+  "testedNativeSha256": "1841cb92fc7d0c7e7948d3572b858e1595097003a84be5f91903c523b79889ad",
+  "buildCommand": "cargo build -p custodian-desktop --release --features tauri/custom-protocol",
+  "productionProtocol": true,
+  "unsignedDevelopmentArtifact": true,
+  "pe64": true,
+  "aslr": true,
+  "dep": true,
+  "guardCF": false,
+  "testFaultHooksAbsent": true,
+  "agentModuleCount": 67,
+  "defaultRustPassed": 383,
+  "defaultRustIgnored": 5,
+  "javascriptPassed": 138,
+  "liveDesktopChecksPerRun": 29,
+  "productionDesktopEvidence": "docs/EVIDENCE/stage-3/desktop-production-03.txt",
+  "productionDesktopExitCode": 0,
+  "developmentDesktopEvidence": "docs/EVIDENCE/stage-3/desktop-validation-01.txt",
+  "developmentDesktopExitCode": null,
+  "developmentExitCodeNote": "Completion response not retained across compaction; 29 completed checks and captured descendant cleanup retained. Production exit code explicitly persisted.",
+  "validationExecutableSha256": "1ad63c4f00cf11e560ba0933115b107ee7971ef0bb357c8906e6ed2c611426aa",
+  "installerStage": 0,
+  "installerIncludesStage3": false,
+  "installerPath": "D:\\Custodian\\target\\release\\bundle\\nsis\\Custodian_0.1.0_x64-setup.exe",
+  "installerBytes": 1209976627,
+  "installerSha256": "7ffa76e2fb1bf510779e9df7e7f0b16495596ab8de4bd7b3472b0c599f7d9309",
+  "installerExecuted": false,
+  "capturedAtUtc": "2026-10-18T03:09:36.543722+00:00",
+  "priorFailedDesktopRuns": [
+    {
+      "evidence": "docs/EVIDENCE/stage-3/desktop-production-01.txt",
+      "exitCode": 1,
+      "completedChecks": 8,
+      "reason": "Captured WebView cleanup timeout; not accepted"
+    },
+    {
+      "evidence": "docs/EVIDENCE/stage-3/desktop-production-02.txt",
+      "exitCode": 1,
+      "completedChecks": 8,
+      "reason": "Captured WebView cleanup timeout; not accepted"
+    }
+  ],
+  "acceptanceDriverCleanupChanged": "Release retained UIA references; terminate pinned descendants in descending depth before host. Same identity/exit checks and timeouts. Application hash unchanged."
+}

@@ -1,0 +1,40 @@
+
+Custodian
+
+Custodian - Web content
+
+
+
+
+
+
+
+
+
+Custodian
+
+
+Cubby is idle
+Cubby
+Offline
+New conversation
+Close chat
+Privacy and capabilities
+Routine permissions
+Conversation
+You
+show workflow status
+Cubby
+Workflow 79ef28cc-518a-4235-ba55-e0e1e6a71937: Completed.
+2 of 2 copies currently verified; 0 undone. No steps replayed.
+Verified: \\?\D:\Custodian\fixture\desktop-stage1-production-01\acceptance-largest.txt
+Verified: \\?\D:\Custodian\fixture\desktop-stage1-production-01\small.txt
+Say "undo workflow" to remove only its verified copies. Partial or changed outputs are retained for review.
+Chat input
+Send
+
+Hi! I'm Cubby.
+Cubby. Click to talk, drag to move, right-click for options.
+Cubby is idle
+
+

@@ -1,0 +1,8 @@
+A second desktop exited before loading state; the authoritative host remained responsive.
+An alternate verification profile also exited before loading task state; profile overrides did not bypass the user authority lease.
+Five repeated accessibility activations opened/closed the mascot chat and routine controls without keyboard fallback.
+Opening a private known folder was refused before handing it to Explorer.
+Native privacy controls excluded the larger private canary from the actual desktop search.
+Live search displayed the measured 8192-byte fixture file.
+Declining the live approval left both locations unchanged.
+Live approval executed a verified move with matching bytes.

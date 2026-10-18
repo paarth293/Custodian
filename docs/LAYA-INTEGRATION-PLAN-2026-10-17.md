@@ -5,6 +5,13 @@ permission expansion or new security certification is performed by this plan.
 It refines the offline master plan and the original D-19 escalate-only rule.
 Numbers below are proposed acceptance targets, not measured results.
 
+Implementation update: the [first typed-model validation report](LAYA-VALIDATION-IMPLEMENTATION-2026-10-17.md)
+records the implemented prototype and real CPU findings. The first candidate
+does not meet activation targets; production integration remains disabled.
+The [subsequent improvement report](LAYA-IMPROVEMENT-VERIFICATION-2026-10-17.md)
+records structured effects, paired model comparisons and a faster experimental
+runtime, including its new semantic regression. It does not waive any gate.
+
 ## 1. Outcome
 
 Use the actual Laya typed decision model to detect questionable actions and

@@ -1,0 +1,14 @@
+
+running 1 test
+[agent] chat model: \\?\C:\Users\paagu\.codex\visualizations\2026\10\16\01a142c7-c123-7122-873a-8f2707fc4063\runtime\models\qwen2.5-1.5b-instruct-q4_k_m.gguf
+[agent] model integrity verified (1.5s)
+[agent] model runtime imported (1.5s)
+[node-llama-cpp] load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+[agent] qwen2.5-1.5b-instruct-q4_k_m.gguf on the CPU, 4096 tokens of context
+[agent] preparing system prompt (4.3s)
+[agent] ready for chat (25.0s)
+Installed isolated runtime reply: A duplicate file is an exact copy of another file, even if their names or locations differ.
+test agent::tests::installed_runtime_answers_in_sandbox_without_checkout_dependencies ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 147 filtered out; finished in 41.32s
+

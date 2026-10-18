@@ -126,6 +126,8 @@ pub struct TaskInfo {
     pub created_at: u64,
     pub updated_at: u64,
     pub resources: Vec<String>,
+    #[serde(default)]
+    pub execution: Option<crate::task_program::Checkpoint>,
 }
 
 #[derive(Debug)]
@@ -133,6 +135,7 @@ struct ManagedTask {
     info: TaskInfo,
     cancel_flag: Arc<AtomicBool>,
     locked_paths: Vec<PathBuf>,
+    pause_requested: bool,
 }
 
 /// Coordinates tasks, lifecycle transitions, per-task cancellation, and resource locks.
@@ -211,6 +214,10 @@ impl TaskCoordinator {
                 info.state = TaskState::RecoveryRequired;
                 info.progress = Some("Interrupted when Custodian stopped. Inspect the files before retrying; nothing was replayed.".into());
                 info.updated_at = now_unix();
+                if let Some(execution) = &mut info.execution {
+                    execution.paused = false;
+                    execution.pause_requested = false;
+                }
             }
             let id = info.id.clone();
             if tasks
@@ -220,6 +227,7 @@ impl TaskCoordinator {
                         info,
                         cancel_flag: Arc::new(AtomicBool::new(true)),
                         locked_paths: Vec::new(),
+                        pause_requested: false,
                     },
                 )
                 .is_some()
@@ -305,9 +313,11 @@ impl TaskCoordinator {
                 created_at: now,
                 updated_at: now,
                 resources: resources.iter().map(|p| p.display().to_string()).collect(),
+                execution: None,
             },
             cancel_flag: Arc::clone(&cancel_flag),
             locked_paths: normalized,
+            pause_requested: false,
         };
 
         tasks.insert(task_id.clone(), task);
@@ -318,6 +328,140 @@ impl TaskCoordinator {
         }
 
         Ok((task_id, cancel_flag))
+    }
+
+    /// Reserve measured input/output resources before the first program effect.
+    pub fn reserve_resources(&self, id: &str, resources: &[PathBuf]) -> Result<(), TaskError> {
+        let normalized: Vec<_> = resources.iter().map(|p| normalize_path(p)).collect();
+        let mut tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
+        let task = tasks
+            .get_mut(id)
+            .ok_or_else(|| TaskError::NotFound(id.into()))?;
+        if task.info.state != TaskState::Running || task.cancel_flag.load(Ordering::Acquire) {
+            return Err(TaskError::InvalidTransition {
+                from: task.info.state,
+                to: TaskState::Running,
+            });
+        }
+        let mut locks = self.path_locks.lock().unwrap_or_else(|e| e.into_inner());
+        for path in &normalized {
+            if let Some((_, holder)) = locks.iter().find(|(locked, holder)| {
+                holder.as_str() != id && (path.starts_with(locked) || locked.starts_with(path))
+            }) {
+                return Err(TaskError::ResourceConflict {
+                    path: path.display().to_string(),
+                    holder: holder.clone(),
+                });
+            }
+        }
+        let previous = task.info.clone();
+        let old_paths = task.locked_paths.clone();
+        for (path, original) in normalized.into_iter().zip(resources) {
+            locks.insert(path.clone(), id.into());
+            if !task.locked_paths.contains(&path) {
+                task.locked_paths.push(path);
+                task.info.resources.push(original.display().to_string());
+            }
+        }
+        if let Err(error) = self.persist(&tasks) {
+            let task = tasks.get_mut(id).unwrap();
+            task.info = previous;
+            task.locked_paths = old_paths;
+            locks.retain(|_, holder| holder != id);
+            for path in &task.locked_paths {
+                locks.insert(path.clone(), id.into());
+            }
+            return Err(error);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn start_program(
+        &self,
+        id: &str,
+        checkpoint: &crate::task_program::Checkpoint,
+    ) -> Result<(), TaskError> {
+        self.store_program_checkpoint(id, checkpoint, true)
+    }
+    pub(crate) fn program_checkpoint(
+        &self,
+        id: &str,
+        checkpoint: &crate::task_program::Checkpoint,
+    ) -> Result<(), TaskError> {
+        self.store_program_checkpoint(id, checkpoint, false)
+    }
+    fn store_program_checkpoint(
+        &self,
+        id: &str,
+        checkpoint: &crate::task_program::Checkpoint,
+        initial: bool,
+    ) -> Result<(), TaskError> {
+        let mut tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
+        let task = tasks
+            .get_mut(id)
+            .ok_or_else(|| TaskError::NotFound(id.into()))?;
+        if task.info.state != TaskState::Running || (initial && task.info.execution.is_some()) {
+            return Err(TaskError::InvalidTransition {
+                from: task.info.state,
+                to: TaskState::Running,
+            });
+        }
+        let previous = task.info.clone();
+        let mut checkpoint = checkpoint.clone();
+        checkpoint.pause_requested = task.pause_requested;
+        task.info.execution = Some(checkpoint);
+        task.info.updated_at = now_unix();
+        if let Err(error) = self.persist(&tasks) {
+            tasks.get_mut(id).unwrap().info = previous;
+            return Err(error);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn program_pause_requested(&self, id: &str) -> Result<bool, TaskError> {
+        let tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
+        tasks
+            .get(id)
+            .map(|task| task.pause_requested)
+            .ok_or_else(|| TaskError::NotFound(id.into()))
+    }
+
+    pub(crate) fn program_cancelled(&self, id: &str) -> bool {
+        self.tasks
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(id)
+            .is_none_or(|task| {
+                task.cancel_flag.load(Ordering::Acquire) || task.info.state.is_terminal()
+            })
+    }
+
+    /// Pause is cooperative: the current native step finishes; resource locks remain held.
+    pub fn pause_program(&self, id: &str, pause: bool) -> Result<(), TaskError> {
+        let mut tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
+        let task = tasks
+            .get_mut(id)
+            .ok_or_else(|| TaskError::NotFound(id.into()))?;
+        if task.info.state != TaskState::Running
+            || task.info.execution.is_none()
+            || task.cancel_flag.load(Ordering::Acquire)
+        {
+            return Err(TaskError::InvalidTransition {
+                from: task.info.state,
+                to: TaskState::Running,
+            });
+        }
+        let previous = task.info.clone();
+        let old_pause = task.pause_requested;
+        task.pause_requested = pause;
+        task.info.execution.as_mut().unwrap().pause_requested = pause;
+        if let Err(error) = self.persist(&tasks) {
+            let task = tasks.get_mut(id).unwrap();
+            task.info = previous;
+            task.pause_requested = old_pause;
+            return Err(error);
+        }
+        Ok(())
     }
 
     /// Updates task progress without changing state.
@@ -477,6 +621,49 @@ impl TaskCoordinator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn discovered_resources_are_reserved_atomically_and_released_on_completion() {
+        let coordinator = TaskCoordinator::new();
+        let dir = tempfile::tempdir().unwrap();
+        let one = dir.path().join("one");
+        let two = dir.path().join("two");
+        let (a, _) = coordinator
+            .create_task("a".into(), TaskState::Running, std::slice::from_ref(&one))
+            .unwrap();
+        let (b, _) = coordinator
+            .create_task("b".into(), TaskState::Running, std::slice::from_ref(&two))
+            .unwrap();
+        assert!(coordinator
+            .reserve_resources(&a, &[dir.path().join("free"), two.clone()])
+            .is_err());
+        assert_eq!(coordinator.get_task(&a).unwrap().resources.len(), 1);
+        assert!(coordinator
+            .create_task(
+                "free".into(),
+                TaskState::Running,
+                &[dir.path().join("free")]
+            )
+            .is_ok());
+        coordinator
+            .update_state(&b, TaskState::Completed, None)
+            .unwrap();
+        coordinator
+            .reserve_resources(&a, std::slice::from_ref(&two))
+            .unwrap();
+        assert!(coordinator
+            .create_task(
+                "blocked".into(),
+                TaskState::Running,
+                std::slice::from_ref(&two)
+            )
+            .is_err());
+        coordinator
+            .update_state(&a, TaskState::Completed, None)
+            .unwrap();
+        assert!(coordinator
+            .create_task("released".into(), TaskState::Running, &[two])
+            .is_ok());
+    }
 
     #[cfg(windows)]
     #[test]

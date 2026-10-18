@@ -1,0 +1,14 @@
+{
+  "nativeSha256": "fafbf74e466e719e4ad6784484798d73f63dad87bc8a37a7666a005dd96237a4",
+  "bytes": 6177792,
+  "pe64": true,
+  "aslr": true,
+  "dep": true,
+  "guardCF": false,
+  "testFaultHooksAbsent": true,
+  "productionDesktopChecks": 27,
+  "productionDesktopExitCode": 0,
+  "compilerHardeningAccepted": false,
+  "installerStage": 0,
+  "installerExecuted": false
+}

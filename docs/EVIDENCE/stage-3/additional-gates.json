@@ -1,0 +1,5 @@
+{
+  "beforeFirstInference": true,
+  "sourceDestinationRoleErrorsMaximum": 0,
+  "note": "Stricter than the frozen overall positive accuracy floor; no relaxation of any expectation."
+}

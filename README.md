@@ -11,8 +11,45 @@ desktop automation and full security acceptance remain unfinished.
 > **Status:** early development. Many components are placeholders with their
 > final interfaces; [`HONESTY.md`](HONESTY.md) lists exactly what is stubbed.
 
-See the [current implementation and verification report](docs/OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md)
-for supported scope, paused capabilities, package hashes and remaining gates.
+The [capability register](docs/CAPABILITY-REGISTER.md) tracks the full offline
+vision and gaps. The [Stage 0 baseline](docs/STAGE-0-BASELINE-2026-10-17.md)
+records source/runtime identities, frozen expectations and validation.
+The [Stage 0 runtime repair](docs/STAGE-0-RUNTIME-REPAIR-2026-10-17.md) records
+the restored baseline and two fresh desktop passes.
+The [Stage 1 authority and recovery report](docs/STAGE-1-AUTHORITY-AND-RECOVERY-2026-10-18.md)
+records shared native authorization, optional copy-grant scopes, one active host
+per user across profiles, real process-kill recovery and 27 passing checks on the
+optimized desktop. It identifies that increment's native artifact; the installer
+remains the historical Stage 0 build. Full-product security acceptance is open.
+
+The [Stage 2 coordinator report](docs/STAGE-2-TASK-COORDINATOR-2026-10-18.md)
+records bounded typed programs, durable step evidence, safe pause, failure
+classification and verified collection integration. App composition uses a
+labelled mock in fixtures; real application control and general language
+planning remain separate unfinished stages.
+
+The [Stage 3 language/planning report](docs/STAGE-3-LANGUAGE-AND-PLANNING-2026-10-18.md)
+records local Qwen interpretation of file collections and location roles,
+independent native validation, real model-to-file execution and the current
+desktop acceptance status. The supported combinations are files/documents/images,
+optionally selecting the largest. General app automation, content-based
+exclusions and multilingual execution remain unfinished; Laya stays inactive.
+
+See the [offline foundation report](docs/OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md)
+for baseline scope, paused capabilities and remaining gates.
+The [routine backup increment](docs/ROUTINE-BACKUP-IMPLEMENTATION-2026-10-17.md)
+adds opt-in automatic discovery, selection, verified copying and undo for one
+explicit largest-file goal across permitted local folders or all local drives.
+It includes that increment's historical hashes and two desktop walkthroughs.
+General autonomous desktop operation remains unfinished.
+
+The [model-planned workflow increment](docs/MODEL-PLANNED-WORKFLOWS-2026-10-17.md)
+adds document/photo collections and composed largest-file selection through one
+shared engine, with a separate standing permission, saved step receipts and
+group undo. Qwen proposes bounded capability sequences; native code validates
+the original goal and paths before execution. This remains constrained file
+automation, with no archive creation or general application control. Its artifact
+hashes are historical; the Stage 0 repair report identifies the current installer.
 
 ## Architecture
 

@@ -1,0 +1,18 @@
+[agent] model integrity verified (2.0s)
+[agent] model runtime imported (4.3s)
+[node-llama-cpp] load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+[agent] qwen2.5-1.5b-instruct-q4_k_m.gguf on the CPU, 4096 tokens of context
+[agent] preparing system prompt (10.6s)
+[agent] ready for chat (28.3s)
+dev-documents: PASS 11617ms {"proposal":{"steps":["discover","filter_documents","select_all","copy","verify"],"attempts":1}}
+dev-images: PASS 7073ms {"proposal":{"steps":["discover","filter_images","select_all","copy","verify"],"attempts":1}}
+dev-largest: PASS 14785ms {"proposal":{"steps":["discover","select_largest","copy","verify"],"attempts":1}}
+dev-largest-document: PASS 10750ms {"proposal":{"steps":["discover","filter_documents","select_largest","copy","verify"],"attempts":1}}
+dev-largest-image: PASS 5701ms {"proposal":{"steps":["discover","filter_images","select_largest","copy","verify"],"attempts":1}}
+dev-backup: PASS 5482ms {"proposal":{"steps":["discover","filter_documents","select_all","copy","verify"],"attempts":1}}
+heldout-documents: PASS 11613ms {"proposal":{"steps":["discover","filter_documents","select_all","copy","verify"],"attempts":1}}
+heldout-images: PASS 5177ms {"proposal":{"steps":["discover","filter_images","select_all","copy","verify"],"attempts":1}}
+heldout-largest: PASS 5130ms {"proposal":{"steps":["discover","select_largest","copy","verify"],"attempts":1}}
+heldout-largest-document: PASS 5562ms {"proposal":{"steps":["discover","filter_documents","select_largest","copy","verify"],"attempts":1}}
+heldout-largest-image: PASS 5324ms {"proposal":{"steps":["discover","filter_images","select_largest","copy","verify"],"attempts":1}}
+heldout-docs: PASS 5007ms {"proposal":{"steps":["discover","filter_documents","select_all","copy","verify"],"attempts":1}}

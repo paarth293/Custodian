@@ -1,0 +1,12 @@
+{
+  "frozenCasesSha256": "00cf566d68b45394c303ebcfc9b1937b130008233e43c64e855ddba9825deac3",
+  "supported": 24,
+  "blocked": 12,
+  "warmP95Ms": 11272,
+  "allPositiveAttempts": 1,
+  "developmentChecks": 29,
+  "developmentFailureFileAbsent": true,
+  "developmentCleanupDescendantExitsRecorded": true,
+  "developmentExitCode": null,
+  "developmentExitCodeNote": "Initial process completion response not retained across context compaction. Completed checks and descendant cleanup retained; numerical exit code not reconstructed. Optimized acceptance explicitly persists its exit code."
+}

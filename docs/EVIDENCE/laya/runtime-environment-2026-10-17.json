@@ -1,0 +1,13 @@
+{
+  "python": "3.11.9",
+  "platform": "Windows-10-10.0.26300-SP0",
+  "packages": {
+    "laya": "0.4.8",
+    "torch": "2.13.0",
+    "transformers": "5.15.1",
+    "huggingface_hub": "1.28.0",
+    "safetensors": "0.8.0",
+    "numpy": "2.4.6"
+  },
+  "note": "shared development dependencies, not a deployment lock"
+}

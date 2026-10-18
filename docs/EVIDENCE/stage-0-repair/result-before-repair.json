@@ -1,0 +1,19 @@
+{
+  "stage": 0,
+  "registerRequirements": 58,
+  "tracedRoutes": 17,
+  "frozenRepresentativeCases": 15,
+  "selectedSnapshotFiles": 313,
+  "defaultRustPassed": 342,
+  "defaultRustIgnored": 4,
+  "javascriptPassed": 131,
+  "isolatedOptInPassed": 0,
+  "isolatedOptInFailed": 1,
+  "freshDesktopAttempts": 2,
+  "freshDesktopPassed": 0,
+  "stageAcceptance": "open",
+  "nextStageStarted": false,
+  "applicationCapabilitiesExpanded": false,
+  "blocker": "Fresh secure desktop startup and isolated real-model response do not consistently meet existing deadlines.",
+  "nextAction": "Diagnose and repair the existing runtime baseline, then rerun the unchanged Stage 0 gates before Stage 1."
+}

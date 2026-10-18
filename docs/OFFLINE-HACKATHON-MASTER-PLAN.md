@@ -9,6 +9,13 @@ schedule jobs or execute user tasks. Only planning documents are produced now.
 The owner subsequently requested implementation. Current progress and its
 limits are in the [offline foundation report](OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md).
 The original planning text below does not override that later authorization.
+The [17 October routine backup increment](ROUTINE-BACKUP-IMPLEMENTATION-2026-10-17.md)
+implements a first bounded native workflow with opt-in standing permission;
+this is incremental progress, not acceptance of all milestones.
+The [model-planned collections increment](MODEL-PLANNED-WORKFLOWS-2026-10-17.md)
+adds shared composition, explicit native selection contracts, bounded model
+correction and per-step recovery evidence. It does not complete general planning
+or all milestone acceptance gates.
 
 The [17 October Laya integration plan](LAYA-INTEGRATION-PLAN-2026-10-17.md)
 refines offline semantic screening, standing-permission dependencies, model

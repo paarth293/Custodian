@@ -1,0 +1,14 @@
+
+> @custodian/desktop@0.1.0 build
+> tsc && vite build
+
+vite v8.3.4 building client environment for production...
+transforming...
+✓ 50 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.39 kB │ gzip:  0.26 kB
+dist/assets/index-D7CJJ8s0.css   16.20 kB │ gzip:  4.12 kB
+dist/assets/index-CvPlChPy.js   281.85 kB │ gzip: 85.96 kB
+
+✓ built in 218ms

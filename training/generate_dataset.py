@@ -1,4 +1,7 @@
-"""Generates the synthetic fine-tuning dataset for Laya (training/dataset.jsonl).
+"""Legacy GGUF-adviser dataset generator (not the official typed Laya workflow).
+
+DEPRECATED for new training: approve/delete targets conflict with the current
+advisory interface. See training/laya/README.md and the typed decision rubrics.
 
 Uses the same prompt builder as inference so the two cannot drift apart:
     PYTHONPATH=services/mlhost python training/generate_dataset.py

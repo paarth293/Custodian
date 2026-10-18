@@ -7,17 +7,21 @@
 mod actions;
 mod advice;
 mod apps;
+mod capability;
 mod file_ops;
 pub mod intent;
 mod launcher;
+mod language;
 pub mod privacy;
 mod references;
 mod reply;
+pub mod routine;
 mod settings;
 mod system;
 mod tasks;
 mod tools;
 mod when;
+mod workflow;
 
 use crate::agent::{AgentError, AgentProcess};
 use crate::approval_service::ApprovalService;
@@ -128,6 +132,7 @@ enum PlanOutcome {
 
 #[derive(Default)]
 pub struct AssistantState {
+    routine: Arc<custodian_core::routine::RoutinePolicy>,
     privacy: Arc<custodian_core::privacy::AccessPolicy>,
     agent_policy_revision: std::sync::atomic::AtomicU64,
     plans: Mutex<HashMap<String, PendingPlan>>,
@@ -139,6 +144,9 @@ pub struct AssistantState {
     actions: PendingActions,
     /// Set by the Stop button; scans and the model check it and stop.
     cancel: AtomicBool,
+    /// Stop invalidates requests which have not entered the worker pool yet.
+    request_epoch: Arc<std::sync::atomic::AtomicU64>,
+    request_admission: Mutex<()>,
     /// One reader or writer of the to-do list at a time.
     tasks_lock: Mutex<()>,
     /// Recent verified events, tool results, and card outcomes for conversation context projection (R14).
@@ -149,12 +157,63 @@ pub struct AssistantState {
 }
 
 impl AssistantState {
+    fn create_task(
+        &self,
+        description: String,
+        initial: custodian_core::coordinator::TaskState,
+        resources: &[PathBuf],
+    ) -> Result<(String, Arc<AtomicBool>), String> {
+        // Stop and task registration share a lock: a task cannot appear just
+        // after cancel_all has walked the active task list.
+        let _admission = self
+            .request_admission
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        if self.cancel.load(Ordering::Acquire) || !custodian_core::privacy::request_is_current() {
+            return Err(STOPPED.into());
+        }
+        self.coordinator
+            .create_task(description, initial, resources)
+            .map_err(|e| e.to_string())
+    }
+    fn request_epoch(&self) -> u64 {
+        self.request_epoch.load(Ordering::Acquire)
+    }
+
+    fn begin_request(&self, epoch: u64, privacy_revision: u64) -> bool {
+        let _admission = self
+            .request_admission
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        if self.request_epoch() != epoch || self.privacy.revision() != privacy_revision {
+            return false;
+        }
+        self.cancel.store(false, Ordering::Release);
+        true
+    }
+
+    fn stop_requests(&self) {
+        let _admission = self
+            .request_admission
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        self.request_epoch.fetch_add(1, Ordering::AcqRel);
+        self.cancel.store(true, Ordering::Release);
+        self.coordinator.cancel_all();
+    }
     pub fn load(data_dir: &Path) -> Result<Self, String> {
         let coordinator = custodian_core::coordinator::TaskCoordinator::open(
             data_dir.join("background-tasks.dpapi"),
         )
         .map_err(|e| e.to_string())?;
         Ok(Self {
+            routine: Arc::new(
+                custodian_core::routine::RoutinePolicy::open(data_dir.join("routine.dpapi"))
+                    .map_err(|_| {
+                        "Routine permissions could not be verified. Startup was stopped."
+                            .to_string()
+                    })?,
+            ),
             coordinator,
             privacy: Arc::new(
                 custodian_core::privacy::AccessPolicy::open(data_dir.join("privacy.dpapi"))
@@ -167,6 +226,9 @@ impl AssistantState {
     }
     /// Records a verified event or action outcome to the recent context projection.
     pub fn record_context(&self, entry: String) {
+        if !custodian_core::privacy::request_is_current() {
+            return;
+        }
         if !custodian_core::privacy::request_is_current() {
             return;
         }
@@ -218,6 +280,13 @@ impl AssistantState {
         ctx.clear();
         self.file_references.clear();
     }
+
+    fn invalidate_conversation(&self) {
+        self.stop_requests();
+        self.actions.clear();
+        self.plans.lock().unwrap_or_else(|e| e.into_inner()).clear();
+        self.reset_context();
+    }
 }
 
 /// Who asked for a tool: the person (by typing a command or clicking a
@@ -236,18 +305,7 @@ enum Origin {
 /// themselves, because getting it wrong changes their own desktop. A call they
 /// have already approved on a card is never asked about twice.
 fn needs_card(call: &ToolCall, origin: Origin) -> bool {
-    match origin {
-        Origin::Approved => false,
-        Origin::Model => actions::card_text(call).is_some(),
-        Origin::Person => matches!(
-            call,
-            ToolCall::ChangeSetting { .. }
-                | ToolCall::MoveFile { .. }
-                | ToolCall::CopyFile { .. }
-                | ToolCall::RenameFile { .. }
-                | ToolCall::CreateFolder(_)
-        ),
-    }
+    capability::Contract::for_call(call).needs_approval(call, origin)
 }
 
 /// Shown when the person pressed Stop during a search.
@@ -539,7 +597,9 @@ fn execute(
     origin: Origin,
     channel: Sink<'_>,
 ) -> Option<String> {
-    if let Some(reason) = privacy::unavailable(&call) {
+    if let Err(reason) =
+        capability::Contract::for_call(&call).check(origin, state.cancel.load(Ordering::Acquire))
+    {
         say(channel, reason);
         return Some(reason.into());
     }
@@ -548,7 +608,22 @@ fn execute(
             say(channel, "Privacy rules changed; this request was stopped.");
             return Some("Privacy rules changed; this request was stopped.".into());
         }
-        execute_inner(app, state, call, origin, channel)
+        let settings_mutation =
+            capability::Contract::for_call(&call).effect == capability::Effect::ChangeSetting;
+        let run = || {
+            if let Err(reason) = capability::Contract::for_call(&call)
+                .check(origin, state.cancel.load(Ordering::Acquire))
+            {
+                say(channel, reason);
+                return Some(reason.into());
+            }
+            execute_inner(app, state, call, origin, channel)
+        };
+        if settings_mutation {
+            custodian_core::privacy::with_mutation(run)
+        } else {
+            run()
+        }
     })
 }
 
@@ -572,6 +647,13 @@ fn execute_inner(
                 ));
             }
         };
+        let _admission = state
+            .request_admission
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        if state.cancel.load(Ordering::Acquire) || !custodian_core::privacy::request_is_current() {
+            return Some(STOPPED.into());
+        }
         if let Some(card) = state
             .actions
             .add_prepared(call.clone(), Instant::now(), plan)
@@ -587,20 +669,20 @@ fn execute_inner(
             let resolved = resolve_scope(app, &scope);
             let labels: Vec<&str> = resolved.iter().map(|(l, _)| l.as_str()).collect();
             let desc = format!("Measuring largest files in {}", reply::join_list(&labels));
-            let (task_id, task_cancel) = match state.coordinator.create_task(
-                desc,
-                custodian_core::coordinator::TaskState::Running,
-                &[],
-            ) {
-                Ok(task) => task,
-                Err(err) => {
-                    say(
-                        channel,
-                        format!("I couldn't start tracking this scan: {err}. No scan was started."),
-                    );
-                    return None;
-                }
-            };
+            let (task_id, task_cancel) =
+                match state.create_task(desc, custodian_core::coordinator::TaskState::Running, &[])
+                {
+                    Ok(task) => task,
+                    Err(err) => {
+                        say(
+                            channel,
+                            format!(
+                                "I couldn't start tracking this scan: {err}. No scan was started."
+                            ),
+                        );
+                        return None;
+                    }
+                };
             let search = state.file_references.begin_search();
             let files = run_largest(&resolved, count, &task_cancel, channel);
             state.file_references.complete_search(search, &files);
@@ -617,20 +699,20 @@ fn execute_inner(
             let resolved = resolve_scope(app, &scope);
             let labels: Vec<&str> = resolved.iter().map(|(l, _)| l.as_str()).collect();
             let desc = format!("Finding \"{}\" in {}", name, reply::join_list(&labels));
-            let (task_id, task_cancel) = match state.coordinator.create_task(
-                desc,
-                custodian_core::coordinator::TaskState::Running,
-                &[],
-            ) {
-                Ok(task) => task,
-                Err(err) => {
-                    say(
-                        channel,
-                        format!("I couldn't start tracking this scan: {err}. No scan was started."),
-                    );
-                    return None;
-                }
-            };
+            let (task_id, task_cancel) =
+                match state.create_task(desc, custodian_core::coordinator::TaskState::Running, &[])
+                {
+                    Ok(task) => task,
+                    Err(err) => {
+                        say(
+                            channel,
+                            format!(
+                                "I couldn't start tracking this scan: {err}. No scan was started."
+                            ),
+                        );
+                        return None;
+                    }
+                };
             let search = state.file_references.begin_search();
             let files = run_find(&resolved, &name, &task_cancel, channel);
             state.file_references.complete_search(search, &files);
@@ -1118,14 +1200,14 @@ fn get_file_info_tool(app: &AppHandle, state: &AssistantState, path: &str, chann
     });
 
     let mut details = if is_dir {
-        let entry_count = std::fs::read_dir(&target_path).map(|r| r.count()).ok();
+        let entry_count = permitted_entry_count(&target_path).ok();
         let mut d = format!(
             "Folder details for \"{}\":\n• Full path: {}",
             reply::safe_name(&name),
             canonical.display()
         );
         if let Some(count) = entry_count {
-            d.push_str(&format!("\n• Items: {}", reply::count(count)));
+            d.push_str(&format!("\n• Permitted items: {}", reply::count(count)));
         }
         d
     } else {
@@ -1713,20 +1795,17 @@ fn find_duplicates_tool(app: &AppHandle, state: &AssistantState, scope: &Scope, 
     let folders = resolve_scope(app, scope);
     let labels: Vec<&str> = folders.iter().map(|(l, _)| l.as_str()).collect();
     let desc = format!("Looking for duplicates in {}", reply::join_list(&labels));
-    let (task_id, task_cancel) = match state.coordinator.create_task(
-        desc,
-        custodian_core::coordinator::TaskState::Running,
-        &[],
-    ) {
-        Ok(task) => task,
-        Err(err) => {
-            say(
-                channel,
-                format!("I couldn't start tracking this scan: {err}. No scan was started."),
-            );
-            return;
-        }
-    };
+    let (task_id, task_cancel) =
+        match state.create_task(desc, custodian_core::coordinator::TaskState::Running, &[]) {
+            Ok(task) => task,
+            Err(err) => {
+                say(
+                    channel,
+                    format!("I couldn't start tracking this scan: {err}. No scan was started."),
+                );
+                return;
+            }
+        };
     if let Some(plan) = run_duplicates(&folders, &task_cancel, channel) {
         state
             .coordinator
@@ -2105,18 +2184,72 @@ pub fn start_nudges(app: AppHandle) {
     });
 }
 
+#[cfg(windows)]
+fn catalogued_app_path(app_kind: App) -> Result<PathBuf, String> {
+    use custodian_winsec::registry::{string_value, Hive};
+    let root = string_value(
+        Hive::LocalMachine,
+        r"SOFTWARE\Microsoft\Windows NT\CurrentVersion",
+        "SystemRoot",
+    )
+    .ok_or("Windows installation location could not be verified")?;
+    let root = PathBuf::from(root);
+    if !root.is_absolute() {
+        return Err("Windows installation location is not absolute".into());
+    }
+    let path = match app_kind {
+        App::Notepad => root.join("System32/notepad.exe"),
+        App::Calculator => root.join("System32/calc.exe"),
+        App::Paint => root.join("System32/mspaint.exe"),
+        App::FileExplorer => root.join("explorer.exe"),
+        App::TaskManager => root.join("System32/taskmgr.exe"),
+        App::Settings => return Err("settings".into()),
+    };
+    if !path.is_file() {
+        return Err("The catalogued Windows application is unavailable".into());
+    }
+    Ok(path)
+}
+
+fn permitted_entry_count(path: &Path) -> std::io::Result<usize> {
+    custodian_core::privacy::check(path)?;
+    std::fs::read_dir(path)?.try_fold(0_usize, |count, entry| {
+        let entry = entry?;
+        if !custodian_core::privacy::request_is_current() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Interrupted,
+                "Request stopped",
+            ));
+        }
+        Ok(count + usize::from(custodian_core::privacy::check(&entry.path()).is_ok()))
+    })
+}
+
+#[cfg(windows)]
+fn catalogued_app_command(app_kind: App) -> Result<std::process::Command, String> {
+    let (exe, package) = match catalogued_app_path(app_kind) {
+        Ok(exe) => (exe, None),
+        // Current Windows may provide Paint only as a packaged application.
+        // Activate its fixed Microsoft package ID through trusted Explorer,
+        // never through a user-writable executable alias or PATH lookup.
+        Err(_) if app_kind == App::Paint => (
+            catalogued_app_path(App::FileExplorer)?,
+            Some(r"shell:AppsFolder\Microsoft.Paint_8wekyb3d8bbwe!App"),
+        ),
+        Err(error) => return Err(error),
+    };
+    let mut command = std::process::Command::new(&exe);
+    command.current_dir(exe.parent().ok_or("Missing application folder")?);
+    if let Some(package) = package {
+        command.arg(package);
+    }
+    Ok(command)
+}
+
 fn open_app(app_kind: App) -> Result<(), String> {
     #[cfg(windows)]
     {
-        let exe = match app_kind {
-            App::Notepad => "notepad.exe",
-            App::Calculator => "calc.exe",
-            App::Paint => "mspaint.exe",
-            App::FileExplorer => "explorer.exe",
-            App::TaskManager => "taskmgr.exe",
-            App::Settings => return Err("settings".into()),
-        };
-        std::process::Command::new(exe)
+        catalogued_app_command(app_kind)?
             .spawn()
             .map(|_| ())
             .map_err(|e| e.to_string())
@@ -2456,14 +2589,11 @@ pub fn prewarm(app: &AppHandle) {
 /// Answers open-ended messages with the local model.
 fn ask_model(app: &AppHandle, state: &AssistantState, message: &str, channel: Sink<'_>) {
     use custodian_core::coordinator::TaskState;
-    let (task_id, cancel) = match state.coordinator.create_task(
-        "Answering a chat request".into(),
-        TaskState::Queued,
-        &[],
-    ) {
-        Ok(task) => task,
-        Err(err) => return say(channel, err.to_string()),
-    };
+    let (task_id, cancel) =
+        match state.create_task("Answering a chat request".into(), TaskState::Queued, &[]) {
+            Ok(task) => task,
+            Err(err) => return say(channel, err.to_string()),
+        };
     let mut agent = state.agent.lock().unwrap_or_else(|e| e.into_inner());
     let revision = state.privacy.revision();
     if state.agent_policy_revision.load(Ordering::Acquire) != revision {
@@ -2576,7 +2706,16 @@ fn ask_model(app: &AppHandle, state: &AssistantState, message: &str, channel: Si
 }
 
 /// Handles one chat message from start to finish.
-fn respond(app: &AppHandle, state: &AssistantState, message: &str, channel: Sink<'_>) {
+fn respond(
+    app: &AppHandle,
+    state: &AssistantState,
+    message: &str,
+    channel: Sink<'_>,
+    routine_revision: u64,
+) {
+    if state.cancel.load(Ordering::Acquire) || !custodian_core::privacy::request_is_current() {
+        return say(channel, STOPPED);
+    }
     if !state.privacy.allows_text(message) {
         return say(channel, custodian_core::privacy::DENIED);
     }
@@ -2585,6 +2724,12 @@ fn respond(app: &AppHandle, state: &AssistantState, message: &str, channel: Sink
         "what can you do" | "what are your capabilities" | "help"
     ) {
         return say(channel, privacy::capability_text());
+    }
+    if routine::handle(app, state, message, channel, routine_revision) {
+        return;
+    }
+    if workflow::handle(app, state, message, channel, routine_revision) {
+        return;
     }
     let parsed = intent::parse(message);
     match parsed {
@@ -2667,18 +2812,27 @@ pub async fn send_chat_message(
     message: String,
     channel: Channel<ChatEvent>,
 ) -> Result<(), String> {
+    // Capture authority before queueing a worker, not after a grant changes
+    // while the request waits for the blocking pool.
+    let epoch = app.state::<AssistantState>().request_epoch();
+    let routine_revision = app.state::<AssistantState>().routine.revision();
+    let revision = app.state::<AssistantState>().privacy.revision();
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AssistantState>();
-        state.cancel.store(false, Ordering::Relaxed);
-        let revision = state.privacy.revision();
+        if !state.begin_request(epoch, revision) {
+            let _ = channel.send(ChatEvent::Text { text: "This queued request was stopped or its privacy rules changed. Ask again to start a new request.".into() });
+            return;
+        }
         // A closed chat panel is not an error.
         let sink = |event: ChatEvent| {
             state.privacy.with_revision(revision, || {
                 let _ = channel.send(event);
             });
         };
-        custodian_core::privacy::with_policy(state.privacy.clone(), || {
-            respond(&app, &state, &message, &sink)
+        custodian_core::request::with_epoch(state.request_epoch.clone(), epoch, || {
+          custodian_core::privacy::with_policy_revision(state.privacy.clone(), revision, || {
+            respond(&app, &state, &message, &sink, routine_revision)
+          })
         });
     })
     .await
@@ -2688,8 +2842,8 @@ pub async fn send_chat_message(
 /// The Stop button: ends all scans, tasks or answers in progress.
 #[tauri::command]
 pub fn cancel_chat(state: tauri::State<'_, AssistantState>) {
-    state.cancel.store(true, Ordering::Relaxed);
-    state.coordinator.cancel_all();
+    state.stop_requests();
+    state.actions.clear();
 }
 
 /// Lists currently active background tasks from the coordinator.
@@ -2697,18 +2851,72 @@ pub fn cancel_chat(state: tauri::State<'_, AssistantState>) {
 pub fn list_active_tasks(
     state: tauri::State<'_, AssistantState>,
 ) -> Vec<custodian_core::coordinator::TaskInfo> {
-    state
+    let mut visible = state
         .coordinator
-        .list_active_tasks()
+        .list_all_tasks()
         .into_iter()
-        .filter(|task| state.privacy.allows_text(&task.description))
-        .collect()
+        .filter(|task| {
+            task.state.is_active()
+                || task.state == custodian_core::coordinator::TaskState::RecoveryRequired
+                || task.execution.is_some()
+        })
+        .filter(|task| task_is_visible(&state.privacy, task))
+        .collect::<Vec<_>>();
+    visible.sort_by_key(|task| {
+        (
+            std::cmp::Reverse(task.state.is_active()),
+            std::cmp::Reverse(task.updated_at),
+            task.id.clone(),
+        )
+    });
+    let mut history = 0;
+    visible.retain(|task| {
+        if task.state.is_active()
+            || task.state == custodian_core::coordinator::TaskState::RecoveryRequired
+        {
+            true
+        } else {
+            history += 1;
+            history <= 10
+        }
+    });
+    visible
+}
+
+fn task_is_visible(
+    policy: &custodian_core::privacy::AccessPolicy,
+    task: &custodian_core::coordinator::TaskInfo,
+) -> bool {
+    policy.allows_text(&task.description)
+        && task
+            .progress
+            .as_ref()
+            .is_none_or(|progress| policy.allows_text(progress))
+        && task
+            .resources
+            .iter()
+            .all(|resource| policy.allows(Path::new(resource)))
+        && task.execution.as_ref().is_none_or(|execution| {
+            serde_json::to_string(execution).is_ok_and(|text| policy.allows_text(&text))
+        })
 }
 
 /// Cancels an individual task by its ID.
 #[tauri::command]
 pub fn cancel_task(state: tauri::State<'_, AssistantState>, task_id: String) -> bool {
     state.coordinator.cancel_task(&task_id)
+}
+
+#[tauri::command]
+pub fn pause_task(
+    state: tauri::State<'_, AssistantState>,
+    task_id: String,
+    paused: bool,
+) -> Result<(), String> {
+    state
+        .coordinator
+        .pause_program(&task_id, paused)
+        .map_err(|e| e.to_string())
 }
 
 /// The person's answer to a card. Only the card's id comes from the
@@ -2719,13 +2927,20 @@ pub async fn decide_action(
     action_id: String,
     allow: bool,
 ) -> Result<String, String> {
+    let epoch = app.state::<AssistantState>().request_epoch();
+    let revision = app.state::<AssistantState>().privacy.revision();
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AssistantState>();
-        let (call, file_plan) = state
-            .actions
-            .take_prepared(&action_id, Instant::now())
+        if !state.begin_request(epoch, revision) {
+            return Err(
+                "This approval was stopped or its privacy rules changed. Ask again.".into(),
+            );
+        }
+        let (call, file_plan) =
+            custodian_core::privacy::with_policy_revision(state.privacy.clone(), revision, || {
+                state.actions.take_prepared(&action_id, Instant::now())
+            })
             .ok_or_else(|| CARD_GONE.to_string())?;
-        let revision = state.privacy.revision();
         if !allow {
             let text = actions::declined_text(&call);
             state.record_context(format!(
@@ -2734,20 +2949,32 @@ pub async fn decide_action(
             ));
             return Ok(text);
         }
-        state.cancel.store(false, Ordering::Relaxed);
         let said = RefCell::new(Vec::new());
         let sink = |event: ChatEvent| {
             if let ChatEvent::Text { text } = event {
                 said.borrow_mut().push(text);
             }
         };
-        if let Some(plan) = file_plan {
-            file_ops::perform_prepared(&app, &state, &plan, &sink);
-        } else {
-            execute(&app, &state, call.clone(), Origin::Approved, &sink);
-        }
+        custodian_core::request::with_epoch(state.request_epoch.clone(), epoch, || {
+            custodian_core::privacy::with_policy_revision(state.privacy.clone(), revision, || {
+                if let Err(reason) = capability::Contract::for_call(&call)
+                    .check(Origin::Approved, state.cancel.load(Ordering::Acquire))
+                {
+                    say(&sink, reason);
+                    return;
+                }
+                if let Some(plan) = file_plan {
+                    file_ops::perform_prepared(&app, &state, &plan, &sink);
+                } else {
+                    execute(&app, &state, call.clone(), Origin::Approved, &sink);
+                }
+            });
+        });
         let result = said.into_inner().join("\n\n");
-        if state.privacy.revision() != revision || !state.privacy.allows_text(&result) {
+        if state.privacy.revision() != revision
+            || state.request_epoch() != epoch
+            || !state.privacy.allows_text(&result)
+        {
             return Err(
                 "Privacy rules changed. Review the current task state before continuing.".into(),
             );
@@ -2849,9 +3076,11 @@ pub fn reject_plan(state: tauri::State<'_, AssistantState>, plan_id: String) {
 /// Resets the conversation context and agent session for a fresh conversation (R16).
 #[tauri::command]
 pub async fn reset_conversation(app: AppHandle) -> Result<(), String> {
+    // Invalidate queued/old workers before waiting for the model mutex.
+    let state = app.state::<AssistantState>();
+    state.invalidate_conversation();
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AssistantState>();
-        state.reset_context();
         let mut agent = state.agent.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(process) = agent.as_mut() {
             process.reset().map_err(|err| err.to_string())?;
@@ -2882,6 +3111,120 @@ mod tests {
     use super::*;
     use std::cell::RefCell;
     use std::fs;
+
+    #[test]
+    fn folder_counts_exclude_private_children_and_credentials() {
+        let root = tempfile::tempdir().unwrap();
+        fs::write(root.path().join("public.txt"), b"public").unwrap();
+        fs::write(root.path().join("private.txt"), b"private").unwrap();
+        fs::write(root.path().join(".env"), b"credentials").unwrap();
+        let policy = Arc::new(custodian_core::privacy::AccessPolicy::default());
+        policy
+            .replace_private_paths(vec![root.path().join("private.txt")])
+            .unwrap();
+        custodian_core::privacy::with_policy(policy, || {
+            assert_eq!(permitted_entry_count(root.path()).unwrap(), 1)
+        });
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn catalogued_launches_resolve_absolute_protected_windows_paths() {
+        for app in [
+            App::Notepad,
+            App::Calculator,
+            App::Paint,
+            App::FileExplorer,
+            App::TaskManager,
+        ] {
+            let command = catalogued_app_command(app).unwrap();
+            let path = PathBuf::from(command.get_program());
+            assert!(path.is_absolute());
+            assert!(is_protected_system_path(&path));
+            assert_ne!(path.parent().unwrap(), std::env::current_dir().unwrap());
+        }
+    }
+
+    #[test]
+    fn conversation_reset_rejects_late_context_and_queued_work() {
+        let state = AssistantState::default();
+        let captured = state.request_epoch();
+        state.record_context("old fact".into());
+        custodian_core::request::with_epoch(state.request_epoch.clone(), captured, || {
+            state.invalidate_conversation();
+            assert!(!state.begin_request(captured, state.privacy.revision()));
+            assert!(state.begin_request(state.request_epoch(), state.privacy.revision()));
+            state.record_context("late stale result".into());
+        });
+        assert!(!state.get_context_projection().contains("old fact"));
+        assert!(!state.get_context_projection().contains("late stale result"));
+    }
+    #[test]
+    fn stop_and_privacy_changes_invalidate_queued_requests_before_they_can_clear_stop() {
+        let state = AssistantState::default();
+        let revision = state.privacy.revision();
+        let queued = state.request_epoch();
+        assert!(state.begin_request(queued, revision));
+        state.stop_requests();
+        assert!(!state.begin_request(queued, revision));
+        assert!(state.cancel.load(Ordering::Acquire));
+        let next = state.request_epoch();
+        state.privacy.replace_private_paths(vec![]).unwrap();
+        assert!(!state.begin_request(next, revision));
+        assert!(state.cancel.load(Ordering::Acquire));
+        assert!(state.begin_request(next, state.privacy.revision()));
+        assert!(!state.cancel.load(Ordering::Acquire));
+    }
+
+    #[test]
+    fn new_chat_does_not_revive_stopped_task_or_expose_newly_private_task_resources() {
+        let state = AssistantState::default();
+        let root = tempfile::tempdir().unwrap();
+        let private = root.path().join("private");
+        fs::create_dir(&private).unwrap();
+        let epoch = state.request_epoch();
+        custodian_core::request::with_epoch(state.request_epoch.clone(), epoch, || {
+            let (id, cancel) = state
+                .create_task(
+                    "Generic progress".into(),
+                    custodian_core::coordinator::TaskState::Running,
+                    std::slice::from_ref(&private),
+                )
+                .unwrap();
+            let task = state
+                .coordinator
+                .list_active_tasks()
+                .into_iter()
+                .find(|t| t.id == id)
+                .unwrap();
+            assert!(task_is_visible(&state.privacy, &task));
+            state.privacy.replace_private_paths(vec![private]).unwrap();
+            assert!(!task_is_visible(&state.privacy, &task));
+            state.stop_requests();
+            assert!(cancel.load(Ordering::Acquire));
+            assert!(state.begin_request(state.request_epoch(), state.privacy.revision()));
+            assert!(state
+                .create_task(
+                    "late child".into(),
+                    custodian_core::coordinator::TaskState::Running,
+                    &[]
+                )
+                .is_err());
+        });
+        custodian_core::request::with_epoch(
+            state.request_epoch.clone(),
+            state.request_epoch(),
+            || {
+                assert!(state
+                    .create_task(
+                        "independent answer".into(),
+                        custodian_core::coordinator::TaskState::Running,
+                        &[]
+                    )
+                    .is_ok());
+            },
+        );
+    }
 
     /// A settings change waits for the person's click even when they asked for
     /// it, and the click must not ask again — otherwise approving a card would

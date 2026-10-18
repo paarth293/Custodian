@@ -1,0 +1,12 @@
+{
+  "installerPath": "D:\\Custodian\\target\\release\\bundle\\nsis\\Custodian_0.1.0_x64-setup.exe",
+  "installerBytes": 1209930963,
+  "installerSha256": "7EB1F50784CF79FEEE2D514FFC871168705C6951301AD1ECC86DF8827F4A0550",
+  "nativeBytes": 6024704,
+  "nativeSha256": "E567F5709F5FAF9D2B4CD2AC6D343A04223DBC30E1C0F62000AC64E70F885702",
+  "testedNativeSha256": "E567F5709F5FAF9D2B4CD2AC6D343A04223DBC30E1C0F62000AC64E70F885702",
+  "unsignedDevelopmentArtifact": true,
+  "installerExecutionTested": false,
+  "webview2MustAlreadyBeInstalled": true,
+  "binaryPatchingSkipped": true
+}

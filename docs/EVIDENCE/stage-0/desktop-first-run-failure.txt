@@ -1,0 +1,1 @@
+Fresh Stage 0 run 01 failed at test shutdown: an acceptance browser child did not exit after cleanup. No collection checks completed. See original fixture actions.txt; retained as failure, not product acceptance.

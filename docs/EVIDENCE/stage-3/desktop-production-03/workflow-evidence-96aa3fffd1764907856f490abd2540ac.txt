@@ -1,0 +1,76 @@
+
+Custodian
+
+Custodian - Web content
+
+
+
+
+
+
+
+
+
+Custodian
+
+
+Cubby is idle
+Cubby
+Offline
+New conversation
+Close chat
+Privacy and capabilities
+Routine permissions
+Conversation
+You
+show workflow status
+Cubby
+Workflow d7dde8b9-08ab-4e53-9be6-cac8219acda0: Completed.
+2 of 2 copies currently verified; 0 undone. No steps replayed.
+Verified: \\?\D:\Custodian\fixture\desktop-stage3-production-03\acceptance-largest.txt
+Verified: \\?\D:\Custodian\fixture\desktop-stage3-production-03\small.txt
+Say "undo workflow" to remove only its verified copies. Partial or changed outputs are retained for review.
+Background tasks
+TASKS (
+2
+)
+Inspect latest collection
+For recovery or undo, inspect the latest saved collection first. Changed files are retained.
+
+Interpreting and executing a grounded file goalAll completion checks passedExecution evidence · 3 of 3 steps recordedCompletion checked
+
+Interpreting and executing a grounded file goal
+All completion checks passed
+
+Execution evidence · 3 of 3 steps recorded
+Execution evidence
+ · 
+3
+ of
+ 
+3
+ steps recorded
+
+Completion checked
+Interpreting and executing a grounded file goalAll completion checks passedExecution evidence · 3 of 3 steps recordedCompletion checked
+
+Interpreting and executing a grounded file goal
+All completion checks passed
+
+Execution evidence · 3 of 3 steps recorded
+Execution evidence
+ · 
+3
+ of
+ 
+3
+ steps recorded
+
+Completion checked
+Chat input
+Send
+
+Cubby. Click to talk, drag to move, right-click for options.
+Cubby is idle
+
+

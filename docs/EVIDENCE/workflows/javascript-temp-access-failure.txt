@@ -1,0 +1,148 @@
+
+> test
+> npm run test --workspaces --if-present
+
+
+> @custodian/desktop@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 D:/Custodian/apps/desktop
+
+ ❯ test/cubby.test.tsx (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/cubby.test.tsx [ test/cubby.test.tsx ]
+Error: ENOENT: no such file or directory, open 'C:\Users\paagu\AppData\Local\Packages\sandbox.{ae492c3b-0d55-4d14-b0ed-069b75fa37a9}\AC\Temp\g1jI_BF9j6OqJBl8xPBG2\ssr\c38890508c5f56d7fccbefea31b3baf0bfdf9d17'
+ ❯ src/cubby/useMode.ts:3:1
+      1| import { listen } from '@tauri-apps/api/event';
+      2| import { useEffect, useEffectEvent, useRef, useState } from 'react';
+      3| import { call, inTauri } from '../lib/tauri';
+       | ^
+      4| import type { Form } from './types';
+      5|
+ ❯ test/cubby.test.tsx:7:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  13 passed (13)
+   Start at  12:22:42
+   Duration  654ms (transform 54%, import 29%, tests 8%, worker 8%)
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path D:\Custodian\apps\desktop
+npm error workspace @custodian/desktop@0.1.0
+npm error location D:\Custodian\apps\desktop
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vitest run
+
+
+> @custodian/agent@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 D:/Custodian/services/agent
+
+ ❯ test/tool-selection.test.ts (0 test)
+ ❯ test/tool-plan.test.ts (0 test)
+ ❯ test/tools.test.ts (0 test)
+ ❯ test/server.test.ts (0 test)
+ ❯ test/workflow-plan.test.ts (0 test)
+ ❯ test/agent.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/agent.test.ts [ test/agent.test.ts ]
+Error: ENOENT: no such file or directory, open 'C:\Users\paagu\AppData\Local\Packages\sandbox.{ae492c3b-0d55-4d14-b0ed-069b75fa37a9}\AC\Temp\wcDiRkAfuVhzQxY59QC62\ssr\2f222f8c7bfca051f42f0d433172a69f5f4cf5d5'
+ ❯ test/agent.test.ts:9:1
+      7| import { validateWithGrammar } from '../src/grammar';
+      8| import { findSandboxEscapes, SANDBOX_PROBES } from '../src/index';
+      9| import { sha256 } from '../src/integrity';
+       | ^
+     10| import { readFrame, writeFrame } from '../src/ipc';
+     11| import { loadModelWithVerification } from '../src/model_loader';
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  test/server.test.ts [ test/server.test.ts ]
+Error: ENOENT: no such file or directory, open 'C:\Users\paagu\AppData\Local\Packages\sandbox.{ae492c3b-0d55-4d14-b0ed-069b75fa37a9}\AC\Temp\wcDiRkAfuVhzQxY59QC62\ssr\a45cb0f8cf97c7566083a88289935f61c56087ef'
+ ❯ src/llm.ts:12:1
+     10| } from 'node-llama-cpp' with { 'resolution-mode': 'import' };
+     11| import { readManifest, sha256File, type Manifest } from './integrity';
+     12| import {
+       | ^
+     13|   claimsAction,
+     14|   claimsDeletion,
+ ❯ test/server.test.ts:8:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  test/tool-plan.test.ts [ test/tool-plan.test.ts ]
+Error: ENOENT: no such file or directory, open 'C:\Users\paagu\AppData\Local\Packages\sandbox.{ae492c3b-0d55-4d14-b0ed-069b75fa37a9}\AC\Temp\wcDiRkAfuVhzQxY59QC62\ssr\98c4dba8e0265728a89168d6c4cec8d2c3588fd4'
+ ❯ src/tools.ts:2:1
+      1| import type { GbnfJsonSchema } from 'node-llama-cpp' with { 'resolutio…
+      2| import { calculate } from './calculator';
+       | ^
+      3|
+      4| /**
+ ❯ src/tool-plan.ts:2:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  test/tool-selection.test.ts [ test/tool-selection.test.ts ]
+Error: ENOENT: no such file or directory, open 'C:\Users\paagu\AppData\Local\Packages\sandbox.{ae492c3b-0d55-4d14-b0ed-069b75fa37a9}\AC\Temp\wcDiRkAfuVhzQxY59QC62\ssr\98c4dba8e0265728a89168d6c4cec8d2c3588fd4'
+ ❯ src/tools.ts:2:1
+      1| import type { GbnfJsonSchema } from 'node-llama-cpp' with { 'resolutio…
+      2| import { calculate } from './calculator';
+       | ^
+      3|
+      4| /**
+ ❯ src/tool-selection.ts:1:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  test/tools.test.ts [ test/tools.test.ts ]
+ FAIL  test/workflow-plan.test.ts [ test/workflow-plan.test.ts ]
+Error: ENOENT: no such file or directory, open 'C:\Users\paagu\AppData\Local\Packages\sandbox.{ae492c3b-0d55-4d14-b0ed-069b75fa37a9}\AC\Temp\wcDiRkAfuVhzQxY59QC62\ssr\2f222f8c7bfca051f42f0d433172a69f5f4cf5d5'
+ ❯ src/llm.ts:11:1
+      9|   LlamaModel,
+     10| } from 'node-llama-cpp' with { 'resolution-mode': 'import' };
+     11| import { readManifest, sha256File, type Manifest } from './integrity';
+       | ^
+     12| import {
+     13|   claimsAction,
+ ❯ src/server.ts:1:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+
+ Test Files  6 failed | 3 passed (9)
+      Tests  14 passed (14)
+   Start at  12:22:44
+   Duration  1.59s (transform 32%, import 29%, worker 28%, tests 9%, environment 1%)
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path D:\Custodian\services\agent
+npm error workspace @custodian/agent@0.1.0
+npm error location D:\Custodian\services\agent
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vitest run
+
+
+> @custodian/broker@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 D:/Custodian/services/broker
+
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  12:22:47
+   Duration  5.76s (transform 68%, import 21%, worker 10%, tests 1%)
+

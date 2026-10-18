@@ -1,0 +1,25 @@
+{
+  "nativePath": "D:/Custodian/target/release/custodian-desktop.exe",
+  "nativeBytes": 6145536,
+  "nativeSha256": "692B1A2681F0FAF7EFBB7F9312DE9B19BEE9C6CD6BB5C49C2296D262BAA12C05",
+  "testedNativeSha256": "692B1A2681F0FAF7EFBB7F9312DE9B19BEE9C6CD6BB5C49C2296D262BAA12C05",
+  "testedExecutablePath": "C:/Users/paagu/.codex/visualizations/2026/10/16/01a142c7-c123-7122-873a-8f2707fc4063/Custodian-stage0-production.exe",
+  "installerPath": "D:\\Custodian\\target\\release\\bundle\\nsis\\Custodian_0.1.0_x64-setup.exe",
+  "installerBytes": 1209976627,
+  "installerSha256": "7FFA76E2FB1BF510779E9DF7E7F0B16495596AB8DE4BD7B3472B0C599F7D9309",
+  "buildCommand": "cargo build -p custodian-desktop --release --features tauri/custom-protocol",
+  "productionProtocol": true,
+  "binaryPatchingSkipped": true,
+  "unsignedDevelopmentArtifact": true,
+  "installerExecuted": false,
+  "webview2MustAlreadyBeInstalled": true,
+  "defaultRustPassed": 342,
+  "defaultRustIgnored": 4,
+  "javascriptPassed": 131,
+  "isolatedSandboxProbePassed": 1,
+  "liveDesktopChecksPerRun": 23,
+  "finalDesktopRuns": [
+    "desktop-final-02.txt",
+    "desktop-final-03.txt"
+  ]
+}

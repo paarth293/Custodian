@@ -1,0 +1,43 @@
+
+> test
+> npm run test --workspaces --if-present
+
+
+> @custodian/desktop@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 D:/Custodian/apps/desktop
+
+
+ Test Files  3 passed (3)
+      Tests  24 passed (24)
+   Start at  02:39:10
+   Duration  717ms (transform 42%, import 39%, tests 15%, worker 3%)
+
+
+> @custodian/agent@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 D:/Custodian/services/agent
+
+
+ Test Files  8 passed (8)
+      Tests  91 passed (91)
+   Start at  02:39:11
+   Duration  2.19s (tests 33%, transform 33%, import 32%, worker 2%)
+
+
+> @custodian/broker@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 D:/Custodian/services/broker
+
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  02:39:15
+   Duration  567ms (transform 49%, import 40%, tests 7%, worker 4%)
+

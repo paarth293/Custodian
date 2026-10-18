@@ -1,0 +1,14 @@
+PASS: Opening a private known folder was refused before handing it to Explorer.
+PASS: Native privacy controls excluded the larger private canary from the actual desktop search.
+PASS: Live search displayed the measured 8192-byte fixture file.
+PASS: Declining the live approval left both locations unchanged.
+PASS: Live approval executed a verified move with matching bytes.
+PASS: Restarted desktop reopened the undo record and restored identical bytes.
+PASS: Routine backup defaulted off and changed no fixture files.
+PASS: One native goal selected the permitted largest file and copied C:-to-D: without a per-file approval; both hashes matched.
+PASS: Repeating the backup refused to overwrite its existing destination.
+PASS: Standing permission and verified copy undo survived restart; undo removed only the copy.
+PASS: Whole-PC backup discovery answered an independent question and stopped before copying.
+PASS: Revoking the standing permission stopped pending discovery and prevented subsequent automatic backup.
+PASS: Private-zone rules survived restart and the desktop refused an online handoff.
+Fixture preserved at C:\Users\paagu\.codex\visualizations\2026\10\16\01a142c7-c123-7122-873a-8f2707fc4063\desktop-acceptance-routine-final-01
