@@ -60,6 +60,9 @@ provenance and verification contracts. DOCX, PDF, PPTX, image, OCR and
 audio/video capabilities remain unavailable until their workers, dependencies,
 assets and independent verifiers are qualified; Stage 6 is not accepted.
 
+For the current hackathon-ready subset and a reproducible five-minute
+walkthrough, see [HACKATHON-DELIVERY-RECORD.md](docs/HACKATHON-DELIVERY-RECORD.md).
+
 See the [offline foundation report](docs/OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md)
 for baseline scope, paused capabilities and remaining gates.
 The [routine backup increment](docs/ROUTINE-BACKUP-IMPLEMENTATION-2026-10-17.md)
