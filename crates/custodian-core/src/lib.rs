@@ -4,6 +4,7 @@
 
 pub mod backup_check;
 pub mod cleanup;
+pub mod content;
 pub mod coordinator;
 #[cfg(all(test, windows))]
 mod crash_probe;
