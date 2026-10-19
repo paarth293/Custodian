@@ -1,6 +1,8 @@
 # Build output
 target/
 dist/
+build/
+coverage/
 *.tsbuildinfo
 apps/desktop/src-tauri/gen/
 apps/desktop/src-tauri/runtime-stage/*
@@ -27,10 +29,24 @@ models/*
 !models/.gitkeep
 *.gguf
 data/
-/fixture/desktop-acceptance-*/
+fixture/*
+!fixture/.gitkeep
+
+# Local app/runtime state and generated evidence
+.freebuff/
+docs/EVIDENCE/local/
+*.sqlite
+*.sqlite3
+*.db
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
 
 # Logs and OS/editor files
 *.log
 .DS_Store
 Thumbs.db
 .idea/
+.vscode/*.local.json
