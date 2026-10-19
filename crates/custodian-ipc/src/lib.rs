@@ -60,6 +60,15 @@ pub fn write_frame<T: Serialize, W: Write>(
 }
 
 pub fn read_frame<T: DeserializeOwned, R: Read>(reader: &mut R, key: &[u8]) -> Result<T, IpcError> {
+    read_frame_limited(reader, key, MAX_FRAME_SIZE)
+}
+
+/// A narrower peer-specific ceiling, checked before allocating payload memory.
+pub fn read_frame_limited<T: DeserializeOwned, R: Read>(
+    reader: &mut R,
+    key: &[u8],
+    maximum: u32,
+) -> Result<T, IpcError> {
     let mut magic = [0u8; 4];
     reader.read_exact(&mut magic)?;
     if magic != MAGIC {
@@ -67,7 +76,7 @@ pub fn read_frame<T: DeserializeOwned, R: Read>(reader: &mut R, key: &[u8]) -> R
     }
 
     let len = reader.read_u32::<LittleEndian>()?;
-    if len > MAX_FRAME_SIZE {
+    if len > maximum.min(MAX_FRAME_SIZE) {
         return Err(IpcError::FrameTooLarge(len as usize));
     }
 
@@ -126,6 +135,15 @@ mod tests {
     use super::*;
     use serde::Deserialize;
     use std::io::Cursor;
+
+    #[test]
+    fn narrower_peer_limit_is_enforced_before_payload_read() {
+        let mut header = MAGIC.to_vec();
+        header.extend_from_slice(&1024u32.to_le_bytes());
+        let result: Result<serde_json::Value, _> =
+            read_frame_limited(&mut Cursor::new(header), b"key", 128);
+        assert!(matches!(result, Err(IpcError::FrameTooLarge(1024))));
+    }
 
     #[derive(Serialize, Deserialize, PartialEq, Debug)]
     struct Dummy {

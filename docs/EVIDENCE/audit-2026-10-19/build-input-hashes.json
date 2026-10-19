@@ -1,0 +1,16 @@
+{
+  "Cargo.toml": "c48f18dc21bb9d0b6937a15b476d786981e0b72ab92b2744a8bb621d428b6a6c",
+  "Cargo.lock": "76bcc570d7e529c16ff4300e17143a62de6ca08bf291ba0ed1a4abab715423de",
+  "apps/desktop/src-tauri/Cargo.toml": "05739ee770462806210bc6936a13c1242be76ae562ef81036746920af121a577",
+  "apps/desktop/src-tauri/tauri.conf.json": "011c0ff948758e8e2b3a8ac1a0a5b6f10af612b73d991a8511ff44d47b3ffed2",
+  "apps/desktop/dist/index.html": "5081993dc9b2dd30289c02d662ccba552a382037123691bf22d0ffa055cc9009",
+  "crates/custodian-core/src/lib.rs": "bb324585101a4ed8f240f840f5f122987aa8b900bc489b704188e95cf2874d1f",
+  "crates/custodian-core/src/content.rs": "496aa29656f61c08fd0d286db98c9deff1704de42a7730fb9099a5d38224ec23",
+  "crates/custodian-core/src/batch_archive.rs": "3acf8665ca37dce28bc834ad409f8fea160123f66ba7b29a99afac3186265c0c",
+  "crates/custodian-core/src/versioned_backup.rs": "3672750d9c1a5d69db32dc869608a94f2c29188d608cc70e2788cc8e0f15ff35",
+  "crates/custodian-core/src/governed_recycle.rs": "eb55291997ca9379ba2607437ed6d743153657e5c414c76771dbc6141f6b62d0",
+  "crates/custodian-core/src/editor_session.rs": "6a70548c795c27e9846be264ec5253cbe4a61880578843129704d5e3c264d8d2",
+  "crates/custodian-core/src/excel_session.rs": "3704359866ea03e1a5f687b8a89b3f7adeea84c50cdb8f85f97d295afb921afd",
+  "crates/custodian-winsec/src/excel.rs": "e5a1473a605a9bccb518956705f725f24db0bc378c9cf8d2f06a50b9e35d8f57",
+  "apps/desktop/src-tauri/src/assistant/app_tasks.rs": "674ddc687a1f46ff14c589084f021abebd87b34b0beee43163fcc8135de67adc"
+}

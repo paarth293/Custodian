@@ -365,6 +365,7 @@ const AGENT_LIMITS: JobLimits = JobLimits {
     memory_mb: Some(4096),
     cpu_percent: None,
     below_normal_priority: false,
+    process_limit: None,
 };
 
 /// The agent's process, started normally or inside its sandbox.

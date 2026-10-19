@@ -1,0 +1,137 @@
+{
+  "capturedAtUtc": "2026-10-18T20:12:57.059980+00:00",
+  "gitHead": "ee3d5a187405248f50a9c275ec6ae219400e660b",
+  "dirtyWorkingTree": true,
+  "wholeProductAccepted": false,
+  "allStagesComplete": false,
+  "nativeRegression": {
+    "passed": 475,
+    "failed": 0,
+    "ignored": 8
+  },
+  "javascriptPassed": 144,
+  "pythonPassed": 72,
+  "pythonRuntime": "3.11.9; configured target is 3.12",
+  "optimizedNativeBuild": "passed",
+  "runtimePins": "passed",
+  "workerFaultModesPassed": 16,
+  "persistentWorkerFaultModesPassed": 10,
+  "historicalModelNativeReplay": {
+    "frozenCases": 36,
+    "realFileExecutionAndUndoCases": 24,
+    "freshInference": false
+  },
+  "desktopBaseline": {
+    "checksPassed": 29,
+    "freshWalkthroughs": 1,
+    "outsideCheckout": true
+  },
+  "editorRepeatedAcceptance": {
+    "requiredConsecutiveRuns": 5,
+    "successfulRuns": [
+      {
+        "role": "editor",
+        "run": 1,
+        "passed": true,
+        "milliseconds": 42827,
+        "retries": 0,
+        "approvalCount": 1,
+        "originalPreserved": true,
+        "publicationUndone": true
+      },
+      {
+        "role": "editor",
+        "run": 2,
+        "passed": true,
+        "milliseconds": 20634,
+        "retries": 0,
+        "approvalCount": 1,
+        "originalPreserved": true,
+        "publicationUndone": true
+      },
+      {
+        "role": "editor",
+        "run": 3,
+        "passed": true,
+        "milliseconds": 16465,
+        "retries": 0,
+        "approvalCount": 1,
+        "originalPreserved": true,
+        "publicationUndone": true
+      }
+    ],
+    "fourthRun": "failed: application process still running after extension exit",
+    "fifthRun": "not attempted",
+    "gatePassed": false
+  },
+  "isolatedModelSmoke": {
+    "loadedInsideAppContainer": true,
+    "semanticCorrectnessPassed": false,
+    "subsequentToolCheck": "not reached"
+  },
+  "excelAcceptance": {
+    "installedVersion": "16.0.20430.20182",
+    "qualifiedVersion": "16.0.20430.20146",
+    "nativeRefusalConfirmed": true,
+    "desktopExcelPhase": "not reached after editor failure",
+    "accepted": false
+  },
+  "stage4Accepted": false,
+  "stage5Accepted": false,
+  "stage6Accepted": false,
+  "installationAccepted": false,
+  "unresolved": [
+    "Editor shutdown reliability",
+    "Free-form model correctness",
+    "Installed Excel compatibility qualification",
+    "Stage 5 desktop integration and native recovery provider",
+    "Stage 6 contained content route, Office/PDF/presentation/media capabilities and showcases",
+    "Disposable offline installation and independent acceptance"
+  ],
+  "artifacts": {
+    "desktop": {
+      "sha256": "d2ee6419300691a313ec96eb530a07251733491498455d0c5bf421b1328e2971",
+      "bytes": 7201792,
+      "pe64": true,
+      "aslr": true,
+      "dep": true,
+      "guardCF": false,
+      "certificateTablePresent": false,
+      "checkedTestHooksAbsent": [
+        "CUSTODIAN_EDITOR_FAULT_ROOT",
+        "CUSTODIAN_APP_WORKFLOW_ROOT",
+        "CUSTODIAN_SESSION_FIXTURE",
+        "CUSTODIAN_APP_WORKER_FIXTURE",
+        "fixture-identity.json",
+        "crash-recover"
+      ]
+    },
+    "worker": {
+      "sha256": "991f0f5713f4ca68e87a11fb35d6032ba2049732a6d41fa787014f3299d7ebdc",
+      "bytes": 600064,
+      "pe64": true,
+      "aslr": true,
+      "dep": true,
+      "guardCF": false,
+      "certificateTablePresent": false,
+      "checkedTestHooksAbsent": [
+        "CUSTODIAN_EDITOR_FAULT_ROOT",
+        "CUSTODIAN_APP_WORKFLOW_ROOT",
+        "CUSTODIAN_SESSION_FIXTURE",
+        "CUSTODIAN_APP_WORKER_FIXTURE",
+        "fixture-identity.json",
+        "crash-recover"
+      ]
+    },
+    "installationAccepted": false
+  },
+  "sourceBuildPinsUnchanged": true,
+  "frozenExpectationsChanged": false,
+  "report": "docs/VERIFICATION-AUDIT-2026-10-19.md",
+  "finalChecks": {
+    "capabilityRegister": "passed",
+    "gitDiffCheck": "passed",
+    "secretScanFindings": 0
+  },
+  "auditReportSha256": "57f0c53c5c6707ce081717c7a92b9551a5ea45eb0123cd4a6d97146abd7684e0"
+}

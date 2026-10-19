@@ -3,28 +3,32 @@
 What the code does today versus what the design promises. Update this file in
 the same commit that stubs, cuts or completes something.
 
-Completion is governed by [the acceptance checklist](docs/ACCEPTANCE.md).
-The current [capability register](docs/CAPABILITY-REGISTER.md) and
-[Stage 0 baseline audit](docs/STAGE-0-BASELINE-2026-10-17.md) reconcile current
+Completion is governed by [the acceptance checklist](docs/reference/ACCEPTANCE.md).
+The [19 October verification audit](docs/verification/VERIFICATION-AUDIT-2026-10-19.md)
+records fresh checks of the current checkout, remaining stage gates and the
+installed Excel version mismatch. Passing core tests does not establish that
+all stages or desktop routes are complete.
+The current [capability register](docs/reference/CAPABILITY-REGISTER.md) and
+[Stage 0 baseline audit](docs/verification/STAGE-0-BASELINE-2026-10-17.md) reconcile current
 routes and evidence. Older sections below can describe paths now paused or
 unavailable; the register distinguishes these from verified subsets and gaps.
-The [Stage 0 runtime repair](docs/STAGE-0-RUNTIME-REPAIR-2026-10-17.md) revalidated
+The [Stage 0 runtime repair](docs/verification/STAGE-0-RUNTIME-REPAIR-2026-10-17.md) revalidated
 the existing baseline after correcting agent scheduling. It adds no broader
 operator capability.
-The [Stage 1 authority/recovery increment](docs/STAGE-1-AUTHORITY-AND-RECOVERY-2026-10-18.md)
+The [Stage 1 authority/recovery increment](docs/verification/STAGE-1-AUTHORITY-AND-RECOVERY-2026-10-18.md)
 passes its declared native, privacy and recovery cases and a 27-check optimized
 desktop run. Optional standing-grant scopes retain explicitly requested local
 reach when empty. Screen/app observation stays disabled; general app control,
 full security acceptance, compiler hardening and installation remain open. Its
 native executable includes these changes; the historical Stage 0 installer does
 not. Laya remains inactive.
-The [Stage 2 coordinator increment](docs/STAGE-2-TASK-COORDINATOR-2026-10-18.md)
+The [Stage 2 coordinator increment](docs/verification/STAGE-2-TASK-COORDINATOR-2026-10-18.md)
 adds bounded native composition and step evidence to real file collections.
 The app adapter in composition fixtures is explicitly mock. Pause is at program
 boundaries; restart requires review and never replays a saved program. Most
 legacy routes still use their original lifecycle, and general model planning
 and real app automation remain unfinished.
-The [Stage 3 language/planning increment](docs/STAGE-3-LANGUAGE-AND-PLANNING-2026-10-18.md)
+The [Stage 3 language/planning increment](docs/verification/STAGE-3-LANGUAGE-AND-PLANNING-2026-10-18.md)
 adds Qwen-owned collection selection and source/destination interpretation with
 native location bindings and capability compilation. All 24 supported frozen
 interpretations executed real fixture copies and undo; all 12 negative cases
@@ -34,11 +38,11 @@ non-ASCII goals are clarified. Laya remains inactive after historical paired
 advisory replay; no new live safeguard is claimed. The report tracks exact
 desktop/artifact acceptance separately.
 Historical phase entries based on simulations are not product acceptance.
-The [Stage 4 foundation review](docs/STAGE-4-FOUNDATION-REVIEW-2026-10-18.md)
+The [Stage 4 foundation review](docs/verification/STAGE-4-FOUNDATION-REVIEW-2026-10-18.md)
 distinguishes typed app contracts/native admission tests from real app execution.
 Process probes read executable/creation metadata only. Private-app policy is a
 native library boundary, not a persisted user setting or qualified UIA adapter.
-The subsequent [supervised worker increment](docs/STAGE-4-SUPERVISED-WORKER-2026-10-18.md)
+The subsequent [supervised worker increment](docs/verification/STAGE-4-SUPERVISED-WORKER-2026-10-18.md)
 adds process-enforced deadlines, authenticated bounded IPC and worker-only cleanup.
 This trusted normal-user worker is resource-contained, not an AppContainer or
 filesystem/network sandbox. Its production operations probe its own identity
@@ -46,20 +50,20 @@ and empty message-only window; all real app operations return unavailable.
 Durable app-journal integration, persisted privacy controls and qualified real
 application adapters remain unfinished. The worker is not wired into live chat
 or packaged into a new desktop/installer by that increment. The subsequent
-[persistent app privacy increment](docs/STAGE-4-APP-PRIVACY-2026-10-18.md) adds
+[persistent app privacy increment](docs/verification/STAGE-4-APP-PRIVACY-2026-10-18.md) adds
 encrypted native app exclusions and a desktop executable exclusion list.
 Native window/session/document exclusions share the policy; their real-world
 binding and user selection remain part of adapter qualification. General
 content observation stays disabled. These rules do not disable the excluded
 application or apply its exclusion to file tools; private file locations remain
 a separate control. Those reports describe historical increments. The subsequent
-[real application implementation](docs/STAGE-4-REAL-APP-IMPLEMENTATION-2026-10-18.md)
+[real application implementation](docs/verification/STAGE-4-REAL-APP-IMPLEMENTATION-2026-10-18.md)
 adds actual version-qualified VS Code and Excel workflows, native desktop
 approval, independent output verification, publication undo and encrypted app
 recovery inspection. General window reading and screen capture remain disabled.
 Stage 4 acceptance is separate from implementation and requires the repeated
 packaged checks and disposable offline installation evidence in that report.
-The [Stage 5 execution record](docs/STAGE-5-EXECUTION-RECORD-2026-10-18.md)
+The [Stage 5 execution record](docs/verification/STAGE-5-EXECUTION-RECORD-2026-10-18.md)
 adds exported, offline-tested core primitives for exact batch manifests,
 bounded ZIP round trips, immutable versioned backup/restore and separately
 authorized governed recycle. These are not yet desktop language/planner routes;
@@ -67,37 +71,37 @@ the Windows recovery provider is intentionally unavailable, so no recycle or
 Stage 5 whole-system acceptance is claimed. Same-machine backups are not
 ransomware-proof and unsupported metadata, reparse points, cloud placeholders,
 hardlinks and network volumes remain refused.
-The [Stage 6 execution record](docs/STAGE-6-EXECUTION-RECORD-2026-10-18.md)
+The [Stage 6 execution record](docs/verification/STAGE-6-EXECUTION-RECORD-2026-10-18.md)
 adds a bounded native TXT/Markdown/CSV reader and staged structured verifier
 with source hashes, identities, locations, warnings and explicit partial
 results. It is a core subset only: it is not connected to the chat planner or
 contained parser worker, and no DOCX/PDF/PPTX/image/OCR/audio/video support is
 claimed. The existing parser binary and web-marker reader remain unavailable
 content routes.
-The [offline foundation implementation](docs/OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md)
+The [offline foundation implementation](docs/verification/OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md)
 supersedes earlier live-capability claims for the current source. File privacy
 controls and offline refusals are implemented; legacy cleanup/purge and broad
 app actions are intentionally paused pending migration. The full operator and
 all privacy/security gates remain incomplete.
-The [17 October routine backup increment](docs/ROUTINE-BACKUP-IMPLEMENTATION-2026-10-17.md)
+The [17 October routine backup increment](docs/verification/ROUTINE-BACKUP-IMPLEMENTATION-2026-10-17.md)
 adds an opt-in native largest-file copy workflow with standing permission,
 size/capacity limits, Windows copy guards and durable undo. It does not enable
 general autonomous model execution; its final desktop evidence is recorded in
 that report.
-The [model-planned workflow increment](docs/MODEL-PLANNED-WORKFLOWS-2026-10-17.md)
+The [model-planned workflow increment](docs/verification/MODEL-PLANNED-WORKFLOWS-2026-10-17.md)
 adds a shared bounded collection engine, separate opt-in permission, Qwen
 capability proposals with native validation, sealed step tracking, restart
 inspection and group undo. Planning is constrained by a native selection
 contract and is not general open-ended automation. Model experiments and final
 desktop evidence are recorded separately in that report.
-The [17 October typed Laya prototype](docs/LAYA-VALIDATION-IMPLEMENTATION-2026-10-17.md)
+The [17 October typed Laya prototype](docs/verification/LAYA-VALIDATION-IMPLEMENTATION-2026-10-17.md)
 now performs actual local typed-model inference in a separate development
 evaluator. Its first measured candidate fails activation targets and remains
 disconnected from desktop authority; it is not an active production safeguard.
-The [follow-up experiments](docs/LAYA-IMPROVEMENT-VERIFICATION-2026-10-17.md)
+The [follow-up experiments](docs/verification/LAYA-IMPROVEMENT-VERIFICATION-2026-10-17.md)
 add structured effect checks and faster selective/encoder-INT8 inference, but
 both tested model judges still fail semantic reliability requirements.
-The [16 October verification](docs/VERIFICATION-2026-10-16.md) records whole-PC
+The [16 October verification](docs/verification/VERIFICATION-2026-10-16.md) records whole-PC
 scope, actual cross-drive desktop execution/restart/undo, model scores and
 remaining acceptance gaps.
 
@@ -253,8 +257,10 @@ name anything outside it. What is not covered yet:
 - Mode colour: Online mode is never reported because the broker process does
   not exist yet, so the amber Special Form appears only as a labelled preview
   (tray or right-click menu).
-- `tools/fetch.ps1` writes a mock `tools/tools.toml` instead of fetching and
-  pinning the sandbox tools.
+- Verified external sandbox-tool fetching remains unimplemented. The former
+  `tools/fetch.ps1` only wrote a mock manifest and has been removed. No working
+  tool capability was removed. External tools still require reviewed sources,
+  cryptographic pins, containment and independent output verification.
 
 ### Background tasks and file operations
 
@@ -354,4 +360,4 @@ is measured):
 The native production executable and Windows NSIS installer built successfully.
 The current system/tool prompt measures 3,319 tokens for both pinned Qwen models;
 the minimum context is now 4,096 instead of 3,072 so the tool instructions fit.
-See [the current verification report](docs/VERIFICATION-2026-10-15.md) for details.
+See [the current verification report](docs/verification/VERIFICATION-2026-10-15.md) for details.

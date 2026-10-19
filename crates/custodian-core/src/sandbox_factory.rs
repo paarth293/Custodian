@@ -35,6 +35,7 @@ impl SandboxFactory {
             memory_mb: Some(self.memory_mb),
             cpu_percent: Some(self.cpu_rate),
             below_normal_priority: true,
+            process_limit: None,
         })?;
         let mut child =
             spawn_in_appcontainer(&target_exe.to_string_lossy(), &[], &self.profile_name)?;

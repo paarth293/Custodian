@@ -1018,6 +1018,7 @@ mod tests {
         let window = |h: isize| AppWindow {
             handle: h,
             pid: 1,
+            process_generation: Some(1),
             title: "t".into(),
             exe: "x.exe".into(),
         };

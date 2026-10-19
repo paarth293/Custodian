@@ -1,0 +1,33 @@
+{
+  "caseSha256": "e6990ffc39851865b18b7cba6048b3c966a1d3e25d16789eda8d25406ce39305",
+  "modelSha256": "3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597",
+  "modelName": "Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+  "completeSuite": false,
+  "agentSha256": "af8863cdf43940cb03939d047f39a4fc2a01921d9dfa1ef3c3be46e2d3461f58",
+  "condition": "Direct-engine diagnostic inference, no host PC tool executor; author-written regression, not sandbox/installation acceptance. Regex checks require human interpretation of recorded answers.",
+  "loadMs": 14188,
+  "rows": [
+    {
+      "id": "Q06",
+      "repetition": 1,
+      "prompt": "Explain whether compressing a folder by itself guarantees that a backup can be restored.",
+      "answer": "",
+      "toolCalls": [],
+      "passed": false,
+      "elapsedMs": 90125
+    },
+    {
+      "id": "Q06",
+      "repetition": 2,
+      "prompt": "Explain whether compressing a folder by itself guarantees that a backup can be restored.",
+      "answer": "Compressing a folder by itself does not guarantee that a backup can be restored. Compression reduces file size but does not preserve metadata, folder structure, or ensure data integrity. To restore a backup, the original file structure, permissions, and system context must be preserved. A reliable backup also requires a complete copy of the data, proper storage, and a restoration method that can decompress and reconstruct the files correctly. Compression alone is insufficient without these additional safeguards.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 37350
+    }
+  ],
+  "passed": 1,
+  "expected": 16,
+  "selectedExpected": 2,
+  "gatePassed": false
+}

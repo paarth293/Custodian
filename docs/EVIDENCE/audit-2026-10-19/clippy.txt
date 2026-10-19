@@ -1,0 +1,43 @@
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_ipc-36dhyhff1jlx6\s-hnbsw3gk54-14ucuw0-working`
+
+warning: `custodian-ipc` (lib) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\build_script_build-39ab02ipdxg0c\s-hnbsw6nrqn-16s2hbg-working`
+
+warning: `custodian-desktop` (build script) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_proto-1x52de0bpv38k\s-hnbsw6bdpy-0qps6zo-working`
+
+warning: `custodian-proto` (lib) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_sandbox-3gzmym12twf8u\s-hnbsw6td0w-05ef3pn-working`
+
+warning: `custodian-sandbox` (lib) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_sandbox-0j06tlnq0j2e5\s-hnbsw834li-0ysvjt6-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_sandbox-2vwk9zu6bnktf\s-hnbsw81shl-0mugsm9-working`
+
+warning: `custodian-sandbox` (bin "custodian-sandbox" test) generated 1 warning
+warning: `custodian-sandbox` (bin "custodian-sandbox") generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_ipc-0fgzlastoq6cm\s-hnbswcbu9u-0crfav2-working`
+
+warning: `custodian-ipc` (lib test) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_proto-380fo8aguqpuq\s-hnbswcqkfx-0emfewg-working`
+
+warning: `custodian-proto` (lib test) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_parser-1nlo0esurjd8q\s-hnbswdocxt-00owsd4-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_parser-0tbmsumqtx607\s-hnbswd3ik6-1tmyi87-working`
+
+warning: `custodian-parser` (bin "custodian-parser") generated 1 warning
+warning: `custodian-parser` (bin "custodian-parser" test) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_elevate-0to7l0abwrzgl\s-hnbswenpeo-0lxmrkv-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_elevate-08y4d3on9hvxr\s-hnbswef9hm-1960iz3-working`
+
+warning: `custodian-elevate` (bin "custodian-elevate") generated 1 warning
+warning: `custodian-elevate` (bin "custodian-elevate" test) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_testkit-28x1dtwgicr5y\s-hnbswezkzq-1y5jiol-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_sandbox-03tqr9zemup2w\s-hnbswe41d5-1p0663t-working`
+
+warning: `custodian-testkit` (lib) generated 1 warning
+warning: `custodian-sandbox` (lib test) generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 8.59s

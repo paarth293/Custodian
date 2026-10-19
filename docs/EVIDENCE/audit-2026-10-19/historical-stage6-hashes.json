@@ -1,0 +1,21 @@
+{
+  "note": "Historical evidence only; later source and audit changes are not silently reaccepted.",
+  "checks": [
+    {
+      "path": "crates/custodian-core/src/content.rs",
+      "matchesHistoricalHash": true
+    },
+    {
+      "path": "crates/custodian-core/src/lib.rs",
+      "matchesHistoricalHash": true
+    },
+    {
+      "path": "docs/STAGE-6-EXECUTION-RECORD-2026-10-18.md",
+      "matchesHistoricalHash": true
+    },
+    {
+      "path": "docs/CAPABILITY-REGISTER.json",
+      "matchesHistoricalHash": false
+    }
+  ]
+}

@@ -21,13 +21,47 @@ fn snapshot(policy: &AccessPolicy) -> PrivacySettings {
     let (revision, private_paths) = policy.settings();
     PrivacySettings {
         revision, private_paths, offline: true,
-        notice: "Private locations and common credential files are excluded from supported file tools. Multi-linked files and reparse/cloud paths are refused. Assistant screen capture, app content extraction, accessibility reading and window-title enumeration are disabled: private app content cannot yet be excluded before observation. Existing third-party applications are not network-isolated by these controls.",
+        notice: "Private locations and common credential files are excluded from supported file tools. Multi-linked files and reparse/cloud paths are refused. Qualified editor and spreadsheet tasks use only their own bound document through dedicated application APIs. Screen capture, general accessibility reading and window-title enumeration remain disabled. Existing third-party applications are not network-isolated by these controls.",
     }
 }
 
 #[tauri::command]
 pub fn get_privacy_settings(state: tauri::State<'_, AssistantState>) -> PrivacySettings {
     snapshot(&state.privacy)
+}
+
+#[tauri::command]
+pub fn get_app_privacy_settings(
+    state: tauri::State<'_, AssistantState>,
+) -> Result<custodian_core::app_authority::ApplicationPrivacySettings, String> {
+    state.app_privacy.settings().map_err(str::to_string)
+}
+
+#[tauri::command]
+pub async fn set_private_applications(
+    app: AppHandle,
+    executables: Vec<String>,
+    revision: u64,
+) -> Result<custodian_core::app_authority::ApplicationPrivacySettings, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AssistantState>();
+        state.stop_requests();
+        let result = state
+            .app_privacy
+            .replace_private_executables(revision, executables);
+        // Suppress old-generation model output even if file rules did not change.
+        state.reset_context();
+        state.actions.clear();
+        state
+            .plans
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
+        result.map_err(str::to_string)?;
+        state.app_privacy.settings().map_err(str::to_string)
+    })
+    .await
+    .map_err(|_| "Application privacy could not be updated.".to_string())?
 }
 
 #[tauri::command]
@@ -70,7 +104,7 @@ pub fn get_capabilities() -> Vec<Capability> {
         Capability { name: "Local chat, reminders and arithmetic", status: "available", detail: "Chat requires the pinned local model; reminders require the app to be running or reopening." },
         Capability { name: "Cleanup and broad app actions", status: "paused", detail: PAUSED },
         Capability { name: "Web, account and online actions", status: "deferred", detail: OFFLINE },
-        Capability { name: "Document editing, general app control and multi-step operator", status: "not implemented", detail: "Planned milestones; opening an app is not completing work inside it." },
+        Capability { name: "Qualified local application tasks", status: "limited", detail: "One-task approval for explicit UTF-8 .txt replacements in VS Code 1.140.0 or single-sheet Excel 16.0.20430.20146 edits in A1:P16. Dedicated instances, typed values and bounded SUM, saved-file verification, normal close, new-output publication and receipt-backed undo. Original files remain intact. Other apps, macros, external links, overwrites, global input and visual fallback are unavailable." },
     ]
 }
 

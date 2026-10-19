@@ -1,3 +1,0 @@
-   Compiling custodian-desktop v0.1.0 (D:\Custodian\apps\desktop\src-tauri)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 2m 08s
-  Executable unittests src\lib.rs (target\debug\deps\custodian_desktop_lib-a91c1b96e3d7c539.exe)

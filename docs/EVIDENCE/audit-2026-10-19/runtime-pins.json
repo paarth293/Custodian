@@ -1,0 +1,10 @@
+{
+  "runtime": "C:\\Users\\paagu\\.codex\\visualizations\\2026\\10\\16\\01a142c7-c123-7122-873a-8f2707fc4063\\audit-1019\\bundle\\runtime",
+  "node": "v24.18.0",
+  "packages": 133,
+  "modelSha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+  "workerSha256": "991f0f5713f4ca68e87a11fb35d6032ba2049732a6d41fa787014f3299d7ebdc",
+  "acceptedAgentModulesVerified": 67,
+  "editorPayloadsVerified": 3,
+  "installationAccepted": false
+}

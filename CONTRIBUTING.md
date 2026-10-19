@@ -10,9 +10,10 @@ commands. Recommended editor extensions are listed in `.vscode/extensions.json`.
 Run the checks for every area you touched; CI runs all of them:
 
 ```sh
-cargo fmt --all && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace
-npm run format && npm run lint && npm run typecheck && npm test
-ruff format . && ruff check . && mypy . && pytest
+npm run repo:check
+cargo fmt --all --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo test --workspace --locked
+npm run format:check && npm run lint && npm run typecheck && npm test
+ruff format --check . && ruff check . && mypy . && pytest
 ```
 
 ## Definition of done
@@ -34,3 +35,19 @@ A commit that completes a step uses the message `Step NNN: <title>`.
 Other changes (fixes, refactors, docs) use
 [Conventional Commits](https://www.conventionalcommits.org/): `fix:`, `refactor:`,
 `test:`, `docs:`, `chore:`.
+
+## Source and generated output
+
+Follow the [repository structure](docs/reference/REPOSITORY-STRUCTURE.md). Keep workspace
+manifests and lockfiles together; place new utilities in their owning service
+or `scripts/`, rather than adding one-off scripts at the repository root.
+
+Keep models, fixture runs, caches, local references and rendered deliverables
+out of Git. The source-boundary check also catches files already tracked despite
+`.gitignore`. Review a removal from Git's index separately from deleting a local
+file. Never use a blanket cleanup command on source, frozen acceptance inputs,
+or retained evidence. No Git history rewrite is needed for routine cleanup.
+
+Use ignored `artifacts/` for new raw runs. Promote only the reviewed evidence
+needed to substantiate a scoped result, following the
+[evidence policy](docs/EVIDENCE/README.md).

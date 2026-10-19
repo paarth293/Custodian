@@ -12,6 +12,57 @@ pub struct CopyGuard {
     output: Option<File>,
 }
 
+/// Holds ordinary local directory ancestors against rename/reparse substitution
+/// while an application or journal works on children in that directory.
+pub struct DirectoryGuard {
+    _directories: Vec<File>,
+}
+impl DirectoryGuard {
+    #[cfg(windows)]
+    pub fn open(path: &Path) -> io::Result<Self> {
+        use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
+        use windows_sys::Win32::Storage::FileSystem::{
+            FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT,
+        };
+        let invalid = || io::Error::other("Ordinary absolute local directory required");
+        if !path.is_absolute()
+            || !matches!(path.components().next(), Some(std::path::Component::Prefix(p))
+                if matches!(p.kind(), std::path::Prefix::Disk(_) | std::path::Prefix::VerbatimDisk(_)))
+            || path.components().any(|c| match c {
+                std::path::Component::CurDir | std::path::Component::ParentDir => true,
+                std::path::Component::Normal(n) => {
+                    let s = n.to_string_lossy();
+                    s.contains([':', '\0']) || s.ends_with(['.', ' '])
+                }
+                _ => false,
+            })
+        {
+            return Err(invalid());
+        }
+        let mut directories = vec![];
+        for ancestor in path.ancestors().collect::<Vec<_>>().into_iter().rev() {
+            let file = OpenOptions::new()
+                .access_mode(0x80)
+                .share_mode(1)
+                .custom_flags(FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT)
+                .open(ancestor)?;
+            let meta = file.metadata()?;
+            if !meta.is_dir() || meta.file_attributes() & (0x400 | 0x1000 | 0x40000 | 0x400000) != 0
+            {
+                return Err(invalid());
+            }
+            directories.push(file);
+        }
+        Ok(Self {
+            _directories: directories,
+        })
+    }
+    #[cfg(not(windows))]
+    pub fn open(_: &Path) -> io::Result<Self> {
+        Err(io::Error::other("Native directory guard unavailable"))
+    }
+}
+
 #[cfg(windows)]
 impl CopyGuard {
     pub fn open(source: &Path, destination: &Path) -> io::Result<Self> {

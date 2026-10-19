@@ -150,6 +150,11 @@ impl Program {
             {
                 return Err(bad());
             }
+            if step.capability.starts_with("app.")
+                && crate::app_adapter::capability_kind(&step.capability) != Some(step.kind)
+            {
+                return Err(bad());
+            }
             for reference in step
                 .inputs
                 .values()

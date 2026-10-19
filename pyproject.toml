@@ -14,8 +14,17 @@ python_version = "3.12"
 ignore_missing_imports = true
 mypy_path = "services/mlhost"
 explicit_package_bases = true
-exclude = ["^target/", "^node_modules/"]
+exclude = [
+    "^target/",
+    "^node_modules/",
+    "^deliverables/",
+    "^artifacts/",
+    "^\\.local/",
+    "^fixture/",
+    "^models/",
+    "^apps/desktop/src-tauri/runtime-stage/",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["services/mlhost", "services/mlhost/tests"]
-testpaths = ["services/mlhost/tests", "tests/e2e"]
+testpaths = ["services/mlhost/tests", "tests"]

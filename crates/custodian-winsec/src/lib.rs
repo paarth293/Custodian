@@ -4,21 +4,26 @@
 //! no-replace moves are real Win32 calls. AppContainer spawning is still a
 //! portable placeholder with the final signature; see `HONESTY.md`.
 
+pub mod app_instance;
 #[cfg(windows)]
 pub mod appcontainer;
 pub mod apps;
 pub mod dialog;
 pub mod dpapi;
+pub mod excel;
 pub mod fsops;
 pub mod guarded_copy;
 pub mod hello;
 pub mod job;
+pub mod local_pipe;
 pub mod power;
 pub mod registry;
 pub mod safe_place;
 pub mod settings;
+pub mod settings_commit;
 pub mod shell;
 pub mod sync_roots;
+pub mod worker_io;
 
 use std::fs;
 use std::io;

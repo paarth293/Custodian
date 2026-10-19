@@ -11,67 +11,67 @@ desktop automation and full security acceptance remain unfinished.
 > **Status:** early development. Many components are placeholders with their
 > final interfaces; [`HONESTY.md`](HONESTY.md) lists exactly what is stubbed.
 
-The [capability register](docs/CAPABILITY-REGISTER.md) tracks the full offline
-vision and gaps. The [Stage 0 baseline](docs/STAGE-0-BASELINE-2026-10-17.md)
+The [capability register](docs/reference/CAPABILITY-REGISTER.md) tracks the full offline
+vision and gaps. The [Stage 0 baseline](docs/verification/STAGE-0-BASELINE-2026-10-17.md)
 records source/runtime identities, frozen expectations and validation.
-The [Stage 0 runtime repair](docs/STAGE-0-RUNTIME-REPAIR-2026-10-17.md) records
+The [Stage 0 runtime repair](docs/verification/STAGE-0-RUNTIME-REPAIR-2026-10-17.md) records
 the restored baseline and two fresh desktop passes.
-The [Stage 1 authority and recovery report](docs/STAGE-1-AUTHORITY-AND-RECOVERY-2026-10-18.md)
+The [Stage 1 authority and recovery report](docs/verification/STAGE-1-AUTHORITY-AND-RECOVERY-2026-10-18.md)
 records shared native authorization, optional copy-grant scopes, one active host
 per user across profiles, real process-kill recovery and 27 passing checks on the
 optimized desktop. It identifies that increment's native artifact; the installer
 remains the historical Stage 0 build. Full-product security acceptance is open.
 
-The [Stage 2 coordinator report](docs/STAGE-2-TASK-COORDINATOR-2026-10-18.md)
+The [Stage 2 coordinator report](docs/verification/STAGE-2-TASK-COORDINATOR-2026-10-18.md)
 records bounded typed programs, durable step evidence, safe pause, failure
 classification and verified collection integration. App composition uses a
 labelled mock in fixtures; real application control and general language
 planning remain separate unfinished stages.
 
-The [Stage 3 language/planning report](docs/STAGE-3-LANGUAGE-AND-PLANNING-2026-10-18.md)
+The [Stage 3 language/planning report](docs/verification/STAGE-3-LANGUAGE-AND-PLANNING-2026-10-18.md)
 records local Qwen interpretation of file collections and location roles,
 independent native validation, real model-to-file execution and the current
 desktop acceptance status. The supported combinations are files/documents/images,
 optionally selecting the largest. General app automation, content-based
 exclusions and multilingual execution remain unfinished; Laya stays inactive.
 
-The [Stage 4 foundation review](docs/STAGE-4-FOUNDATION-REVIEW-2026-10-18.md)
+The [Stage 4 foundation review](docs/verification/STAGE-4-FOUNDATION-REVIEW-2026-10-18.md)
 records the current app-contract and admission work.
-The [supervised worker report](docs/STAGE-4-SUPERVISED-WORKER-2026-10-18.md)
+The [supervised worker report](docs/verification/STAGE-4-SUPERVISED-WORKER-2026-10-18.md)
 adds a one-shot native worker with authenticated IPC, enforced deadlines and
-bounded cleanup. The [persistent app privacy increment](docs/STAGE-4-APP-PRIVACY-2026-10-18.md)
+bounded cleanup. The [persistent app privacy increment](docs/verification/STAGE-4-APP-PRIVACY-2026-10-18.md)
 adds encrypted exclusions and desktop controls. The subsequent
-[real application implementation](docs/STAGE-4-REAL-APP-IMPLEMENTATION-2026-10-18.md)
+[real application implementation](docs/verification/STAGE-4-REAL-APP-IMPLEMENTATION-2026-10-18.md)
 adds bound VS Code text editing, a supervised Excel adapter, verified publication,
 undo and encrypted recovery evidence. These are version-qualified, task-owned
 document workflows; general desktop observation remains disabled. Stage 4
 acceptance and installation status are recorded in that report.
 
-The [Stage 5 execution record](docs/STAGE-5-EXECUTION-RECORD-2026-10-18.md)
+The [Stage 5 execution record](docs/verification/STAGE-5-EXECUTION-RECORD-2026-10-18.md)
 records bounded batch manifests, ZIP creation/extraction, versioned backup and
 restore, and governed recycle core increments. These primitives have offline
 tests, but Stage 5 is not accepted: desktop routes, a qualified Windows
 Recycle Bin provider, and optimized crash/recovery/package evidence remain
 open.
 
-The [Stage 6 execution record](docs/STAGE-6-EXECUTION-RECORD-2026-10-18.md)
+The [Stage 6 execution record](docs/verification/STAGE-6-EXECUTION-RECORD-2026-10-18.md)
 records the bounded, offline TXT/Markdown/CSV content core and its typed
 provenance and verification contracts. DOCX, PDF, PPTX, image, OCR and
 audio/video capabilities remain unavailable until their workers, dependencies,
 assets and independent verifiers are qualified; Stage 6 is not accepted.
 
 For the current hackathon-ready subset and a reproducible five-minute
-walkthrough, see [HACKATHON-DELIVERY-RECORD.md](docs/HACKATHON-DELIVERY-RECORD.md).
+walkthrough, see [HACKATHON-DELIVERY-RECORD.md](docs/verification/HACKATHON-DELIVERY-RECORD.md).
 
-See the [offline foundation report](docs/OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md)
+See the [offline foundation report](docs/verification/OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md)
 for baseline scope, paused capabilities and remaining gates.
-The [routine backup increment](docs/ROUTINE-BACKUP-IMPLEMENTATION-2026-10-17.md)
+The [routine backup increment](docs/verification/ROUTINE-BACKUP-IMPLEMENTATION-2026-10-17.md)
 adds opt-in automatic discovery, selection, verified copying and undo for one
 explicit largest-file goal across permitted local folders or all local drives.
 It includes that increment's historical hashes and two desktop walkthroughs.
 General autonomous desktop operation remains unfinished.
 
-The [model-planned workflow increment](docs/MODEL-PLANNED-WORKFLOWS-2026-10-17.md)
+The [model-planned workflow increment](docs/verification/MODEL-PLANNED-WORKFLOWS-2026-10-17.md)
 adds document/photo collections and composed largest-file selection through one
 shared engine, with a separate standing permission, saved step receipts and
 group undo. Qwen proposes bounded capability sequences; native code validates
@@ -96,24 +96,24 @@ over HMAC-authenticated IPC frames (`custodian-ipc`).
 
 ### Rust crates
 
-| Crate                | Purpose                                                         |
-| -------------------- | --------------------------------------------------------------- |
-| `custodian-core`     | Duplicate finder, safe quarantine with undo, supervisor         |
+| Crate                     | Purpose                                                              |
+| ------------------------- | -------------------------------------------------------------------- |
+| `custodian-core`          | Duplicate finder, safe quarantine with undo, supervisor              |
 | `custodian-core::content` | Bounded TXT/Markdown/CSV provenance, parsing and staged verification |
-| `custodian-engine`   | Approval verification, reversible operations, recovery, undo    |
-| `custodian-journal`  | File-system watcher, debouncer, CRC-checked write-ahead journal |
-| `custodian-ledger`   | Hash-chained, tamper-evident transaction ledger                 |
-| `custodian-ipc`      | Authenticated framing and per-role key matrix                   |
-| `custodian-winsec`   | `SafePath`, AppContainer, job objects, DPAPI                    |
-| `custodian-appworker` | Authenticated native probes and supervised, bound Excel sessions |
-| `custodian-digest`   | Streaming BLAKE3 file digests                                   |
-| `custodian-store`    | PostgreSQL persistence (transactions, pgvector, TimescaleDB)    |
-| `custodian-proto`    | Shared wire types                                               |
-| `custodian-parser`   | Sandboxed document parser                                       |
-| `custodian-sandbox`  | Sandbox launcher and declared-effect checks                     |
-| `custodian-elevate`  | Minimal elevation helper with a fixed verb allow-list           |
-| `custodian-fixtures` | Generates marker-protected fixture trees                        |
-| `custodian-testkit`  | Test helpers that refuse to touch real user folders             |
+| `custodian-engine`        | Approval verification, reversible operations, recovery, undo         |
+| `custodian-journal`       | File-system watcher, debouncer, CRC-checked write-ahead journal      |
+| `custodian-ledger`        | Hash-chained, tamper-evident transaction ledger                      |
+| `custodian-ipc`           | Authenticated framing and per-role key matrix                        |
+| `custodian-winsec`        | `SafePath`, AppContainer, job objects, DPAPI                         |
+| `custodian-appworker`     | Authenticated native probes and supervised, bound Excel sessions     |
+| `custodian-digest`        | Streaming BLAKE3 file digests                                        |
+| `custodian-store`         | PostgreSQL persistence (transactions, pgvector, TimescaleDB)         |
+| `custodian-proto`         | Shared wire types                                                    |
+| `custodian-parser`        | Sandboxed document parser                                            |
+| `custodian-sandbox`       | Sandbox launcher and declared-effect checks                          |
+| `custodian-elevate`       | Minimal elevation helper with a fixed verb allow-list                |
+| `custodian-fixtures`      | Generates marker-protected fixture trees                             |
+| `custodian-testkit`       | Test helpers that refuse to touch real user folders                  |
 
 ## Repository layout
 
@@ -124,10 +124,19 @@ services/            Node.js services and the Python ML host
 proto/               JSON schemas for shared types
 tests/               Cross-component end-to-end and security tests
 training/            Synthetic dataset generator for the Laya model
-scripts/             PowerShell helpers (models, codegen, PE checks)
+scripts/             Setup, generation, build and verification helpers
 models/              Local model files (git-ignored)
 docs/                Design documents, verification log, versions
+video/               Reviewable scripts and captions for product demos
 ```
+
+Generated outputs, local runtime state, downloaded models, acceptance fixtures,
+and machine-specific evidence are not source. They are ignored by Git and must
+be recreated by the documented setup or verification commands. See
+[`docs/reference/REPOSITORY-STRUCTURE.md`](docs/reference/REPOSITORY-STRUCTURE.md) for the source
+ownership rules and the contribution boundary.
+Use the [documentation index](docs/README.md) to find current status and design
+records. Run `npm run repo:check` to validate source boundaries before committing.
 
 ## Getting started
 
@@ -234,14 +243,14 @@ The offline Windows installer requires a preinstalled Microsoft Edge WebView2
 Runtime. It does not download that prerequisite automatically. Clean-profile
 installation acceptance remains open; see the current implementation report.
 
-- [Current offline implementation and limits](docs/OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md)
+- [Current offline implementation and limits](docs/verification/OFFLINE-FOUNDATION-IMPLEMENTATION-2026-10-16.md)
 
 - [Master document](docs/design/CUSTODIAN_MASTER_DOCUMENT.md): what we build and why
 - [Architecture](docs/design/CUSTODIAN_ARCHITECTURE.md): how it is built
 - [Build plan](docs/design/CUSTODIAN_BUILD_PLAN.md): the ordered build steps
-- [Roadmap to the real product](docs/ADVANCE.md): current status and step-by-step phases
-- [Verification log](docs/VERIFY-LOG.md) and [component versions](docs/VERSIONS.md)
-- [Current verified behavior and limits](docs/VERIFICATION-2026-10-16.md) and [completion requirements](docs/ACCEPTANCE.md)
+- [Roadmap to the real product](docs/plans/ADVANCE.md): current status and step-by-step phases
+- [Verification log](docs/verification/VERIFY-LOG.md) and [component versions](docs/reference/VERSIONS.md)
+- [Current verified behavior and limits](docs/verification/VERIFICATION-2026-10-16.md) and [completion requirements](docs/reference/ACCEPTANCE.md)
 
 ## Contributing and security
 

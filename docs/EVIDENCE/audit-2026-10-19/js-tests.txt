@@ -1,0 +1,65 @@
+
+> test
+> npm run test --workspaces --if-present
+
+
+> @custodian/desktop@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 D:/Custodian/apps/desktop
+
+
+ Test Files  4 passed (4)
+      Tests  27 passed (27)
+   Start at  01:04:12
+   Duration  1.91s (transform 44%, import 41%, tests 11%, worker 4%)
+
+
+> @custodian/agent@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 D:/Custodian/services/agent
+
+
+ Test Files  10 passed (10)
+      Tests  104 passed (104)
+   Start at  01:04:17
+   Duration  4.30s (transform 41%, import 30%, tests 27%, worker 2%)
+
+  Transform  transforming modules took 4.54s · 41% of tracked time, re-done on every run
+             persist transforms across runs with fsModuleCache: true
+             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns
+
+
+> @custodian/broker@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 D:/Custodian/services/broker
+
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  01:04:24
+   Duration  1.93s (transform 48%, import 45%, tests 3%, worker 3%)
+
+
+> custodian-bound-editor@0.1.0 test
+> node --test test/*.test.cjs
+
+✔ switching to a private tab refuses before any further content read or edit (20.9514ms)
+✔ stale versions and arbitrary commands never reach document editing or command execution (10.316ms)
+✔ bad authentication closes transport without document observation (5.8113ms)
+✔ authentication rejects corrupted payload and oversized headers before allocation (10.4473ms)
+✔ partial frames remain pending and strict shape refuses shell/extra fields (3.2744ms)
+✔ UTF-8 offsets map to UTF-16 without splitting emoji or changing unrelated lines (1.5487ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1075.9856

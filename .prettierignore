@@ -6,3 +6,9 @@ Cargo.lock
 docs/
 training/dataset.jsonl
 apps/desktop/src-tauri/gen/
+deliverables/
+artifacts/
+.local/
+fixture/
+models/
+video/exports/

@@ -1,0 +1,40 @@
+   Compiling custodian-appworker v0.1.0 (D:\Custodian\crates\custodian-appworker)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.66s
+     Running tests\supervision.rs (target\debug\deps\supervision-7af8c6d14bfa667a.exe)
+
+running 2 tests
+FAULT RESPONSE hang: Some(Timeout)
+PERSISTED POLICY UPDATE STOPPED A RUNNING WORKER BEFORE EFFECT DISPATCH
+WORKER FAULT VERIFIED: hang
+FAULT RESPONSE partial: Some(Timeout)
+WORKER FAULT VERIFIED: partial
+FAULT RESPONSE oversize: Some(Protocol)
+WORKER FAULT VERIFIED: oversize
+FAULT RESPONSE wrong-nonce: Some(Protocol)
+WORKER FAULT VERIFIED: wrong-nonce
+FAULT RESPONSE wrong-version: Some(Protocol)
+WORKER FAULT VERIFIED: wrong-version
+FAULT RESPONSE trailing-frame: Some(Protocol)
+WORKER FAULT VERIFIED: trailing-frame
+FAULT RESPONSE bad-mac: Some(Protocol)
+WORKER FAULT VERIFIED: bad-mac
+FAULT RESPONSE stderr-flood: Some(Protocol)
+WORKER FAULT VERIFIED: stderr-flood
+FAULT RESPONSE reply-hang: Some(Timeout)
+WORKER FAULT VERIFIED: reply-hang
+FAULT RESPONSE memory: None
+WORKER FAULT VERIFIED: memory
+FAULT RESPONSE child-limit: None
+WORKER FAULT VERIFIED: child-limit
+WORKER FAULT VERIFIED: echo
+WORKER FAULT VERIFIED: effect-ok
+WORKER FAULT VERIFIED: crash-effect
+WORKER FAULT VERIFIED: no-read
+FAULT RESPONSE exit-259: Some(Transport)
+WORKER FAULT VERIFIED: exit-259
+test actual_fault_peer_enforces_deadlines_limits_and_preserves_pending_effects ... ok
+OPTIMIZED WORKER VERIFIED OUTSIDE CHECKOUT: \\?\C:\Users\paagu\.codex\visualizations\2026\10\16\01a142c7-c123-7122-873a-8f2707fc4063\audit-1019\bundle\runtime\bin\custodian-appworker.exe
+test optimized_worker_operates_outside_checkout ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 56.10s
+

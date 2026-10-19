@@ -5,11 +5,13 @@ export default function TaskBoard({
   onCancelTask,
   onPauseTask,
   onInspectWorkflow,
+  onInspectApplication,
 }: {
   activeTasks: ActiveTask[];
   onCancelTask: (id: string) => void;
   onPauseTask: (id: string, paused: boolean) => void;
   onInspectWorkflow?: () => void;
+  onInspectApplication?: (id: string) => void;
 }) {
   return (
     <>
@@ -109,6 +111,15 @@ export default function TaskBoard({
                     Cancel
                   </button>
                 )}
+                {task.application &&
+                  onInspectApplication &&
+                  ['recovery-required', 'partial', 'failed', 'completed', 'cancelled'].includes(
+                    task.state,
+                  ) && (
+                    <button type="button" onClick={() => onInspectApplication(task.id)}>
+                      Inspect application recovery
+                    </button>
+                  )}
               </li>
             ))}
           </ul>

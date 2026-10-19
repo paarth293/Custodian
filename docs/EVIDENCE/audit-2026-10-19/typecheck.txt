@@ -1,0 +1,8 @@
+
+> typecheck
+> tsc -b && npm run typecheck -w apps/desktop
+
+
+> @custodian/desktop@0.1.0 typecheck
+> tsc
+

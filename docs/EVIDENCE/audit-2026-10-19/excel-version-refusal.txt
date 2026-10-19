@@ -1,0 +1,1 @@
+Error: "Installed Excel version is outside the qualified adapter"

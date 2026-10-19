@@ -1,0 +1,18 @@
+{
+  "frozenFixtures": [
+    {
+      "file": "docs/EVIDENCE/stage-3/intent-cases.json",
+      "sha256": "00cf566d68b45394c303ebcfc9b1937b130008233e43c64e855ddba9825deac3",
+      "expected": "00cf566d68b45394c303ebcfc9b1937b130008233e43c64e855ddba9825deac3",
+      "matches": true
+    },
+    {
+      "file": "docs/EVIDENCE/stage-4/app-acceptance-fixtures.json",
+      "sha256": "688de4f0b11f390211256a76f7e0a09bb3c1b3b80237eec6b8464ba2d054a18a",
+      "expected": "688de4f0b11f390211256a76f7e0a09bb3c1b3b80237eec6b8464ba2d054a18a",
+      "matches": true
+    }
+  ],
+  "agentModuleCount": 67,
+  "agentModuleMismatches": []
+}

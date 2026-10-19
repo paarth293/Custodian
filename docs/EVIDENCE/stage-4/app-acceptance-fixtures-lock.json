@@ -1,0 +1,7 @@
+{
+  "sha256": "688de4f0b11f390211256a76f7e0a09bb3c1b3b80237eec6b8464ba2d054a18a",
+  "cases": 12,
+  "frozenBeforeWorkerAndRealAdapters": true,
+  "alreadyExecuted": false,
+  "notAnIndependentBenchmark": true
+}

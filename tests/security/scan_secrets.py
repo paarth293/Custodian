@@ -7,7 +7,16 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SKIP_DIRS = {".git", "node_modules", "dist", "target", "models", "__pycache__", ".venv"}
+SKIP_DIRS = {
+    ".git",
+    "node_modules",
+    "dist",
+    "target",
+    "models",
+    "__pycache__",
+    ".venv",
+}
+LOCAL_OUTPUT_ROOTS = {".local", "artifacts", "deliverables"}
 SKIP_SUFFIXES = {".gguf", ".jsonl", ".png", ".ico", ".icns", ".lock"}
 PATTERNS = {
     "AWS access key": re.compile(r"AKIA[0-9A-Z]{16}"),
@@ -19,7 +28,8 @@ PATTERNS = {
 
 def iter_files(root: Path):
     for path in root.rglob("*"):
-        if any(part in SKIP_DIRS for part in path.relative_to(root).parts):
+        parts = path.relative_to(root).parts
+        if parts[0] in LOCAL_OUTPUT_ROOTS or any(part in SKIP_DIRS for part in parts):
             continue
         if path.is_file() and path.suffix not in SKIP_SUFFIXES:
             yield path

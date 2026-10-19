@@ -3,6 +3,14 @@ target/
 dist/
 build/
 coverage/
+.nyc_output/
+htmlcov/
+.coverage
+.coverage.*
+playwright-report/
+test-results/
+*.profraw
+*.profdata
 *.tsbuildinfo
 apps/desktop/src-tauri/gen/
 apps/desktop/src-tauri/runtime-stage/*
@@ -16,6 +24,21 @@ apps/desktop/src-tauri/icons/64x64.png
 node_modules/
 .venv/
 venv/
+.npm/
+.cache/
+.eslintcache
+
+# Local archives, rendered deliverables and ad-hoc run artifacts
+/.local/
+/artifacts/
+/deliverables/
+/video/exports/
+/video/**/*.mp4
+/video/**/*.mov
+/video/**/*.webm
+/video/**/*.mkv
+/video/**/*.wav
+/video/**/*.mp3
 
 # Python
 __pycache__/
@@ -28,7 +51,7 @@ __pycache__/
 models/*
 !models/.gitkeep
 *.gguf
-data/
+/data/
 fixture/*
 !fixture/.gitkeep
 
@@ -38,6 +61,8 @@ docs/EVIDENCE/local/
 *.sqlite
 *.sqlite3
 *.db
+*.pid
+*.pid.lock
 
 # Environment and local secrets
 .env

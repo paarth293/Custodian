@@ -8,6 +8,7 @@ export interface ActiveTask {
   description: string;
   state: string;
   progress?: string;
+  application?: { document_id: string; workspace?: string } | null;
   execution?: {
     program: {
       goal: string;
@@ -217,6 +218,7 @@ export default function ChatPanel({
         onCancelTask={handleCancelTask}
         onPauseTask={handlePauseTask}
         onInspectWorkflow={() => onSendMessage('show workflow status')}
+        onInspectApplication={(id) => onSendMessage(`inspect application task ${id}`)}
       />
 
       <form

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "observedAtUtc": "2026-10-18T05:33:49.7668477Z",
+  "condition": "Read-only installed-executable metadata; not app/API/UIA/save qualification",
+  "packageProbe": "completed",
+  "candidates": [
+    {
+      "role": "editor",
+      "kind": "Windows launcher",
+      "path": "C:\\WINDOWS\\System32\\notepad.exe",
+      "fileVersion": "10.0.26100.8457 (WinBuild.160101.0800)",
+      "productVersion": "10.0.26100.8457",
+      "adapterQualified": false
+    },
+    {
+      "role": "editor",
+      "kind": "packaged editor",
+      "path": "C:\\Program Files\\WindowsApps\\Microsoft.WindowsNotepad_11.2607.14.0_x64__8wekyb3d8bbwe\\Notepad\\Notepad.exe",
+      "fileVersion": "11.2607.14.0",
+      "productVersion": "11.2607.14.0",
+      "adapterQualified": false
+    },
+    {
+      "role": "spreadsheet",
+      "kind": "Office executable",
+      "path": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
+      "fileVersion": "16.0.20430.20146",
+      "productVersion": "16.0.20430.20146",
+      "adapterQualified": false
+    }
+  ],
+  "applicationsLaunched": 0,
+  "windowTitlesObserved": 0,
+  "documentContentsObserved": 0,
+  "editorAdapterAccepted": false,
+  "spreadsheetAdapterAccepted": false,
+  "nextGate": "Qualify isolated document identity and pre-observation privacy before app content access"
+}

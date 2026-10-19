@@ -1,0 +1,27 @@
+[package]
+name = "custodian-appworker"
+description = "One-shot typed application-worker transport; unqualified app effects stay unavailable."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+custodian-core.workspace = true
+custodian-ipc.workspace = true
+custodian-winsec.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+uuid.workspace = true
+blake3.workspace = true
+tempfile.workspace = true
+
+[[example]]
+name = "app-worker-fixture"
+path = "tests/support/fixture.rs"

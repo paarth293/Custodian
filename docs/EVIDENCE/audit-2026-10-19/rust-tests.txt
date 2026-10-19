@@ -1,0 +1,56 @@
+   Compiling custodian-desktop v0.1.0 (D:\Custodian\apps\desktop\src-tauri)
+   Compiling custodian-core v0.1.0 (D:\Custodian\crates\custodian-core)
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\workbook_inspection-3mejd6esplx4t\s-hnc33wolni-19i6och-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\editor_adversarial_acceptance-31o99u5y24hjt\s-hnc33wug3e-062ls23-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\editor_acceptance-024z0orzgzo90\s-hnc33xgnch-1ejyegs-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\app_workflow_acceptance-0l47xelp25xd2\s-hnc33xi0dx-034nubi-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_desktop_lib-27xszmty803dj\s-hnc33wluqo-1x8gdxq-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\excel_worker_acceptance-3ha3il34yvgq6\s-hnc33xwofe-05s531x-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_desktop_lib-0v88wp3w5669o\s-hnc33wls56-1b372c7-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_core-22ofehegxkf3w\s-hnc33x5knj-09ltxfj-working`
+
+warning: `custodian-core` (example "workbook_inspection") generated 1 warning
+warning: `custodian-core` (example "editor_adversarial_acceptance") generated 1 warning
+warning: `custodian-core` (example "editor_acceptance") generated 1 warning
+warning: `custodian-core` (example "excel_worker_acceptance") generated 1 warning
+warning: `custodian-core` (example "app_workflow_acceptance") generated 1 warning
+warning: `custodian-core` (lib test) generated 1 warning
+warning: `custodian-desktop` (lib test) generated 1 warning
+warning: `custodian-desktop` (lib) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_desktop-2qsamw6sejhe8\s-hnc35g8e8w-0q6f5c4-working`
+
+warning: `custodian-desktop` (bin "custodian-desktop" test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 53s
+     Running unittests src\lib.rs (target\debug\deps\custodian_approval-445b15266ee26b4e.exe)
+
+running 7 tests
+test tests::accepts_a_valid_approval_exactly_once ... ok
+test tests::forgets_nonces_after_they_expire ... ok
+test tests::key_is_sealed_on_disk_and_reloads ... FAILED
+test tests::rejects_an_extended_expiry_or_swapped_nonce ... ok
+test tests::rejects_another_key ... ok
+test tests::rejects_another_plan ... ok
+test tests::rejects_expired_and_overlong_approvals ... ok
+
+failures:
+
+---- tests::key_is_sealed_on_disk_and_reloads stdout ----
+
+thread 'tests::key_is_sealed_on_disk_and_reloads' (27032) panicked at crates\custodian-approval\src\lib.rs:267:56:
+called `Result::unwrap()` on an `Err` value: Os { code: 5, kind: PermissionDenied, message: "Access is denied." }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::key_is_sealed_on_disk_and_reloads
+
+test result: FAILED. 6 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.42s
+
+error: test failed, to rerun pass `-p custodian-approval --lib`

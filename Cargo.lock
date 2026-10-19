@@ -836,14 +836,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "custodian-appworker"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "custodian-core",
+ "custodian-ipc",
+ "custodian-winsec",
+ "serde_json",
+ "tempfile",
+ "uuid",
+]
+
+[[package]]
 name = "custodian-core"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "crc32fast",
  "custodian-approval",
+ "custodian-ipc",
  "custodian-winsec",
+ "flate2",
+ "quick-xml",
+ "rand 0.8.8",
  "serde",
  "serde_json",
+ "sha2",
  "tempfile",
  "thiserror 1.0.69",
  "tokio",

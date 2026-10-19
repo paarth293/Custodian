@@ -1,1 +1,0 @@
-PASS: 58 requirements, 17 source routes, 15 frozen cases; dependencies, source/evidence links, acceptance lock and rendered register validated.

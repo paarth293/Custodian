@@ -1,0 +1,18 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.45s
+     Running unittests src\lib.rs (target\debug\deps\custodian_core-987397a6fdf02b71.exe)
+
+running 1 test
+PERSISTENT WORKER FAULT VERIFIED: session-start-hang
+PERSISTENT WORKER FAULT VERIFIED: session-hang
+PERSISTENT WORKER FAULT VERIFIED: session-stop
+PERSISTENT WORKER FAULT VERIFIED: session-partial
+PERSISTENT WORKER FAULT VERIFIED: session-oversize
+PERSISTENT WORKER FAULT VERIFIED: session-bad-mac
+PERSISTENT WORKER FAULT VERIFIED: session-wrong-sequence
+PERSISTENT WORKER FAULT VERIFIED: session-wrong-session
+PERSISTENT WORKER FAULT VERIFIED: session-refused
+PERSISTENT WORKER FAULT VERIFIED: session-revoked
+test app_worker::native::persistent_tests::persistent_worker_faults_stop_dispatch_and_prove_process_cleanup ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 208 filtered out; finished in 21.06s
+

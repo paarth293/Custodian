@@ -16,6 +16,9 @@ pub struct JobLimits {
     pub cpu_percent: Option<u32>,
     /// Run below normal priority so the desktop stays responsive.
     pub below_normal_priority: bool,
+    /// Maximum simultaneous processes, including descendants. None preserves
+    /// existing callers; the trusted app worker uses exactly one.
+    pub process_limit: Option<u32>,
 }
 
 /// A job object. Dropping it ends every process assigned to it.
@@ -41,8 +44,8 @@ mod imp {
         JobObjectExtendedLimitInformation, SetInformationJobObject,
         JOBOBJECT_CPU_RATE_CONTROL_INFORMATION, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
         JOB_OBJECT_CPU_RATE_CONTROL_ENABLE, JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP,
-        JOB_OBJECT_LIMIT_JOB_MEMORY, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
-        JOB_OBJECT_LIMIT_PRIORITY_CLASS,
+        JOB_OBJECT_LIMIT_ACTIVE_PROCESS, JOB_OBJECT_LIMIT_JOB_MEMORY,
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, JOB_OBJECT_LIMIT_PRIORITY_CLASS,
     };
     use windows_sys::Win32::System::Threading::BELOW_NORMAL_PRIORITY_CLASS;
 
@@ -68,6 +71,16 @@ mod imp {
 
         let mut info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
         info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        if let Some(limit) = limits.process_limit {
+            if limit == 0 {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "zero process limit",
+                ));
+            }
+            info.BasicLimitInformation.LimitFlags |= JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
+            info.BasicLimitInformation.ActiveProcessLimit = limit;
+        }
         if let Some(mb) = limits.memory_mb {
             info.BasicLimitInformation.LimitFlags |= JOB_OBJECT_LIMIT_JOB_MEMORY;
             info.JobMemoryLimit = mb as usize * 1024 * 1024;
@@ -205,6 +218,7 @@ mod tests {
             memory_mb: Some(1024),
             cpu_percent: Some(50),
             below_normal_priority: true,
+            process_limit: None,
         })
         .unwrap();
         let mut child = sleeper();

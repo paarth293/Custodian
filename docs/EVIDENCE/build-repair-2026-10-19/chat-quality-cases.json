@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "condition": "Author-written regression cases, including one exposed failure; not independent holdout evaluation. Freeze before comparing generation candidates.",
+  "repetitions": 2,
+  "timeoutMs": 90000,
+  "cases": [
+    {"id":"Q01","prompt":"Reply with one short sentence: what is a duplicate file?","required":["identical|exact(?:ly)?|same (?:file )?contents|same (?:file )?content"],"forbidden":["slightly different|different contents"]},
+    {"id":"Q02","prompt":"Explain whether changing a file's name changes the bytes stored inside it.","required":["not|no|unchanged|same"],"forbidden":[]},
+    {"id":"Q03","prompt":"Explain whether two files having the same size proves their contents are identical.","required":["not|no|doesn't|cannot|can't"],"forbidden":[]},
+    {"id":"Q04","prompt":"Explain whether renaming a PNG file to end in .jpg converts its image encoding.","required":["not|no|doesn't|cannot|can't"],"forbidden":[]},
+    {"id":"Q05","prompt":"Define the difference between copying a file and moving a file.","required":["cop(?:y|ying)","mov(?:e|ing)","original|source"],"forbidden":[]},
+    {"id":"Q06","prompt":"Explain whether compressing a folder by itself guarantees that a backup can be restored.","required":["not|no|doesn't|cannot|can't"],"forbidden":[]},
+    {"id":"Q07","prompt":"Explain whether a spreadsheet formula and its cached calculated value are always equally up to date.","required":["not|no|stale|outdated|may|might"],"forbidden":[]},
+    {"id":"Q08","prompt":"Explain whether a cryptographic file hash proves who created the file.","required":["not|no|doesn't|cannot|can't"],"forbidden":[]}
+  ]
+}

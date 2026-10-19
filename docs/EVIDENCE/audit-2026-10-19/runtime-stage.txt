@@ -1,0 +1,9 @@
+
+> @custodian/agent@0.1.0 build
+> npm run clean && tsc -b
+
+
+> @custodian/agent@0.1.0 clean
+> node -e "require('fs').rmSync('dist', { recursive: true, force: true })"
+
+Staged Node v24.18.0, 133 runtime packages, and qwen2.5-1.5b-instruct-q4_k_m.gguf.

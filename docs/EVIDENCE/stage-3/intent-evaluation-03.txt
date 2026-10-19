@@ -1,9 +1,0 @@
-[agent] model integrity verified (1.6s)
-[agent] model runtime imported (3.4s)
-[node-llama-cpp] load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
-[agent] qwen2.5-1.5b-instruct-q4_k_m.gguf on the CPU, 4096 tokens of context
-[agent] model ready (9.3s)
-p01: PASS 30658ms {"decision":"copy","filter":"documents","largest":false,"source":0,"destination":1,"nodes":[{"op":"discover","after":-1},{"op":"filter_documents","after":0},{"op":"select_all","after":1},{"op":"copy","after":2},{"op":"verify","after":3}],"completion":"all_copies_verified","attempts":1}
-p02: FAIL 27949ms {"decision":"copy","filter":"any","largest":false,"source":0,"destination":1,"nodes":[{"op":"discover","after":-1},{"op":"select_all","after":0},{"op":"copy","after":1},{"op":"verify","after":2}],"completion":"all_copies_verified","attempts":1}
-p03: FAIL 25409ms {"decision":"copy","filter":"any","largest":false,"source":0,"destination":1,"nodes":[{"op":"discover","after":-1},{"op":"select_all","after":0},{"op":"copy","after":1},{"op":"verify","after":2}],"completion":"all_copies_verified","attempts":1}
-p04: FAIL 31898ms {"decision":"copy","filter":"documents","largest":false,"source":0,"destination":1,"nodes":[{"op":"discover","after":-1},{"op":"filter_documents","after":0},{"op":"select_all","after":1},{"op":"copy","after":2},{"op":"verify","after":3}],"completion":"all_copies_verified","attempts":1}

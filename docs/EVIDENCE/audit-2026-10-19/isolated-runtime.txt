@@ -1,0 +1,26 @@
+   Compiling custodian-desktop v0.1.0 (D:\Custodian\apps\desktop\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 22s
+     Running unittests src\lib.rs (target\debug\deps\custodian_desktop_lib-10a0a6ba19d6cc4a.exe)
+
+running 1 test
+[agent] chat model: C:\Users\paagu\.codex\visualizations\2026\10\16\01a142c7-c123-7122-873a-8f2707fc4063\audit-1019\bundle\runtime\models\qwen2.5-1.5b-instruct-q4_k_m.gguf
+[agent] model integrity verified (1.7s)
+[agent] model runtime imported (19.6s)
+[node-llama-cpp] load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+[agent] qwen2.5-1.5b-instruct-q4_k_m.gguf on the CPU, 4096 tokens of context
+[agent] model ready (25.7s)
+Installed isolated runtime reply: A duplicate file is another version of the same file with slightly different contents.
+
+thread 'agent::tests::installed_runtime_answers_in_sandbox_without_checkout_dependencies' (11820) panicked at apps\desktop\src-tauri\src\agent.rs:1051:9:
+The model must explain content identity, not merely mention a copy: A duplicate file is another version of the same file with slightly different contents.
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test agent::tests::installed_runtime_answers_in_sandbox_without_checkout_dependencies ... FAILED
+
+failures:
+
+failures:
+    agent::tests::installed_runtime_answers_in_sandbox_without_checkout_dependencies
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 157 filtered out; finished in 55.56s
+
+error: test failed, to rerun pass `-p custodian-desktop --lib`

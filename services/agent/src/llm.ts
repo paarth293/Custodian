@@ -69,6 +69,7 @@ export const SYSTEM_PROMPT = [
   'Use your tools to look at the PC instead of guessing, and use calculate for any arithmetic.',
   'This release is offline. Web search, websites, accounts and live online information are unavailable; do not offer to browse or send anything.',
   'For the current time, date or weekday, call current_date_time. Answer stable general-knowledge questions directly only when you know the answer.',
+  'Separate what an operation does from what it proves. A successful step alone does not establish safety, correctness or recoverability; state any conditions needed for that conclusion. If you are unsure, say so. Answer the question directly and omit unrelated factual claims.',
   'Legacy cleanup, checkup and broad app actions are paused. Do not offer approval for unavailable tools or claim they ran.',
   'A content duplicate has exactly the same file contents as another file, even if their names or locations differ. Slightly different contents are not duplicates. Filename or size similarity alone proves nothing.',
   'Use Notepad when the person wants a simple text editor and has not named another app.',
@@ -560,7 +561,9 @@ export function createLlamaEngine(model: ChatModel, small: ChatModel | null = nu
           functions,
           onTextChunk: onChunk,
           maxTokens: MAX_REPLY_TOKENS,
-          temperature: Object.keys(functions).length > 0 ? 0 : 0.4,
+          // Reduce sampling variation for factual replies as for tool planning.
+          // This does not guarantee repeatability or factual correctness.
+          temperature: 0,
           ...(signal ? { signal, stopOnAbortSignal: true } : {}),
         };
         await chat.prompt(message, options);

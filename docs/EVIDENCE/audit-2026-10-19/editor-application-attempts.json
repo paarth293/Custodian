@@ -1,0 +1,32 @@
+[
+  {
+    "role": "editor",
+    "run": 1,
+    "passed": true,
+    "milliseconds": 42827,
+    "retries": 0,
+    "approvalCount": 1,
+    "originalPreserved": true,
+    "publicationUndone": true
+  },
+  {
+    "role": "editor",
+    "run": 2,
+    "passed": true,
+    "milliseconds": 20634,
+    "retries": 0,
+    "approvalCount": 1,
+    "originalPreserved": true,
+    "publicationUndone": true
+  },
+  {
+    "role": "editor",
+    "run": 3,
+    "passed": true,
+    "milliseconds": 16465,
+    "retries": 0,
+    "approvalCount": 1,
+    "originalPreserved": true,
+    "publicationUndone": true
+  }
+]

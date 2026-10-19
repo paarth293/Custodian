@@ -1,0 +1,17 @@
+{
+  "appVersions": [
+    {
+      "path": "D:/paagu/Microsoft VS Code/Code.exe",
+      "fileVersion": "1.140.0",
+      "productVersion": "1.140.0"
+    },
+    {
+      "path": "C:/Program Files/Microsoft Office/root/Office16/EXCEL.EXE",
+      "fileVersion": "16.0.20430.20182",
+      "productVersion": "16.0.20430.20182"
+    }
+  ],
+  "virtualizationCommands": [],
+  "vmProcesses": [],
+  "note": "Read-only discovery. Absence does not prove no remote test environment exists."
+}

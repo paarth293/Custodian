@@ -63,6 +63,8 @@ pub fn run() {
             invoke_broker,
             assistant::get_ledger,
             assistant::privacy::get_privacy_settings,
+            assistant::privacy::get_app_privacy_settings,
+            assistant::privacy::set_private_applications,
             assistant::privacy::set_private_paths,
             assistant::privacy::get_capabilities,
             assistant::routine::get_routine_settings,

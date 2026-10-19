@@ -1,0 +1,6 @@
+{
+  "sha256": "e6990ffc39851865b18b7cba6048b3c966a1d3e25d16789eda8d25406ce39305",
+  "cases": 8,
+  "repetitions": 2,
+  "condition": "Frozen before baseline and candidate inference; developer-authored regression, no independent holdout claim."
+}

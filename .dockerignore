@@ -18,3 +18,17 @@ __pycache__
 *.mp4
 *.mov
 *.webm
+deliverables
+artifacts
+.local
+.cache
+.venv
+venv
+.env
+.env.*
+!.env.example
+video/exports
+.coverage*
+htmlcov
+test-results
+playwright-report

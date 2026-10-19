@@ -1,0 +1,739 @@
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_desktop_lib-0v88wp3w5669o\s-hnc33wls56-1b372c7-working`
+
+warning: `custodian-desktop` (lib) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_desktop-2qsamw6sejhe8\s-hnc35g8e8w-0q6f5c4-working`
+
+warning: `custodian-desktop` (bin "custodian-desktop" test) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_desktop_lib-27xszmty803dj\s-hnc33wluqo-1x8gdxq-working`
+
+warning: `custodian-desktop` (lib test) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\excel_worker_acceptance-3ha3il34yvgq6\s-hnc33xwofe-05s531x-working`
+
+warning: `custodian-core` (example "excel_worker_acceptance") generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\workbook_inspection-3mejd6esplx4t\s-hnc33wolni-19i6och-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\editor_acceptance-024z0orzgzo90\s-hnc33xgnch-1ejyegs-working`
+
+warning: `custodian-core` (example "workbook_inspection") generated 1 warning
+warning: `custodian-core` (example "editor_acceptance") generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\editor_adversarial_acceptance-31o99u5y24hjt\s-hnc33wug3e-062ls23-working`
+
+warning: `custodian-core` (example "editor_adversarial_acceptance") generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\app_workflow_acceptance-0l47xelp25xd2\s-hnc33xi0dx-034nubi-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\D:\Custodian\target\debug\incremental\custodian_core-22ofehegxkf3w\s-hnc33x5knj-09ltxfj-working`
+
+warning: `custodian-core` (example "app_workflow_acceptance") generated 1 warning
+warning: `custodian-core` (lib test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.54s
+     Running unittests src\lib.rs (target\debug\deps\custodian_approval-445b15266ee26b4e.exe)
+
+running 7 tests
+test tests::accepts_a_valid_approval_exactly_once ... ok
+test tests::forgets_nonces_after_they_expire ... ok
+test tests::key_is_sealed_on_disk_and_reloads ... ok
+test tests::rejects_an_extended_expiry_or_swapped_nonce ... ok
+test tests::rejects_another_key ... ok
+test tests::rejects_another_plan ... ok
+test tests::rejects_expired_and_overlong_approvals ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.69s
+
+     Running unittests src\lib.rs (target\debug\deps\custodian_appworker-b9f691d00dd94ffb.exe)
+
+running 1 test
+test tests::authentication_and_typed_schema_fail_before_native_operations ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\main.rs (target\debug\deps\custodian_appworker-af60b2108f8145c3.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\supervision.rs (target\debug\deps\supervision-3c3b8fbcdfee9112.exe)
+
+running 5 tests
+test actual_fault_peer_enforces_deadlines_limits_and_preserves_pending_effects ... ignored, Requires explicitly built test-only example via CUSTODIAN_APP_WORKER_FIXTURE
+test actual_worker_authenticates_exits_and_probes_only_its_own_window ... ok
+test invalid_pin_and_preexisting_stop_do_not_launch_a_worker ... ok
+test optimized_worker_operates_outside_checkout ... ignored, Requires an explicitly copied optimized worker via CUSTODIAN_APP_WORKER_RELEASE
+test real_worker_refuses_unqualified_app_and_never_reaches_effect_checkpoint ... ok
+
+test result: ok. 3 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 4.14s
+
+     Running unittests src\lib.rs (target\debug\deps\custodian_core-089a6831fbf508b8.exe)
+
+running 209 tests
+test app_adapter::tests::accepts_bounded_edit_request ... ok
+test app_adapter::tests::app_capability_cannot_disguise_its_effect_as_a_read_or_verifier ... ok
+test app_adapter::tests::cells_refuse_nonfinite_numbers_duplicates_outside_ranges_and_untyped_formulas ... ok
+test app_adapter::tests::compiled_text_editor_program_is_coordinator_valid ... ok
+test app_adapter::tests::compiled_text_editor_program_runs_through_task_coordinator ... ok
+test app_adapter::tests::execution_gate_accepts_matching_evidence ... ok
+test app_adapter::tests::execution_gate_does_not_start_after_stop ... ok
+test app_adapter::tests::execution_gate_rejects_mismatched_receipt ... ok
+test app_adapter::tests::interrupted_text_editor_effect_requires_recovery_and_is_not_replayed ... ok
+test app_adapter::tests::invalid_truncation_metadata_is_refused ... ok
+test app_adapter::tests::multiline_unicode_is_valid_but_forged_authority_and_bad_ranges_are_not ... ok
+test app_adapter::tests::observation_requires_current_policy_and_bounded_text ... ok
+test app_adapter::tests::observed_document_exclusion_cannot_be_bypassed_by_an_equal_display_name ... ok
+test app_adapter::tests::refuses_control_characters_in_edit_text ... ok
+test app_adapter::tests::refuses_private_target_before_adapter_execution ... ok
+test app_adapter::tests::refuses_unbounded_timeout ... ok
+test app_adapter::tests::remeasurement_rejects_reused_processes_and_changed_windows ... ok
+test app_adapter::tests::stopped_text_editor_program_never_starts_an_application_effect ... ok
+test app_adapter::tests::text_editor_program_has_fixed_dependency_order ... ok
+test app_adapter::tests::text_snapshot_verifies_reopened_bytes_without_returning_content ... ok
+test app_adapter::tests::unicode_truncated_excerpt_does_not_need_to_end_on_an_exact_byte_limit ... ok
+test app_adapter::tests::unregistered_application_capability_is_refused ... ok
+test app_authority::tests::cell_edit_grant_binds_exact_sheet_coordinates_values_and_order ... ok
+test app_authority::tests::edit_authority_cannot_expand_the_range_or_change_the_authorized_replacement ... ok
+test app_authority::tests::elapsed_cooperative_deadline_is_detected_without_sleep_or_effect ... ok
+test app_authority::tests::exclusive_store_and_competing_revisions_prevent_lost_updates ... ok
+test app_authority::tests::failed_storage_commit_revokes_live_access_and_preserves_previous_disk_policy ... ok
+test app_authority::tests::fresh_target_and_authority_are_rechecked_after_measurement_before_any_effect ... ok
+test app_authority::tests::grant_cannot_be_reused_for_another_document_version_process_or_window ... ok
+test app_authority::tests::history_visibility_can_return_without_reviving_old_effect_authority ... ok
+test app_authority::tests::launch_consent_cannot_cross_issuer_executable_or_privacy_revision ... ok
+test app_authority::tests::native_window_session_document_rules_survive_executable_only_ui_update ... ok
+test app_authority::tests::persisted_exclusions_survive_restart_and_never_restore_grants ... ok
+test app_authority::tests::post_effect_stop_revocation_and_unverified_results_preserve_real_effect_evidence ... ok
+test app_authority::tests::privacy_eligibility_does_not_grant_save_permission_or_cross_authority_access ... ok
+test app_authority::tests::privacy_revision_replacement_invalidates_grants_and_rejects_stale_updates ... ok
+test app_authority::tests::revocation_and_expiry_block_before_measurement_and_apply_to_grant_clones ... ok
+test app_authority::tests::unqualified_adapter_cannot_execute_without_native_remeasurement ... ok
+test app_journal::tests::interrupted_dispatch_is_uncertain_and_corrupt_or_missing_evidence_is_refused ... ok
+test app_privacy::tests::malformed_exclusions_are_rejected_instead_of_silently_dropped ... ok
+test app_privacy::tests::malformed_identity_is_refused ... ok
+test app_privacy::tests::private_executable_is_refused_before_observation ... ok
+test app_privacy::tests::private_process_binding_is_generation_specific ... ok
+test app_privacy::tests::private_windows_bind_generation_and_documents_use_native_ids_not_titles ... ok
+test app_privacy::tests::rejects_ambiguous_executable_spellings_before_any_measurement ... ok
+test app_privacy::tests::stale_privacy_revision_is_refused ... ok
+test app_privacy_store::tests::missing_corrupt_oversized_and_unknown_saved_policy_never_defaults_open ... ok
+test app_recovery::tests::missing_save_receipt_is_reconciled_read_only_and_later_edits_are_preserved ... ok
+test app_worker::native::persistent_tests::persistent_worker_faults_stop_dispatch_and_prove_process_cleanup ... ignored, requires explicitly built non-production session fault peer
+test backup_check::tests::backup_status_reports_unavailable_rather_than_false_safe ... ok
+test batch_archive::tests::archive_member_limit_and_encryption_flag_fail_closed ... ok
+test batch_archive::tests::case_and_unicode_collisions_are_rejected ... ok
+test batch_archive::tests::changed_source_is_rejected_by_the_shared_manifest ... ok
+test batch_archive::tests::creation_enforces_the_expansion_ratio ... ok
+test batch_archive::tests::hostile_names_are_rejected_before_any_destination_is_created ... ok
+test batch_archive::tests::links_and_nested_archives_are_not_followed_or_recursively_extracted ... ok
+test batch_archive::tests::round_trip_uses_exact_manifest_and_new_outputs ... ok
+test cleanup::tests::a_failed_undo_can_be_tried_again ... ok
+test cleanup::tests::keeps_a_copy_that_was_tampered_with ... ok
+test cleanup::tests::keeps_a_copy_whose_original_changed_or_vanished ... ok
+test cleanup::tests::moves_duplicates_into_quarantine_and_undo_restores_them ... ok
+test cleanup::tests::never_proposes_copies_in_synced_folders_and_keeps_those_instead ... ok
+test cleanup::tests::never_purges_clean_ups_without_a_record_of_the_kept_copy ... ok
+test cleanup::tests::never_purges_when_the_clock_reads_before_the_clean_up ... ok
+test cleanup::tests::never_removes_the_last_copy ... ok
+test cleanup::tests::plan_digest_covers_every_field ... ok
+test cleanup::tests::purges_only_after_the_window_and_only_verified_copies ... ok
+test cleanup::tests::reads_manifests_written_before_purging_existed ... ok
+test cleanup::tests::refuses_manifest_with_traversal_or_out_of_vault_path ... ok
+test cleanup::tests::rejects_a_plan_that_targets_the_kept_copy ... ok
+test cleanup::tests::rejects_stored_path_that_escapes_through_parent_components ... ok
+test cleanup::tests::restore_names_never_repeat ... ok
+test cleanup::tests::runs_only_the_plan_that_was_approved_and_only_once ... ok
+test cleanup::tests::skips_files_that_changed_since_the_scan ... ok
+test cleanup::tests::undo_after_a_purge_needs_the_original_unchanged ... ok
+test cleanup::tests::undo_after_a_purge_recreates_the_copy_from_the_original ... ok
+test cleanup::tests::undo_puts_a_file_beside_a_new_one_instead_of_over_it ... ok
+test cleanup::tests::undo_refuses_when_stored_payload_is_modified ... ok
+test content::tests::changed_source_is_rejected_by_versioned_verification ... ok
+test content::tests::csv_handles_quoted_multiline_values_and_infers_types ... ok
+test content::tests::declared_utf16_encoding_and_newline_are_honored ... ok
+test content::tests::formula_like_csv_strings_remain_data_even_with_explicit_number_type ... ok
+test content::tests::malformed_rows_are_retained_with_typed_warnings_and_partial_status ... ok
+test content::tests::markdown_is_read_as_untrusted_text_with_source_provenance ... ok
+test content::tests::private_source_is_refused_without_reading_content ... ok
+test content::tests::staged_writer_reopens_and_verifies_structured_csv ... ok
+test content::tests::unicode_txt_captures_source_and_normalizes_newlines ... ok
+test coordinator::tests::cancel_all_cancels_all_active_tasks ... ok
+test coordinator::tests::cancelled_worker_keeps_lock_until_it_stops ... ok
+test coordinator::tests::cancels_individual_task_without_affecting_others ... ok
+test coordinator::tests::discovered_resources_are_reserved_atomically_and_released_on_completion ... ok
+test coordinator::tests::failed_task_persistence_does_not_leave_a_phantom_task_or_resource_lock ... ok
+test coordinator::tests::parent_and_child_paths_conflict ... ok
+test coordinator::tests::prevents_concurrent_resource_conflicts ... ok
+test coordinator::tests::restart_preserves_completed_tasks_and_marks_running_work_for_recovery ... ok
+test coordinator::tests::unreadable_task_journal_is_not_silently_replaced ... ok
+test coordinator::tests::validates_task_state_transitions ... ok
+test crash_probe::actual_process_death_at_write_boundaries_is_reconciled_without_replay ... ok
+test crash_probe::exact_approval_cannot_bypass_capacity_reserve_before_mutation ... ok
+test crash_probe::executor_child ... ok
+test crash_probe::injected_disk_full_after_real_write_preserves_partial_file_and_recovery_receipt ... ok
+test downloads::tests::flags_eicar_and_reports_unavailable_scanner ... ok
+test duplicates::tests::finds_identical_files_and_keeps_the_shallowest ... ok
+test duplicates::tests::large_files_differing_after_the_prefix_are_not_duplicates ... ok
+test duplicates::tests::orders_groups_by_wasted_space ... ok
+test duplicates::tests::same_size_different_content_is_not_a_duplicate ... ok
+test file_tasks::tests::approval_rejects_changed_content_and_same_content_replacement ... ok
+test file_tasks::tests::approval_rejects_replaced_destination_parent_and_occupied_destination ... ok
+test file_tasks::tests::approved_move_can_be_verified_reopened_and_undone ... ok
+test file_tasks::tests::copy_undo_preserves_the_last_copy_and_receipt_tampering_is_refused ... ok
+test file_tasks::tests::each_file_task_can_be_undone_after_reopening_its_journal ... ok
+test file_tasks::tests::prepared_folder_receipt_cannot_remove_a_folder_created_by_someone_else ... ok
+test file_tasks::tests::unavailable_destination_and_corrupt_history_refuse_new_mutations ... ok
+test file_tasks::tests::undo_refuses_a_replacement_with_the_same_bytes ... ok
+test file_tasks::tests::undo_refuses_changed_payload_occupied_original_and_nonempty_folder ... ok
+test find::tests::lists_the_newest_first_and_stops_at_count ... ok
+test find::tests::matches_every_word_in_any_case_and_order ... ok
+test governed_recycle::tests::cleanup_requires_explainable_evidence_and_rechecks_newer_edits ... ok
+test governed_recycle::tests::recovery_unverified_is_reported_and_never_claimed_as_recycled ... ok
+test governed_recycle::tests::unsupported_recovery_refuses_without_unlinking ... ok
+test governed_recycle::tests::verified_recycle_can_be_restored_without_permanent_delete ... ok
+test governed_recycle::tests::wrong_authority_refuses_before_provider_mutation ... ok
+test hashing::tests::hashes_known_content ... ok
+test hashing::tests::prefix_ignores_the_rest ... ok
+test install_lab::tests::wsb_disables_networking_and_escapes_path ... ok
+test install_lab_verify::tests::publisher_verification_reports_unavailable_rather_than_false_safe ... ok
+test install_report::tests::blocks_root_cert_install ... ok
+test install_undo::tests::refuses_unsupported_install_undo ... ok
+test instance::tests::alternate_profiles_share_one_authority_lease ... ok
+test instance::tests::linked_lock_file_is_rejected_before_state_can_be_loaded ... ok
+test instance::tests::lock_owner_child ... ok
+test instance::tests::second_process_is_excluded_and_killed_owner_releases_authority ... ok
+test intent_plan::tests::actual_frozen_model_results_pass_the_independent_native_compiler ... ignored, requires completed actual local inference report
+test intent_plan::tests::compound_unregistered_effects_cannot_be_discarded_from_a_copy_goal ... ok
+test intent_plan::tests::frozen_negative_guards_are_not_silent_constraint_dropping ... ok
+test intent_plan::tests::rejects_unknown_effects_dependencies_and_omitted_constraints ... ok
+test largest::tests::returns_biggest_first ... ok
+test online_sm::tests::requires_hello_to_go_online ... ok
+test pipeline::tests::routes_excerpt ... ok
+test privacy::tests::aliases_and_renamed_private_folders_are_refused ... ok
+test privacy::tests::persisted_rules_reopen_and_missing_or_tampered_state_fails_closed ... ok
+test privacy::tests::queued_revision_cannot_be_refreshed_by_worker_or_nested_helper ... ok
+test privacy::tests::replacement_revokes_old_revision_and_thread_binding_restores_on_panic ... ok
+test privacy::tests::revocation_stops_old_workers_even_when_nested_helpers_bind_again ... ok
+test privacy::tests::scans_hashes_and_approvals_obey_the_same_live_policy ... ok
+test privacy::tests::stale_preferences_cannot_overwrite_newer_rules ... ok
+test privacy::tests::whole_local_scope_excludes_private_metadata_and_default_secrets ... ok
+test request::tests::later_request_cannot_revive_a_stopped_worker ... ok
+test router::tests::enforces_policy ... ok
+test routine::tests::native_backup_excludes_private_largest_preserves_original_and_undo_after_restart ... ok
+test routine::tests::old_single_file_grant_never_enables_collection_permission_on_upgrade ... ok
+test routine::tests::permission_defaults_off_persists_and_refuses_stale_or_tampered_updates ... ok
+test routine::tests::private_destination_and_protected_candidates_do_not_get_copied ... ok
+test routine::tests::revocation_waits_for_mutation_without_blocking_request_revision_capture ... ok
+test routine::tests::revoked_permission_cancelled_and_changed_source_cannot_start_copy ... ok
+test routine::tests::scoped_grants_bind_operation_resources_and_revision_before_discovery_and_commit ... ok
+test routine::tests::size_capacity_and_existing_destination_limits_are_enforced ... ok
+test safe_mode::tests::enters_safe_mode_at_threshold ... ok
+test supervisor::tests::restarts_failing_child_up_to_limit ... ok
+test task_program::tests::active_program_restart_preserves_evidence_without_resume_authority ... ok
+test task_program::tests::branch_is_bounded_and_missing_branch_observation_is_failure ... ok
+test task_program::tests::composes_all_five_types_with_bound_inputs_and_explicit_completion ... ok
+test task_program::tests::effect_without_receipt_requires_recovery_instead_of_completion ... ok
+test task_program::tests::old_conversation_cannot_start_later_effects ... ok
+test task_program::tests::pause_keeps_locks_and_resume_continues_without_replaying ... ok
+test task_program::tests::rejects_cycles_forward_inputs_write_retries_and_nonverifier_completion ... ok
+test task_program::tests::restart_retains_inflight_evidence_and_never_replays_program ... ok
+test task_program::tests::retries_only_observations_with_fresh_authorization_and_hard_bound ... ok
+test task_program::tests::task_stop_is_checked_even_if_caller_supplies_an_unrelated_cancel_flag ... ok
+test task_program::tests::unavailable_real_app_cannot_be_authorized_by_descriptive_grants ... ok
+test task_program::tests::uncertain_write_is_never_retried_or_claimed_complete ... ok
+test task_program::tests::unmet_completion_preserves_effects_and_reports_partial ... ok
+test temp::tests::deletes_approved_files_and_skips_changed_ones ... ok
+test temp::tests::deletes_nothing_without_the_right_approval ... ok
+test temp::tests::never_deletes_outside_the_temp_folder ... ok
+test temp::tests::only_cleans_a_temp_folder_inside_local_app_data ... ok
+test temp::tests::proposes_only_files_older_than_a_week ... ok
+test uninstall_prep::tests::refuses_unsupported_uninstall_prep ... ok
+test versioned_backup::tests::backup_and_restore_verify_the_complete_tree_and_bytes ... ok
+test versioned_backup::tests::changed_backup_destination_is_refused_before_writing_a_version ... ok
+test versioned_backup::tests::changed_restore_destination_is_refused_without_overwriting_it ... ok
+test versioned_backup::tests::interrupted_and_corrupted_versions_are_not_healthy ... ok
+test versioned_backup::tests::preserve_existing_restore_keeps_a_newer_destination_edit ... ok
+test versioned_backup::tests::retention_removes_old_healthy_versions_but_preserves_only_healthy_recovery ... ok
+test versioned_backup::tests::wrong_backup_authority_cannot_create_a_version ... ok
+test walk::tests::discovers_zero_byte_files_by_default ... ok
+test walk::tests::honours_minimum_size_and_file_budget ... ok
+test walk::tests::records_cancellation_and_budget_exhaustion ... ok
+test walk::tests::stops_when_cancelled ... ok
+test walk::tests::walks_nested_folders_and_skips_ignored_ones ... ok
+test walk::tests::whole_system_read_includes_system_hidden_and_custom_content ... ok
+test workbook::tests::archive_rejects_unknown_parts_duplicates_corruption_and_appended_content ... ok
+test workbook::tests::independent_calculation_ignores_text_and_detects_cycles_and_overflow ... ok
+test workbook::tests::links_forged_relationships_outside_cells_and_active_formulas_are_refused ... ok
+test workbook::tests::only_exact_office_local_padding_is_admitted ... ok
+test workbook::tests::public_recalculator_refuses_unbounded_or_ambiguous_coordinates ... ok
+test workbook::tests::qualified_archive_is_independently_read_and_calculated ... ok
+test workbook::tests::xml_refuses_entities_multiple_roots_and_excessive_depth ... ok
+test workflow::tests::changed_output_is_retained_while_other_verified_copies_can_be_undone ... ok
+test workflow::tests::complete_collection_size_is_checked_before_hashing_or_creating_outputs ... ok
+test workflow::tests::conflicts_duplicate_names_limits_and_revoked_grants_make_no_copy ... ok
+test workflow::tests::coordinated_preflight_refuses_stale_files_without_starting_copy ... ok
+test workflow::tests::coordinated_real_collection_keeps_receipts_verification_and_undo ... ok
+test workflow::tests::deterministic_receipt_refuses_replay_and_tampered_workflow_blocks_new_writes ... ok
+test workflow::tests::interruption_and_completion_publication_gap_are_recovered_without_replay ... ok
+test workflow::tests::private_files_and_nested_destination_are_excluded_and_original_permission_does_not_expand ... ok
+test workflow::tests::same_coordinator_composes_real_files_and_explicitly_mock_app_adapter ... ok
+test workflow::tests::shared_compositions_execute_verify_and_group_undo_after_restart ... ok
+test workflow::tests::wrong_model_steps_or_extra_authority_are_rejected_before_discovery ... ok
+
+test result: ok. 207 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 17.99s
+
+     Running unittests src\lib.rs (target\debug\deps\custodian_desktop_lib-b6732bde9f812076.exe)
+
+running 158 tests
+test agent::tests::finds_what_the_sandbox_may_read ... ok
+test agent::tests::ignores_replies_for_other_requests ... ok
+test agent::tests::installed_runtime_answers_in_sandbox_without_checkout_dependencies ... ignored, needs an isolated staged runtime in CUSTODIAN_RUNTIME_TEST_ROOT
+test agent::tests::pings_until_the_matching_pong ... ok
+test agent::tests::real_model_answers_under_job_limits ... ignored, needs the built agent and a local model
+test agent::tests::real_model_in_sandbox_answers ... ignored, needs the built agent and a local model
+test agent::tests::rejects_frames_signed_with_another_key ... ok
+test agent::tests::reports_model_errors ... ok
+test agent::tests::runs_the_tools_the_model_asks_for ... ok
+test agent::tests::silent_agent_stop_aborts_without_hanging ... ok
+test agent::tests::stop_tells_the_agent_and_hides_the_rest ... ok
+test agent::tests::streams_tokens_until_done ... ok
+test assistant::actions::tests::a_card_works_once_and_expires ... ok
+test assistant::actions::tests::card_text_cannot_be_disguised ... ok
+test assistant::actions::tests::cards_only_for_actions_that_send_or_change_something ... ok
+test assistant::actions::tests::late_published_cards_keep_original_privacy_revision ... ok
+test assistant::actions::tests::tells_the_model_nothing_happened_yet ... ok
+test assistant::advice::tests::a_tidy_pc_gets_good_news ... ok
+test assistant::advice::tests::counts_only_old_installers ... ok
+test assistant::advice::tests::nudges_only_for_a_drive_about_to_fill_or_a_dying_battery ... ok
+test assistant::advice::tests::small_amounts_are_not_worth_mentioning ... ok
+test assistant::advice::tests::suggests_the_most_useful_things_first_with_what_to_say ... ok
+test assistant::app_tasks::tests::parses_only_explicit_bound_goals_and_never_promotes_a_formula_string ... ok
+test assistant::apps::tests::finds_apps_by_name_word_or_window_title ... ok
+test assistant::apps::tests::groups_windows_by_the_app_people_know ... ok
+test assistant::apps::tests::never_means_everything_by_accident ... ok
+test assistant::apps::tests::several_matches_are_left_for_the_person_to_choose ... ok
+test assistant::capability::tests::app_and_screen_capture_and_scripts_have_no_model_dispatch_route ... ok
+test assistant::capability::tests::consent_and_paused_routes_cannot_be_granted_by_model_arguments ... ok
+test assistant::intent::tests::cleans_temp_files_when_asked ... ok
+test assistant::intent::tests::close_and_open_words_in_other_sentences_go_to_the_model ... ok
+test assistant::intent::tests::closes_apps_by_name_and_lists_them ... ok
+test assistant::intent::tests::empties_the_safe_place_only_when_asked_to ... ok
+test assistant::intent::tests::explains_security_when_asked ... ok
+test assistant::intent::tests::explicit_search_paths_preserve_spaces_and_are_not_personal_folder_aliases ... ok
+test assistant::intent::tests::file_names_are_never_websites ... ok
+test assistant::intent::tests::finds_files_by_name ... ok
+test assistant::intent::tests::gives_suggestions_when_asked ... ok
+test assistant::intent::tests::leaves_open_ended_questions_to_the_language_model ... ok
+test assistant::intent::tests::looks_up_tool_names ... ok
+test assistant::intent::tests::matches_whole_words_only ... ok
+test assistant::intent::tests::opens_apps_folders_sites_and_domains ... ok
+test assistant::intent::tests::parses_whole_system_and_drive_largest_files ... ok
+test assistant::intent::tests::questions_about_the_persons_own_files_still_act ... ok
+test assistant::intent::tests::questions_about_the_world_never_start_a_scan_or_undo ... ok
+test assistant::intent::tests::recognises_everyday_requests ... ok
+test assistant::intent::tests::recognises_file_info_and_mutation_requests ... ok
+test assistant::intent::tests::recognises_settings_requests_and_how_to_put_them_back ... ok
+test assistant::intent::tests::rejects_unsafe_looking_domains ... ok
+test assistant::intent::tests::reports_on_the_system ... ok
+test assistant::intent::tests::scopes_searches_to_named_folders ... ok
+test assistant::intent::tests::task_words_never_trigger_other_tools ... ok
+test assistant::intent::tests::understands_reminders_and_the_to_do_list ... ok
+test assistant::intent::tests::understands_the_documented_examples ... ok
+test assistant::intent::tests::understands_the_requests_from_the_screenshot ... ok
+test assistant::language::tests::filenames_are_data_and_replaced_location_is_refused ... ok
+test assistant::launcher::tests::finds_apps_by_name_words_or_part ... ok
+test assistant::launcher::tests::opens_documents_and_media_but_never_programs ... ok
+test assistant::launcher::tests::reads_the_start_menu_without_uninstallers_or_help ... ok
+test assistant::launcher::tests::real_start_menu_lists_apps ... ignored, reads this PC's Start menu
+test assistant::privacy::tests::approved_calls_cannot_bypass_offline_or_paused_capabilities ... ok
+test assistant::privacy::tests::privacy_changes_remove_old_paths_from_model_context ... ok
+test assistant::references::tests::followup_selects_measured_object_and_rejects_replacement_or_ambiguity ... ok
+test assistant::reply::tests::describes_disk_space ... ok
+test assistant::reply::tests::describes_open_apps_and_closing ... ok
+test assistant::reply::tests::describes_when_and_how_long ... ok
+test assistant::reply::tests::explains_skipped_files_after_cleanup ... ok
+test assistant::reply::tests::explains_the_system_state_with_advice ... ok
+test assistant::reply::tests::explains_where_files_went_back ... ok
+test assistant::reply::tests::formats_largest_file_summary_with_exact_bytes_and_caveats ... ok
+test assistant::reply::tests::formats_numbers_and_sizes ... ok
+test assistant::reply::tests::history_shows_when_space_frees ... ok
+test assistant::reply::tests::lists_found_files_or_says_where_it_looked ... ok
+test assistant::reply::tests::never_claims_space_was_freed_before_it_is ... ok
+test assistant::reply::tests::reports_purges_and_what_was_kept ... ok
+test assistant::reply::tests::says_only_what_is_true_about_security ... ok
+test assistant::reply::tests::says_so_when_there_are_no_duplicates ... ok
+test assistant::reply::tests::shows_deceptive_names_as_they_really_are ... ok
+test assistant::reply::tests::summarises_duplicates ... ok
+test assistant::routine::tests::backup_goal_requires_explicit_absolute_locations_and_never_sets_permissions ... ok
+test assistant::settings::tests::a_light_dark_setting_reads_on_and_off_as_dark_and_light ... ok
+test assistant::settings::tests::a_refused_value_is_reported_by_the_setting_itself ... ok
+test assistant::settings::tests::asks_instead_of_guessing ... ok
+test assistant::settings::tests::history_forgets_old_put_back_changes_and_never_keeps_open_ones ... ok
+test assistant::settings::tests::history_remembers_the_last_change_until_it_is_put_back ... ok
+test assistant::settings::tests::junk_never_becomes_a_change ... ok
+test assistant::settings::tests::prune_preserves_unreverted_changes_even_over_limit ... ok
+test assistant::settings::tests::resolves_the_requests_people_actually_make ... ok
+test assistant::settings::tests::saves_sealed_and_loads_back ... ok
+test assistant::settings::tests::says_what_happened_in_plain_words ... ok
+test assistant::system::tests::measures_the_real_pc_without_panicking ... ok
+test assistant::system::tests::names_programs_the_way_people_know_them ... ok
+test assistant::tasks::tests::completes_and_removes_once ... ok
+test assistant::tasks::tests::each_reminder_fires_once_and_only_when_due ... ok
+test assistant::tasks::tests::finds_tasks_by_words_or_number ... ok
+test assistant::tasks::tests::forgets_old_finished_tasks_only ... ok
+test assistant::tasks::tests::keeps_task_text_short_and_printable ... ok
+test assistant::tasks::tests::lists_reminders_first_then_the_rest_in_order ... ok
+test assistant::tasks::tests::saves_sealed_and_loads_back ... ok
+test assistant::tasks::tests::says_when_in_plain_words ... ok
+test assistant::tasks::tests::words_for_adding_and_listing ... ok
+test assistant::tests::a_settings_card_is_asked_for_once_and_the_click_ends_it ... ok
+test assistant::tests::a_stopped_scan_proposes_nothing ... ok
+test assistant::tests::assistant_state_records_and_projects_context_with_limit ... ok
+test assistant::tests::catalogued_launches_resolve_absolute_protected_windows_paths ... ok
+test assistant::tests::conversation_reset_rejects_late_context_and_queued_work ... ok
+test assistant::tests::deduplicate_roots_keeps_independent_roots ... ok
+test assistant::tests::deduplicate_roots_retains_parent_when_child_is_listed_first ... ok
+test assistant::tests::deduplicate_roots_skips_child_when_parent_is_listed_first ... ok
+test assistant::tests::duplicates_flow_end_to_end_scan_approve_undo ... ok
+test assistant::tests::encodes_search_queries ... ok
+test assistant::tests::file_journey_finds_approves_moves_restarts_and_undoes ... ok
+test assistant::tests::file_mutations_require_card_for_person_and_model_not_approved ... ok
+test assistant::tests::finds_files_by_name_newest_first ... ok
+test assistant::tests::folder_counts_exclude_private_children_and_credentials ... ok
+test assistant::tests::largest_files_lists_biggest_first ... ok
+test assistant::tests::model_search_scope_is_bound_to_the_request_not_guessed_personal_folders ... ok
+test assistant::tests::new_chat_does_not_revive_stopped_task_or_expose_newly_private_task_resources ... ok
+test assistant::tests::protects_system_paths ... ok
+test assistant::tests::stop_and_privacy_changes_invalidate_queued_requests_before_they_can_clear_stop ... ok
+test assistant::tests::the_model_sees_what_was_shown_as_a_separate_result ... ok
+test assistant::tests::unloads_the_model_only_after_ten_idle_minutes ... ok
+test assistant::tools::tests::a_setting_change_must_name_a_real_setting_and_one_of_its_values ... ok
+test assistant::tools::tests::accepts_well_formed_calls ... ok
+test assistant::tools::tests::discovery_accepts_local_paths_and_mutation_paths_keep_internal_spaces ... ok
+test assistant::tools::tests::maps_rule_intents_to_the_same_tools ... ok
+test assistant::tools::tests::refuses_anything_outside_the_vocabulary ... ok
+test assistant::tools::tests::strips_control_and_invisible_characters_from_text ... ok
+test assistant::tools::tests::the_agent_knows_every_setting_cubby_can_change ... ok
+test assistant::tools::tests::the_desktop_knows_every_tool_the_agent_offers ... ok
+test assistant::tools::tests::the_model_can_never_empty_the_safe_place ... ok
+test assistant::when::tests::a_time_that_already_passed_is_an_error_not_a_guess ... ok
+test assistant::when::tests::picks_the_next_time_it_comes_round ... ok
+test assistant::when::tests::reads_a_phrase_on_its_own ... ok
+test assistant::when::tests::reads_clock_times_in_every_common_spelling ... ok
+test assistant::when::tests::reads_days ... ok
+test assistant::when::tests::reads_durations ... ok
+test assistant::when::tests::rejects_nonsense_times ... ok
+test assistant::when::tests::separates_the_task_from_the_time ... ok
+test assistant::workflow::tests::native_intent_binds_paths_and_rejects_unsupported_semantics ... ok
+test capture::tests::only_the_latest_timer_may_switch_capture_off ... ok
+test history_ledger::tests::a_crash_mid_append_is_not_called_tampering ... ok
+test history_ledger::tests::a_deleted_anchor_is_noticed ... ok
+test history_ledger::tests::a_deleted_ledger_with_existing_anchor_is_noticed ... ok
+test history_ledger::tests::checks_without_adding_anything ... ok
+test history_ledger::tests::concurrent_records_keep_the_chain_intact ... ok
+test history_ledger::tests::first_live_record_creates_its_history_directory ... ok
+test history_ledger::tests::records_events_and_notices_a_cut_history ... ok
+test input_hook::tests::click_is_fresh_right_after_recording ... ok
+test layout::tests::defaults_to_bottom_right_of_primary ... ok
+test layout::tests::expanded_window_never_leaves_the_work_area ... ok
+test layout::tests::ignores_saved_position_on_a_disconnected_monitor ... ok
+test layout::tests::panel_opens_right_when_cubby_is_on_the_left_edge ... ok
+test layout::tests::panel_opens_toward_screen_centre_and_keeps_cubby_in_place ... ok
+test layout::tests::restores_saved_position_on_a_visible_monitor ... ok
+test mode::tests::demo_does_not_claim_to_be_online ... ok
+test mode::tests::starts_offline_without_demo ... ok
+test paths::tests::live_verification_requires_an_explicit_fixture_marker ... ok
+
+test result: ok. 154 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 6.92s
+
+     Running unittests src\main.rs (target\debug\deps\custodian_desktop-c973a5e6ad7501b0.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\debug\deps\custodian_digest-6eea022bb57e1412.exe)
+
+running 1 test
+test tests::digests_known_content ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src\main.rs (target\debug\deps\custodian_elevate-9da73c83c9f807cd.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\debug\deps\custodian_engine-7de146ef18cf5b19.exe)
+
+running 23 tests
+test approval::tests::accepts_only_the_signed_transaction_once ... ok
+test disk::tests::measures_file_size ... ok
+test fs::tests::deletes_file ... ok
+test fs::tests::execute_move_refuses_to_overwrite_existing_destination ... ok
+test fs::tests::moves_file ... ok
+test ops::clone_dedupe::tests::falls_back_to_copy ... ok
+test ops::move_outputs::tests::roundtrip_restores_original ... ok
+test ops::offload::tests::refuses_unsupported_offload_leaving_file_untouched ... ok
+test ops::online_only::tests::refuses_online_only_unsupported ... ok
+test ops::perm_delete::tests::rejects_directories ... ok
+test ops::perm_delete::tests::wipes_and_removes ... ok
+test ops::quarantine::tests::a_locked_file_is_left_alone_with_no_trace ... ok
+test ops::quarantine::tests::rejects_path_like_ids_and_reused_ids ... ok
+test ops::quarantine::tests::roundtrip ... ok
+test ops::quarantine::tests::undo_never_overwrites_a_new_file ... ok
+test ops::quarantine::tests::undo_refuses_a_changed_payload ... ok
+test ops::regen_delete::tests::deletes_file ... ok
+test purge::tests::selects_only_expired_records ... ok
+test recovery::tests::executed_skips_action ... ok
+test recovery::tests::journaled_reruns_action ... ok
+test recovery::tests::journaled_stays_journaled_on_failure ... ok
+test skeleton::tests::test_t_j2_approval_verification ... ok
+test undo::tests::blocks_undo_when_newer_tx_touches_same_path ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+     Running tests\gate_4.rs (target\debug\deps\gate_4-8fc92616f7d40bfd.exe)
+
+running 1 test
+test test_gate_4_recovery_without_db ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\p1_roundtrip.rs (target\debug\deps\p1_roundtrip-dc5936c8de6d0381.exe)
+
+running 1 test
+test quarantine_roundtrip_preserves_content ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.04s
+
+     Running tests\p4_races.rs (target\debug\deps\p4_races-106dd60af778349c.exe)
+
+running 1 test
+test concurrent_quarantines_are_isolated ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.24s
+
+     Running unittests src\main.rs (target\debug\deps\custodian_fixtures-22f1ce99dad6c3a7.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\debug\deps\custodian_ipc-3f97647de8cd8b17.exe)
+
+running 6 tests
+test tests::narrower_peer_limit_is_enforced_before_payload_read ... ok
+test tests::peer_keys_are_random_and_stored ... ok
+test tests::rejects_bad_magic ... ok
+test tests::rejects_oversized_length ... ok
+test tests::rejects_wrong_key ... ok
+test tests::round_trip ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\debug\deps\custodian_journal-d0a443efaa4c8884.exe)
+
+running 6 tests
+test batcher::tests::closed_channel_yields_empty_batch ... ok
+test batcher::tests::deduplicates_burst ... ok
+test tests::reports_created_file ... ok
+test wal::tests::recovers_from_torn_write_and_keeps_appending ... ok
+test wal::tests::refuses_append_exceeding_journal_limit ... ok
+test wal::tests::refuses_oversized_journal ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+
+     Running unittests src\lib.rs (target\debug\deps\custodian_ledger-dabe31fba39c182c.exe)
+
+running 7 tests
+test anchor::tests::saves_and_loads_sealed ... ok
+test chain::tests::anchor_accepts_a_ledger_that_grew ... ok
+test chain::tests::anchor_detects_records_removed_from_the_end ... ok
+test chain::tests::chain_survives_reopen ... ok
+test chain::tests::detects_modified_record ... ok
+test chain::tests::recovers_from_torn_append ... ok
+test chain::tests::verify_rejects_truncation_after_open ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running unittests src\main.rs (target\debug\deps\custodian_parser-b836d1d6eb07986c.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\debug\deps\custodian_proto-e2f7a12335a74a7f.exe)
+
+running 1 test
+test tests::deserializes_minimal_transaction ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\debug\deps\custodian_sandbox-242a203cc25e41a2.exe)
+
+running 2 tests
+test effects::tests::rejects_undeclared_effects ... ok
+test templates::tests::expands_arguments ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\main.rs (target\debug\deps\custodian_sandbox-7ffd1ee2d2602b5a.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\debug\deps\custodian_store-885ffbcf460c5607.exe)
+
+running 1 test
+test vector_dao::tests::formats_pgvector_literal ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\debug\deps\custodian_testkit-1d775b81a19c0a35.exe)
+
+running 2 tests
+test tests::accepts_marked_directory ... ok
+test tests::rejects_unmarked_directory - should panic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\debug\deps\custodian_winsec-1382d60c8cb0127d.exe)
+
+running 51 tests
+test appcontainer::tests::builds_an_environment_with_only_what_is_given ... ok
+test appcontainer::tests::cannot_reach_the_network ... ok
+test appcontainer::tests::cannot_read_the_persons_files_until_granted_and_never_write ... ok
+test appcontainer::tests::keeps_only_top_folders ... ok
+test appcontainer::tests::quotes_arguments_the_way_programs_split_them ... ok
+test appcontainer::tests::runs_a_program_inside_with_its_own_pipes ... ok
+test apps::tests::a_closed_handle_is_neither_open_nor_closable ... ok
+test apps::tests::lists_real_windows_without_the_shell_or_itself ... ok
+test apps::tests::process_probe_measures_only_own_process_without_window_content ... ok
+test dpapi::tests::empty_input_roundtrips ... ok
+test dpapi::tests::roundtrip_hides_the_plaintext ... ok
+test dpapi::tests::same_plaintext_encrypts_differently ... ok
+test dpapi::tests::tampered_blob_is_refused ... ok
+test excel::native::tests::bulk_values_require_exact_bounded_shape_and_preserve_coordinates ... ok
+test fsops::tests::a_missing_source_is_an_error ... ok
+test fsops::tests::moves_across_volumes_with_verification ... ok
+test fsops::tests::moves_within_a_volume ... ok
+test fsops::tests::moves_within_a_volume_rolls_back_on_failed_verification ... ok
+test fsops::tests::never_replaces_an_existing_file ... ok
+test fsops::tests::verification_io_error_restores_the_source ... ok
+test guarded_copy::tests::copy_guard_blocks_source_and_parent_replacement_and_preserves_conflicts ... ok
+test job::tests::dropping_the_job_ends_its_processes ... ok
+test job::tests::the_memory_cap_is_enforced ... ok
+test local_pipe::tests::local_client_is_bound_and_bad_pipe_names_are_refused ... ok
+test power::tests::decodes_power_status ... ok
+test power::tests::reading_the_real_battery_never_panics ... ok
+test registry::tests::lists_subkeys_and_values ... ok
+test registry::tests::missing_keys_and_values_are_simply_absent ... ok
+test registry::tests::reads_values_that_every_windows_pc_has ... ok
+test registry::tests::writes_reads_and_removes_a_scratch_value ... ok
+test safe_place::tests::roundtrip ... ok
+test settings::tests::a_change_to_the_same_value_needs_no_work ... ok
+test settings::tests::describing_a_change_says_what_it_does_and_that_it_can_be_undone ... ok
+test settings::tests::every_setting_is_complete_and_revertible ... ok
+test settings::tests::planning_checks_the_value_and_reads_the_current_one ... ok
+test settings::tests::reading_real_settings_never_returns_an_undeclared_value ... ok
+test settings::tests::reverting_an_unknown_setting_is_refused ... ok
+test settings::tests::search_finds_settings_by_the_words_people_use ... ok
+test settings::tests::the_best_setting_is_only_called_out_when_it_is_clearly_the_one ... ok
+test shell::tests::asking_the_real_shell_never_panics ... ok
+test shell::tests::reads_the_notification_states ... ok
+test sync_roots::tests::finding_the_real_sync_roots_never_panics ... ok
+test sync_roots::tests::finds_paths_inside_a_synced_folder_without_case ... ok
+test sync_roots::tests::reads_dropbox_folders ... ok
+test sync_roots::tests::tidies_duplicates_and_relative_paths ... ok
+test tests::accepts_existing_and_new_paths_under_root ... ok
+test tests::missing_root_is_an_error ... ok
+test tests::rejects_parent_dir_traversal ... ok
+test tests::rejects_path_outside_root ... ok
+test tests::spawn_runs_child_to_completion ... ok
+test tests::strips_trailing_dot_and_uses_verbatim_prefix ... ok
+
+test result: ok. 51 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.17s
+
+   Doc-tests custodian_approval
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests custodian_appworker
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests custodian_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests custodian_desktop_lib
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests custodian_digest
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests custodian_engine
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests custodian_ipc
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests custodian_journal
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests custodian_ledger
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests custodian_proto
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests custodian_sandbox
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests custodian_store
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests custodian_testkit
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests custodian_winsec
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,32 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.59s
+     Running unittests src\lib.rs (target\debug\deps\custodian_core-987397a6fdf02b71.exe)
+
+running 1 test
+test intent_plan::tests::actual_frozen_model_results_pass_the_independent_native_compiler ... MODEL FILE EXECUTED: "p01" (2 verified copies and undo)
+MODEL FILE EXECUTED: "p02" (2 verified copies and undo)
+MODEL FILE EXECUTED: "p03" (1 verified copies and undo)
+MODEL FILE EXECUTED: "p04" (1 verified copies and undo)
+MODEL FILE EXECUTED: "p05" (1 verified copies and undo)
+MODEL FILE EXECUTED: "p06" (4 verified copies and undo)
+MODEL FILE EXECUTED: "p07" (2 verified copies and undo)
+MODEL FILE EXECUTED: "p08" (2 verified copies and undo)
+MODEL FILE EXECUTED: "p09" (2 verified copies and undo)
+MODEL FILE EXECUTED: "p10" (2 verified copies and undo)
+MODEL FILE EXECUTED: "p11" (2 verified copies and undo)
+MODEL FILE EXECUTED: "p12" (2 verified copies and undo)
+MODEL FILE EXECUTED: "p13" (1 verified copies and undo)
+MODEL FILE EXECUTED: "p14" (1 verified copies and undo)
+MODEL FILE EXECUTED: "p15" (4 verified copies and undo)
+MODEL FILE EXECUTED: "p16" (2 verified copies and undo)
+MODEL FILE EXECUTED: "p17" (2 verified copies and undo)
+MODEL FILE EXECUTED: "p18" (1 verified copies and undo)
+MODEL FILE EXECUTED: "p19" (2 verified copies and undo)
+MODEL FILE EXECUTED: "p20" (2 verified copies and undo)
+MODEL FILE EXECUTED: "p21" (2 verified copies and undo)
+MODEL FILE EXECUTED: "p22" (1 verified copies and undo)
+MODEL FILE EXECUTED: "p23" (1 verified copies and undo)
+MODEL FILE EXECUTED: "p24" (4 verified copies and undo)
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 208 filtered out; finished in 16.23s
+

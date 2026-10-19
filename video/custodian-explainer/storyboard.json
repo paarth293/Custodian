@@ -1,0 +1,107 @@
+[
+  {
+    "id": "hook",
+    "duration": 14,
+    "chapter": "THE IDEA",
+    "title": "Your computer.\nYour instructions.\nProof it worked.",
+    "narration": "What if your computer could understand a task, carry it out, and show you proof? Meet Custodian: an offline Windows assistant built around a simple principle. Every supported action should be accountable."
+  },
+  {
+    "id": "problem",
+    "duration": 14,
+    "chapter": "THE PROBLEM",
+    "title": "Less busywork.\nMore confidence.",
+    "narration": "Finding the right files, organizing a project, and checking every result takes time. Automation helps, but a confident answer is not evidence that your files are correct, or that your work is protected."
+  },
+  {
+    "id": "cubby",
+    "duration": 15,
+    "chapter": "MEET CUSTODIAN",
+    "title": "Meet Cubby.\nYour local companion.",
+    "narration": "Custodian brings those tasks into one conversation. Cubby is its on-screen companion. You describe the outcome, the local model proposes a supported plan, and native controls determine what can actually execute."
+  },
+  {
+    "id": "offline",
+    "duration": 14,
+    "chapter": "OFFLINE BY DESIGN",
+    "title": "Intelligence\nstays local.",
+    "narration": "An open-weight Qwen model runs on the computer. Supported local workflows do not need a cloud account or an upload. The model interprets the request; it does not receive unrestricted authority over Windows."
+  },
+  {
+    "id": "plan",
+    "duration": 16,
+    "chapter": "FROM WORDS TO WORK",
+    "title": "AI proposes.\nNative code decides.",
+    "narration": "The request becomes a bounded program: discover, select, approve, execute, and verify. Native checks bind the plan to real locations and allowed operations. Unsupported or ambiguous requests must be refused or clarified."
+  },
+  {
+    "id": "discover",
+    "duration": 17,
+    "chapter": "ILLUSTRATED FILE WORKFLOW",
+    "title": "One request.\nA precise collection.",
+    "narration": "Consider a project handoff. Set a private location, then ask Custodian to copy the permitted project files to a chosen destination. Discovery can cover permitted local drives and ordinary folders, rather than just Documents or Downloads."
+  },
+  {
+    "id": "approve",
+    "duration": 16,
+    "chapter": "ILLUSTRATED FILE WORKFLOW",
+    "title": "See the consequence\nbefore the change.",
+    "narration": "Before the effect, a native approval preview identifies the selected files, destination, exclusions, and recovery behavior. Optional standing permissions support bounded routines. A changed source, a conflict, or missing authority prevents an unsafe substitution."
+  },
+  {
+    "id": "verify",
+    "duration": 18,
+    "chapter": "ILLUSTRATED FILE WORKFLOW",
+    "title": "Done means\nverified.",
+    "narration": "Execution produces evidence, not just a success message. File identities and content checks help verify the result. The task retains receipts and progress. If a required check fails, that failure stays visible instead of becoming a completion claim."
+  },
+  {
+    "id": "undo",
+    "duration": 17,
+    "chapter": "RECOVERY THAT RESPECTS YOUR WORK",
+    "title": "A path back.\nWithout erasing later work.",
+    "narration": "For supported operations, receipts provide a path to undo and recovery inspection. If you edit an output afterwards, undo must preserve that later work. After an interruption, recovery inspects the evidence rather than blindly replaying effects."
+  },
+  {
+    "id": "privacy",
+    "duration": 16,
+    "chapter": "PRIVACY AND CONTROL",
+    "title": "Your boundaries\nare part of the plan.",
+    "narration": "Private paths and protected locations are checked by native controls. Application exclusions provide a separate boundary for supported app workflows. Stop and revocation are execution controls. Document text and model suggestions cannot grant themselves permission."
+  },
+  {
+    "id": "apps",
+    "duration": 19,
+    "chapter": "BEYOND FILE COPYING",
+    "title": "Real applications.\nPrecisely bound tasks.",
+    "narration": "The prototype also has narrow, version-qualified Visual Studio Code and Excel workflows. Native checks have exercised text editing, spreadsheet recalculation, save and reopen, source preservation, publication, and undo. These are specific adapters, not universal desktop control."
+  },
+  {
+    "id": "architecture",
+    "duration": 17,
+    "chapter": "BUILT FOR VERIFIABLE ACTION",
+    "title": "Separate reasoning\nfrom authority.",
+    "narration": "A Tauri and React interface connects to a Rust execution core. Authenticated communication, supervised workers, deadlines, and durable journals support the boundary. The security claim is controlled, verified execution within supported scope, not immunity to every threat."
+  },
+  {
+    "id": "evidence",
+    "duration": 16,
+    "chapter": "SHOW THE EVIDENCE",
+    "title": "Measured progress.\nHonest limits.",
+    "narration": "Recorded checks include a twenty-nine-check desktop baseline, real editor and Excel workflows, and nine editor safety scenarios. These are measured subsets. They do not establish complete-product security, unrestricted automation, or finished installation acceptance."
+  },
+  {
+    "id": "roadmap",
+    "duration": 19,
+    "chapter": "WHAT COMES NEXT",
+    "title": "Earn each\nnew capability.",
+    "narration": "Next come stronger model reliability, repeated packaged validation, and clean offline installation. Archives, backup, document, and media workflows expand after native integration and verification. Laya remains experimental, not an active security control. Online capabilities remain future scope."
+  },
+  {
+    "id": "close",
+    "duration": 12,
+    "chapter": "CUSTODIAN",
+    "title": "Local intelligence.\nVerifiable action.\nA path back.",
+    "narration": "Custodian. Local intelligence. Verifiable action. A path back. Our ambition is broad. Our standard is evidence. Help us build an assistant people can trust with real work."
+  }
+]

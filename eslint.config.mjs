@@ -10,11 +10,22 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/.venv/**',
       'target/**',
+      'deliverables/**',
+      'artifacts/**',
+      '.local/**',
+      'fixture/**',
+      'models/**',
+      'video/exports/**',
       'apps/desktop/src-tauri/**',
     ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    // VS Code loads this extension through its CommonJS extension host.
+    files: ['services/editor-adapter/**/*.cjs'],
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
   {
     languageOptions: { globals: { ...globals.node } },
     rules: {

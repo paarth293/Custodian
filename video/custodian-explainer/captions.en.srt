@@ -1,0 +1,263 @@
+1
+00:00:00,550 --> 00:00:05,709
+What if your computer could understand a task, carry it out, and show you proof?
+
+2
+00:00:05,709 --> 00:00:10,607
+Meet Custodian: an offline Windows assistant built around a simple principle.
+
+3
+00:00:10,607 --> 00:00:13,050
+Every supported action should be accountable.
+
+4
+00:00:14,550 --> 00:00:20,054
+Finding the right files, organizing a project, and checking every result takes time.
+
+5
+00:00:20,054 --> 00:00:25,361
+Automation helps, but a confident answer is not evidence that your files are correct, or
+
+6
+00:00:25,361 --> 00:00:27,050
+that your work is protected.
+
+7
+00:00:28,550 --> 00:00:31,947
+Custodian brings those tasks into one conversation.
+
+8
+00:00:31,947 --> 00:00:34,071
+Cubby is its on-screen companion.
+
+9
+00:00:34,071 --> 00:00:39,734
+You describe the outcome, the local model proposes a supported plan, and native controls
+
+10
+00:00:39,734 --> 00:00:42,050
+determine what can actually execute.
+
+11
+00:00:43,550 --> 00:00:46,319
+An open-weight Qwen model runs on the computer.
+
+12
+00:00:46,319 --> 00:00:50,329
+Supported local workflows do not need a cloud account or an upload.
+
+13
+00:00:50,329 --> 00:00:55,514
+The model interprets the request; it does not receive unrestricted authority over
+
+14
+00:00:55,514 --> 00:00:56,027
+Windows.
+
+15
+00:00:57,550 --> 00:01:03,836
+The request becomes a bounded program: discover, select, approve, execute, and verify.
+
+16
+00:01:03,836 --> 00:01:07,921
+Native checks bind the plan to real locations and allowed operations.
+
+17
+00:01:07,921 --> 00:01:12,050
+Unsupported or ambiguous requests must be refused or clarified.
+
+18
+00:01:13,550 --> 00:01:15,508
+Consider a project handoff.
+
+19
+00:01:15,508 --> 00:01:21,049
+Set a private location, then ask Custodian to copy the permitted project files to a
+
+20
+00:01:21,049 --> 00:01:22,317
+chosen destination.
+
+21
+00:01:22,317 --> 00:01:27,477
+Discovery can cover permitted local drives and ordinary folders, rather than just
+
+22
+00:01:27,477 --> 00:01:28,942
+Documents or Downloads.
+
+23
+00:01:30,550 --> 00:01:35,630
+Before the effect, a native approval preview identifies the selected files, destination,
+
+24
+00:01:35,630 --> 00:01:37,593
+exclusions, and recovery behavior.
+
+25
+00:01:37,593 --> 00:01:40,470
+Optional standing permissions support bounded routines.
+
+26
+00:01:40,470 --> 00:01:45,050
+A changed source, a conflict, or missing authority prevents an unsafe substitution.
+
+27
+00:01:46,550 --> 00:01:50,752
+Execution produces evidence, not just a success message.
+
+28
+00:01:50,752 --> 00:01:54,362
+File identities and content checks help verify the result.
+
+29
+00:01:54,362 --> 00:01:56,960
+The task retains receipts and progress.
+
+30
+00:01:56,960 --> 00:02:02,519
+If a required check fails, that failure stays visible instead of becoming a completion
+
+31
+00:02:02,519 --> 00:02:02,907
+claim.
+
+32
+00:02:04,550 --> 00:02:09,912
+For supported operations, receipts provide a path to undo and recovery inspection.
+
+33
+00:02:09,912 --> 00:02:14,352
+If you edit an output afterwards, undo must preserve that later work.
+
+34
+00:02:14,352 --> 00:02:19,549
+After an interruption, recovery inspects the evidence rather than blindly replaying
+
+35
+00:02:19,549 --> 00:02:20,050
+effects.
+
+36
+00:02:21,550 --> 00:02:25,268
+Private paths and protected locations are checked by native controls.
+
+37
+00:02:25,268 --> 00:02:29,529
+Application exclusions provide a separate boundary for supported app workflows.
+
+38
+00:02:29,529 --> 00:02:32,288
+Stop and revocation are execution controls.
+
+39
+00:02:32,288 --> 00:02:36,050
+Document text and model suggestions cannot grant themselves permission.
+
+40
+00:02:37,550 --> 00:02:42,768
+The prototype also has narrow, version-qualified Visual Studio Code and Excel workflows.
+
+41
+00:02:42,768 --> 00:02:48,461
+Native checks have exercised text editing, spreadsheet recalculation, save and reopen,
+
+42
+00:02:48,461 --> 00:02:51,308
+source preservation, publication, and undo.
+
+43
+00:02:51,308 --> 00:02:55,050
+These are specific adapters, not universal desktop control.
+
+44
+00:02:56,550 --> 00:03:00,113
+A Tauri and React interface connects to a Rust execution core.
+
+45
+00:03:00,113 --> 00:03:05,068
+Authenticated communication, supervised workers, deadlines, and durable journals support
+
+46
+00:03:05,068 --> 00:03:05,801
+the boundary.
+
+47
+00:03:05,801 --> 00:03:10,562
+The security claim is controlled, verified execution within supported scope, not
+
+48
+00:03:10,562 --> 00:03:12,050
+immunity to every threat.
+
+49
+00:03:13,550 --> 00:03:18,328
+Recorded checks include a twenty-nine-check desktop baseline, real editor and Excel
+
+50
+00:03:18,328 --> 00:03:20,861
+workflows, and nine editor safety scenarios.
+
+51
+00:03:20,861 --> 00:03:22,349
+These are measured subsets.
+
+52
+00:03:22,349 --> 00:03:26,795
+They do not establish complete-product security, unrestricted automation, or finished
+
+53
+00:03:26,795 --> 00:03:28,050
+installation acceptance.
+
+54
+00:03:29,550 --> 00:03:34,730
+Next come stronger model reliability, repeated packaged validation, and clean offline
+
+55
+00:03:34,730 --> 00:03:35,523
+installation.
+
+56
+00:03:35,523 --> 00:03:40,262
+Archives, backup, document, and media workflows expand after native integration and
+
+57
+00:03:40,262 --> 00:03:41,004
+verification.
+
+58
+00:03:41,004 --> 00:03:44,629
+Laya remains experimental, not an active security control.
+
+59
+00:03:44,629 --> 00:03:47,050
+Online capabilities remain future scope.
+
+60
+00:03:48,550 --> 00:03:49,490
+Custodian.
+
+61
+00:03:49,490 --> 00:03:50,787
+Local intelligence.
+
+62
+00:03:50,787 --> 00:03:52,127
+Verifiable action.
+
+63
+00:03:52,127 --> 00:03:53,159
+A path back.
+
+64
+00:03:53,159 --> 00:03:54,536
+Our ambition is broad.
+
+65
+00:03:54,536 --> 00:03:56,030
+Our standard is evidence.
+
+66
+00:03:56,030 --> 00:03:59,050
+Help us build an assistant people can trust with real work.

@@ -1,7 +1,0 @@
-[agent] model integrity verified (1.9s)
-[agent] model runtime imported (27.0s)
-[node-llama-cpp] load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
-[agent] qwen2.5-1.5b-instruct-q4_k_m.gguf on the CPU, 4096 tokens of context
-[agent] model ready (33.1s)
-p01: FAIL 59415ms {"decision":"unavailable","filter":"documents","largest":false,"source":0,"destination":1,"nodes":[{"op":"copy","after":-1},{"op":"copy","after":0},{"op":"copy","after":1}],"completion":"all_copies_verified","attempts":1}
-p02: FAIL 60018ms "Error: Intent planning stopped"

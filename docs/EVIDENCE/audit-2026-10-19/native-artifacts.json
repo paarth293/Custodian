@@ -1,0 +1,37 @@
+{
+  "desktop": {
+    "sha256": "d2ee6419300691a313ec96eb530a07251733491498455d0c5bf421b1328e2971",
+    "bytes": 7201792,
+    "pe64": true,
+    "aslr": true,
+    "dep": true,
+    "guardCF": false,
+    "certificateTablePresent": false,
+    "checkedTestHooksAbsent": [
+      "CUSTODIAN_EDITOR_FAULT_ROOT",
+      "CUSTODIAN_APP_WORKFLOW_ROOT",
+      "CUSTODIAN_SESSION_FIXTURE",
+      "CUSTODIAN_APP_WORKER_FIXTURE",
+      "fixture-identity.json",
+      "crash-recover"
+    ]
+  },
+  "worker": {
+    "sha256": "991f0f5713f4ca68e87a11fb35d6032ba2049732a6d41fa787014f3299d7ebdc",
+    "bytes": 600064,
+    "pe64": true,
+    "aslr": true,
+    "dep": true,
+    "guardCF": false,
+    "certificateTablePresent": false,
+    "checkedTestHooksAbsent": [
+      "CUSTODIAN_EDITOR_FAULT_ROOT",
+      "CUSTODIAN_APP_WORKFLOW_ROOT",
+      "CUSTODIAN_SESSION_FIXTURE",
+      "CUSTODIAN_APP_WORKER_FIXTURE",
+      "fixture-identity.json",
+      "crash-recover"
+    ]
+  },
+  "installationAccepted": false
+}

@@ -1,0 +1,54 @@
+{
+  "condition": "Development candidate checkpoint; not full build or installed-product acceptance",
+  "nativeEditorWorkflowPassed": true,
+  "nativeExcelWorkflowPassed": true,
+  "excelVersion": "16.0.20430.20182",
+  "editorAdversarialScenariosPassed": [
+    "stale",
+    "private-tab",
+    "revoke-measure",
+    "revoke-save",
+    "stop",
+    "forged-targets",
+    "crash-recover",
+    "duplicate-focus",
+    "native-modal"
+  ],
+  "focusedNativeTestsPassed": 3,
+  "agentUnitTestsPassed": 104,
+  "modelQualityAccepted": false,
+  "optimizedCandidateAccepted": false,
+  "installationAccepted": false,
+  "stagesZeroThroughSixComplete": false,
+  "modelSelectionChanged": false,
+  "selectedEnvironment": "Full disposable Windows VM; no guest discovered",
+  "pending": [
+    "Model semantic quality",
+    "Optimized repeated desktop acceptance",
+    "Actual disposable offline installation",
+    "Stage 5 native integration and recycle recovery",
+    "Stage 6 contained format and media workers and product routes"
+  ],
+  "sources": [
+    {
+      "path": "crates/custodian-core/src/editor_session.rs",
+      "sha256": "ca4b6bab4c011c6bbb362134435c35de7eab15b200577d6fc81db19bc5995ee2"
+    },
+    {
+      "path": "crates/custodian-core/src/excel_session.rs",
+      "sha256": "b540337ffa7976e8a188b12118d49a16f8ccaecebe2d22d6e1e37d3622f9024f"
+    },
+    {
+      "path": "crates/custodian-winsec/src/excel.rs",
+      "sha256": "135af8bc1d9785f33a9d6cd43193e47aa2ab95b818180c28e0f216ed8b187805"
+    },
+    {
+      "path": "services/agent/src/llm.ts",
+      "sha256": "88b0b8dd3c84aacc72f81c22e12385e70e431242c965e9c6ef561849618fd876"
+    },
+    {
+      "path": "services/agent/eval/chat-quality.mjs",
+      "sha256": "e7520bc2ffe543520db213cd854a9585f118778c8cb8c0a96be2046f23b1146b"
+    }
+  ]
+}

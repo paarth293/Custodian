@@ -2,7 +2,16 @@
 //! clean-up, process supervision, the IPC routing policy and the install-lab
 //! helpers.
 
+pub mod app_adapter;
+pub mod app_authority;
+pub mod app_journal;
+pub mod app_privacy;
+mod app_privacy_store;
+pub mod app_recovery;
+pub mod app_worker;
+pub mod app_workflow;
 pub mod backup_check;
+pub mod batch_archive;
 pub mod cleanup;
 pub mod content;
 pub mod coordinator;
@@ -10,9 +19,13 @@ pub mod coordinator;
 mod crash_probe;
 pub mod downloads;
 pub mod duplicates;
+pub mod editor_session;
+pub mod excel_protocol;
+pub mod excel_session;
 pub mod executor;
 pub mod file_tasks;
 pub mod find;
+pub mod governed_recycle;
 pub mod hashing;
 pub mod indexer;
 pub mod install_lab;
@@ -37,5 +50,7 @@ pub mod supervisor;
 pub mod task_program;
 pub mod temp;
 pub mod uninstall_prep;
+pub mod versioned_backup;
 pub mod walk;
+pub mod workbook;
 pub mod workflow;

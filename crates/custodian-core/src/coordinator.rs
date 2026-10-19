@@ -128,6 +128,19 @@ pub struct TaskInfo {
     pub resources: Vec<String>,
     #[serde(default)]
     pub execution: Option<crate::task_program::Checkpoint>,
+    #[serde(default)]
+    pub application: Option<ApplicationBinding>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ApplicationBinding {
+    pub identity: Option<crate::app_privacy::ApplicationIdentity>,
+    #[serde(default)]
+    pub executable: String,
+    pub document_id: String,
+    #[serde(default)]
+    pub workspace: Option<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -314,6 +327,7 @@ impl TaskCoordinator {
                 updated_at: now,
                 resources: resources.iter().map(|p| p.display().to_string()).collect(),
                 execution: None,
+                application: None,
             },
             cancel_flag: Arc::clone(&cancel_flag),
             locked_paths: normalized,
@@ -371,6 +385,48 @@ impl TaskCoordinator {
             for path in &task.locked_paths {
                 locks.insert(path.clone(), id.into());
             }
+            return Err(error);
+        }
+        Ok(())
+    }
+
+    /// Visibility evidence only. This cannot grant or restore application input.
+    pub fn bind_application(&self, id: &str, binding: ApplicationBinding) -> Result<(), TaskError> {
+        if let Some(identity) = &binding.identity {
+            identity
+                .validate()
+                .map_err(|e| TaskError::Persistence(e.into()))?;
+            if identity.executable != binding.executable {
+                return Err(TaskError::Persistence(
+                    "Application executable binding changed".into(),
+                ));
+            }
+        } else if !Path::new(&binding.executable).is_absolute() || binding.document_id.is_empty() {
+            return Err(TaskError::Persistence(
+                "Native application scope is invalid".into(),
+            ));
+        }
+        let mut tasks = self.tasks.lock().unwrap_or_else(|e| e.into_inner());
+        let task = tasks
+            .get_mut(id)
+            .ok_or_else(|| TaskError::NotFound(id.into()))?;
+        if !task.info.state.is_active()
+            || task.info.application.as_ref().is_some_and(|old| {
+                old.identity.is_some()
+                    || binding.identity.is_none()
+                    || old.executable != binding.executable
+                    || old.document_id != binding.document_id
+                    || old.workspace != binding.workspace
+            })
+        {
+            return Err(TaskError::Persistence(
+                "Application task binding is unavailable".into(),
+            ));
+        }
+        let previous = task.info.clone();
+        task.info.application = Some(binding);
+        if let Err(error) = self.persist(&tasks) {
+            tasks.get_mut(id).unwrap().info = previous;
             return Err(error);
         }
         Ok(())

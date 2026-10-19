@@ -1,0 +1,32 @@
+{
+  "sourceChecks": [
+    {
+      "run": 1,
+      "originalMatchesExpected": true,
+      "originalSha256": "a118f50fd241516336af13728f2cae79d51804d77f30899aceb6af7783f151a5",
+      "publicationPresent": false
+    },
+    {
+      "run": 2,
+      "originalMatchesExpected": true,
+      "originalSha256": "a118f50fd241516336af13728f2cae79d51804d77f30899aceb6af7783f151a5",
+      "publicationPresent": false
+    },
+    {
+      "run": 3,
+      "originalMatchesExpected": true,
+      "originalSha256": "a118f50fd241516336af13728f2cae79d51804d77f30899aceb6af7783f151a5",
+      "publicationPresent": false
+    },
+    {
+      "run": 4,
+      "originalMatchesExpected": true,
+      "originalSha256": "a118f50fd241516336af13728f2cae79d51804d77f30899aceb6af7783f151a5",
+      "publicationPresent": false
+    }
+  ],
+  "failedRunStagedOutputMatchesRequestedEdit": true,
+  "failedRunPublished": false,
+  "stagePreservedForReview": true,
+  "fifthRunAttempted": false
+}

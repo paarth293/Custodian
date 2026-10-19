@@ -8,7 +8,11 @@ param(
     [switch]$CheckWorkflow,
     [switch]$CheckAuthority,
     [switch]$CheckCoordinator,
-    [switch]$CheckLanguage
+    [switch]$CheckLanguage,
+    [switch]$AppPrivacyOnly,
+    [switch]$AppTasksOnly,
+    [string]$WorkbookFixture,
+    [int]$ApplicationRuns = 5
 )
 
 $ErrorActionPreference = 'Stop'
@@ -190,7 +194,7 @@ function Assert-Original {
 function Stop-Desktop {
     # Drop retained accessibility proxies while their provider is still alive.
     # These are the only top-level UIA values retained by this fixture script.
-    foreach ($proxyName in @('privateInput', 'privateValue', 'documentsInput', 'documentsValue')) {
+    foreach ($proxyName in @('privateInput', 'privateValue', 'documentsInput', 'documentsValue', 'appInput', 'appValue')) {
         Set-Variable -Scope Script -Name $proxyName -Value $null
     }
     [GC]::Collect()
@@ -223,7 +227,9 @@ function Stop-Desktop {
                 }
                 $known[$processId] = $birth
                 $depths[$processId] = $depths[$parentId] + 1
-                $children.Add([pscustomobject]@{ Process = $capturedChild; Handle = $handle; Id = $processId; Depth = $depths[$processId] })
+                $protected = $record.Name -in @('Code.exe','EXCEL.EXE','WINWORD.EXE') -or
+                    @($children | Where-Object { $_.Id -eq $parentId -and $_.Protected }).Count -gt 0
+                $children.Add([pscustomobject]@{ Process = $capturedChild; Handle = $handle; Id = $processId; Depth = $depths[$processId]; Protected = $protected })
                 [IO.File]::AppendAllText((Join-Path $fixture.FullName 'actions.txt'), "Captured test descendant $processId $($record.Name) $($birth.ToString('o'))`n")
                 $added = $true
             } catch { if ($capturedChild) { $capturedChild.Dispose() } }
@@ -234,6 +240,12 @@ function Stop-Desktop {
         # Terminate leaves before their browser/host parents. Keep the pinned
         # handles, identity checks and mandatory exit checks; never kill by name.
         foreach ($child in ($children | Sort-Object Depth -Descending)) {
+            if ($child.Protected) {
+                if (![CustodianFixtureProcess]::Exited($child.Handle, 0)) {
+                    $cleanupErrors.Add("Task application $($child.Id) was preserved for normal close; application cleanup is not proved.")
+                }
+                continue
+            }
             try { [CustodianFixtureProcess]::Terminate($child.Handle) }
             catch { $cleanupErrors.Add("Could not terminate captured descendant $($child.Id): $_") }
         }
@@ -254,6 +266,157 @@ function Stop-Desktop {
 
 try {
     Start-Desktop 'first'
+    if ($AppTasksOnly) {
+        if ($ApplicationRuns -lt 1 -or $ApplicationRuns -gt 5) { throw 'Use one to five fresh application runs.' }
+        if (!$WorkbookFixture -or !(Test-Path -LiteralPath $WorkbookFixture -PathType Leaf)) { throw 'An explicit synthetic workbook fixture is required.' }
+        # Separate the recorded CPU model cold start from application timings.
+        # Do not run this acceptance sequence alongside builds or installer compression.
+        Wait-For {
+            $runtimeLog = Join-Path $fixture.FullName 'first.stderr.log'
+            (Test-Path -LiteralPath $runtimeLog) -and
+                (Get-Content -LiteralPath $runtimeLog -Raw) -match 'model ready'
+        } 'packaged local model ready before application acceptance' 240 | Out-Null
+        $attempts = [Collections.Generic.List[object]]::new()
+        foreach ($role in @('editor','excel')) {
+            for ($run = 1; $run -le $ApplicationRuns; $run++) {
+                $inputFile = Join-Path $sourceFolder ("app-$role-$run." + $(if ($role -eq 'editor') { 'txt' } else { 'xlsx' }))
+                $outputFile = Join-Path $DestinationRoot (Split-Path $inputFile -Leaf)
+                if ($role -eq 'editor') {
+                    [IO.File]::WriteAllText($inputFile, "Heading`n$([char]::ConvertFromUtf32(0x1f600))First line`nSecond line`n", [Text.UTF8Encoding]::new($false))
+                    $request = 'Replace "First line" with "Revised line" in "' + $inputFile + '" and save as "' + $outputFile + '"'
+                } else {
+                    Copy-Item -LiteralPath $WorkbookFixture -Destination $inputFile
+                    $request = 'Set cells in "' + $inputFile + '" to "A1=12; B1=text:=RUN()" and save as "' + $outputFile + '"'
+                }
+                $sourceHash = (Get-FileHash -LiteralPath $inputFile -Algorithm SHA256).Hash
+                $clock = [Diagnostics.Stopwatch]::StartNew()
+                Send-Message $request
+                Wait-For { Find-Control 'Run task' ([Windows.Automation.ControlType]::Button) } "$role task approval" 60 | Out-Null
+                if (Test-Path -LiteralPath $outputFile) { throw 'Application output existed before task approval.' }
+                Click-Control 'Run task'
+                $completionPattern = '(?m)^Output: [^\r\n]*' + [regex]::Escape((Split-Path $outputFile -Leaf)) + '$'
+                Wait-For {
+                    (Test-Path -LiteralPath $outputFile) -and
+                    !(Find-Control 'Run task' ([Windows.Automation.ControlType]::Button)) -and
+                    (Read-DesktopText) -cmatch $completionPattern
+                } "$role saved output and completion" 120 | Out-Null
+                if ((Get-FileHash -LiteralPath $inputFile -Algorithm SHA256).Hash -ne $sourceHash) { throw 'Application task altered its original input.' }
+                if ($role -eq 'editor' -and [IO.File]::ReadAllText($outputFile) -cne "Heading`n$([char]::ConvertFromUtf32(0x1f600))Revised line`nSecond line`n") { throw 'Published editor bytes differ.' }
+                Send-Message 'undo'
+                Wait-For { !(Test-Path -LiteralPath $outputFile) } "$role verified publication undo" 30 | Out-Null
+                if ((Get-FileHash -LiteralPath $inputFile -Algorithm SHA256).Hash -ne $sourceHash) { throw 'Undo altered the original application input.' }
+                $attempts.Add([pscustomobject]@{ role=$role; run=$run; passed=$true; milliseconds=$clock.ElapsedMilliseconds; retries=0; approvalCount=1; originalPreserved=$true; publicationUndone=$true })
+                $attempts | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $fixture.FullName 'application-attempts.json')
+                $steps.Add("Real $role run $run verified its output, normal application close, original preservation and publication undo.")
+            }
+        }
+        Stop-Desktop
+        Start-Desktop 'app-tasks-restarted'
+        $inspection = Find-Control 'Inspect application recovery' ([Windows.Automation.ControlType]::Button)
+        if (!$inspection) { throw 'Application task recovery controls did not survive restart.' }
+        $inspection.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
+        Wait-For { (Read-DesktopText) -match 'Application recovery inspection' } 'read-only application reconciliation after restart' | Out-Null
+        $steps.Add('Native application task evidence survived desktop restart and was reconciled without replay.')
+        # Product-route refusals use synthetic files only, after the repeated core runs.
+        $changedInput = Join-Path $sourceFolder 'app-changed-after-preview.txt'
+        $changedOutput = Join-Path $DestinationRoot 'app-changed-after-preview.txt'
+        [IO.File]::WriteAllText($changedInput, "Heading`nFirst line`nSecond line`n")
+        Send-Message ('Replace "First line" with "Revised line" in "' + $changedInput + '" and save as "' + $changedOutput + '"')
+        Wait-For { Find-Control 'Run task' ([Windows.Automation.ControlType]::Button) } 'application preview for changed source' | Out-Null
+        [IO.File]::WriteAllText($changedInput, "Later user edit: preserve exactly.`n")
+        Click-Control 'Run task'
+        Wait-For { (Read-DesktopText) -match 'Application file state or journal changed' } 'changed source refused before app launch' | Out-Null
+        if ((Test-Path -LiteralPath $changedOutput) -or [IO.File]::ReadAllText($changedInput) -cne "Later user edit: preserve exactly.`n") { throw 'Changed-source refusal did not preserve current work.' }
+        $steps.Add('Packaged application approval rejected a changed source and preserved the later user edit without publication.')
+
+        $privateExe = $null
+        foreach ($hive in @('HKEY_CURRENT_USER','HKEY_LOCAL_MACHINE')) {
+            $key = "Registry::$hive\Software\Microsoft\Windows\CurrentVersion\App Paths\Code.exe"
+            if (Test-Path -LiteralPath $key) { $privateExe = (Get-ItemProperty -LiteralPath $key).'(default)'; if ($privateExe) { break } }
+        }
+        if (!$privateExe) { throw 'Qualified editor path unavailable for private-app acceptance.' }
+        $privateExe = $privateExe.Trim('"')
+        $canaryText = 'PRIVATE APP CANARY: never observe, log, capture or send to a model.'
+        $privateInput = Join-Path $sourceFolder 'app-private-canary.txt'
+        $privateOutput = Join-Path $DestinationRoot 'app-private-canary.txt'
+        [IO.File]::WriteAllText($privateInput, $canaryText)
+        $privateHash = (Get-FileHash -LiteralPath $privateInput -Algorithm SHA256).Hash
+        Click-Control 'Privacy and capabilities'
+        $appInput = Wait-For { Find-Control 'Private application executable path' ([Windows.Automation.ControlType]::Edit) } 'private-app setting'
+        $appInput.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern).SetValue($privateExe)
+        Click-Control 'Add application'
+        Click-Control 'Save application exclusions'
+        Wait-For { (Read-DesktopText) -match 'Application exclusions saved' } 'persisted real editor exclusion' | Out-Null
+        Send-Message ('Replace "First line" with "Revised line" in "' + $privateInput + '" and save as "' + $privateOutput + '"')
+        Wait-For { (Read-DesktopText) -match 'Application or bound document is private' } 'private app refused before source content admission' | Out-Null
+        if ((Find-Control 'Run task' ([Windows.Automation.ControlType]::Button)) -or (Test-Path -LiteralPath $privateOutput) -or (Read-DesktopText).Contains($canaryText)) { throw 'Private application admission failed.' }
+        if ((Get-FileHash -LiteralPath $privateInput -Algorithm SHA256).Hash -ne $privateHash) { throw 'Private source changed.' }
+        Click-Control ("Remove private application " + $privateExe.ToLowerInvariant())
+        Click-Control 'Save application exclusions'
+        Wait-For { (Read-DesktopText) -match 'Application exclusions saved' } 'restored fixture app policy' | Out-Null
+        $steps.Add('Packaged desktop denied the real private editor before content inspection; canary absent from UI and original preserved.')
+        $steps | ForEach-Object { Write-Output "PASS: $_" }
+        return
+    }
+    if ($AppPrivacyOnly) {
+        $privateExecutable = 'C:\Custodian Privacy Fixture\private-editor.exe'
+        $normalizedExecutable = $privateExecutable.ToLowerInvariant()
+        Send-Message 'How much free space?'
+        Wait-For { (Read-DesktopText) -match "Here.s your storage" } 'pre-change conversation' | Out-Null
+        Click-Control 'Privacy and capabilities'
+        $appInput = Wait-For {
+            $candidate = Find-Control 'Private application executable path' ([Windows.Automation.ControlType]::Edit)
+            if ($candidate -and $candidate.Current.IsEnabled) { $candidate }
+        } 'loaded application privacy input'
+        $appValue = $appInput.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern)
+        $appValue.SetValue($privateExecutable)
+        Click-Control 'Add application'
+        Click-Control 'Save application exclusions'
+        Wait-For { (Read-DesktopText) -match 'Application exclusions saved' } 'saved app exclusions' | Out-Null
+        if ((Read-DesktopText) -match "Here.s your storage") { throw 'Previous conversation survived app privacy change.' }
+        $policyPath = Join-Path $fixture.FullName 'app-data/app-privacy.dpapi'
+        if (!(Test-Path -LiteralPath $policyPath)) { throw 'Desktop did not persist application privacy.' }
+        $sealed = [IO.File]::ReadAllBytes($policyPath)
+        if ([Text.Encoding]::UTF8.GetString($sealed).Contains('private-editor.exe')) { throw 'Private executable stored as plaintext.' }
+        $steps.Add('Native application privacy controls saved an encrypted exclusion without launching or inspecting an application.')
+        Stop-Desktop
+        Start-Desktop 'app-privacy-restarted'
+        Click-Control 'Privacy and capabilities'
+        Wait-For { Find-Control "Remove private application $normalizedExecutable" ([Windows.Automation.ControlType]::Button) } 'persisted app exclusion after restart' | Out-Null
+        $steps.Add('Application exclusion survived a real desktop process restart.')
+        $appInput = Wait-For {
+            $candidate = Find-Control 'Private application executable path' ([Windows.Automation.ControlType]::Edit)
+            if ($candidate -and $candidate.Current.IsEnabled) { $candidate }
+        } 'reloaded app privacy input'
+        $appValue = $appInput.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern)
+        $appValue.SetValue('relative.exe')
+        Click-Control 'Add application'
+        $priorPolicyHash = (Get-FileHash -LiteralPath $policyPath -Algorithm SHA256).Hash
+        Click-Control 'Save application exclusions'
+        Wait-For { (Read-DesktopText) -match 'Application rules could not be saved' } 'malformed app exclusion refusal' | Out-Null
+        if ((Get-FileHash -LiteralPath $policyPath -Algorithm SHA256).Hash -ne $priorPolicyHash) { throw 'Malformed app rule changed saved policy.' }
+        Click-Control 'Privacy and capabilities'
+        Click-Control 'Privacy and capabilities'
+        Wait-For { Find-Control "Remove private application $normalizedExecutable" ([Windows.Automation.ControlType]::Button) } 'last saved app policy after failed update' | Out-Null
+        if (Find-Control 'Remove private application relative.exe' ([Windows.Automation.ControlType]::Button)) { throw 'Invalid app rule survived reload.' }
+        $steps.Add('Malformed application exclusion was refused and reloading restored the unchanged saved rules.')
+        Click-Control "Remove private application $normalizedExecutable"
+        Click-Control 'Save application exclusions'
+        Wait-For { (Read-DesktopText) -match 'Application exclusions saved' } 'saved app exclusion removal' | Out-Null
+        Stop-Desktop
+        Start-Desktop 'app-privacy-removed'
+        Click-Control 'Privacy and capabilities'
+        Wait-For {
+            $candidate = Find-Control 'Private application executable path' ([Windows.Automation.ControlType]::Edit)
+            $candidate -and $candidate.Current.IsEnabled
+        } 'app privacy loaded after removal restart' | Out-Null
+        if (Find-Control "Remove private application $normalizedExecutable" ([Windows.Automation.ControlType]::Button)) { throw 'Removed app exclusion reappeared after restart.' }
+        if ((Read-DesktopText) -notmatch 'Screen capture and general app reading remain disabled') { throw 'UI omitted the current app-control limitation.' }
+        $steps.Add('Removing an app exclusion persisted through a second restart; the UI reports the qualified document boundary and disabled general observation.')
+        $steps | ForEach-Object { Write-Output "PASS: $_" }
+        Write-Output "Fixture preserved at $($fixture.FullName)"
+        return
+    }
     if ($CheckAuthority) {
         $duplicate = Start-Process -FilePath $Executable -WindowStyle Hidden -PassThru `
             -RedirectStandardOutput (Join-Path $fixture.FullName 'duplicate.stdout.log') `

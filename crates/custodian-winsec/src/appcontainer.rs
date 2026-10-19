@@ -89,7 +89,7 @@ fn environment_block(vars: &[(&str, &OsStr)]) -> Vec<u16> {
     block
 }
 
-pub use imp::{Contained, Sandbox};
+pub use imp::{spawn_trusted_worker, Contained, Sandbox};
 
 #[allow(unsafe_code)]
 mod imp {
@@ -102,7 +102,8 @@ mod imp {
     use std::path::{Path, PathBuf};
     use std::ptr::{null, null_mut};
     use windows_sys::Win32::Foundation::{
-        CloseHandle, LocalFree, SetHandleInformation, HANDLE, HANDLE_FLAG_INHERIT,
+        CloseHandle, LocalFree, SetHandleInformation, HANDLE, HANDLE_FLAG_INHERIT, WAIT_OBJECT_0,
+        WAIT_TIMEOUT,
     };
     use windows_sys::Win32::Security::Authorization::{
         GetNamedSecurityInfoW, SetEntriesInAclW, SetNamedSecurityInfoW, EXPLICIT_ACCESS_W,
@@ -123,10 +124,11 @@ mod imp {
     use windows_sys::Win32::System::Threading::UpdateProcThreadAttribute;
     use windows_sys::Win32::System::Threading::{
         CreateProcessW, DeleteProcThreadAttributeList, GetExitCodeProcess,
-        InitializeProcThreadAttributeList, ResumeThread, TerminateProcess, CREATE_NO_WINDOW,
-        CREATE_SUSPENDED, CREATE_UNICODE_ENVIRONMENT, EXTENDED_STARTUPINFO_PRESENT,
-        LPPROC_THREAD_ATTRIBUTE_LIST, PROCESS_INFORMATION, PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
-        PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES, STARTF_USESTDHANDLES, STARTUPINFOEXW,
+        InitializeProcThreadAttributeList, ResumeThread, TerminateProcess, WaitForSingleObject,
+        CREATE_NO_WINDOW, CREATE_SUSPENDED, CREATE_UNICODE_ENVIRONMENT,
+        EXTENDED_STARTUPINFO_PRESENT, LPPROC_THREAD_ATTRIBUTE_LIST, PROCESS_INFORMATION,
+        PROC_THREAD_ATTRIBUTE_HANDLE_LIST, PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES,
+        STARTF_USESTDHANDLES, STARTUPINFOEXW,
     };
 
     /// Variables Windows redirects to the container's folder at start-up.
@@ -145,7 +147,6 @@ mod imp {
     /// `HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)`: the profile exists.
     const ALREADY_EXISTS: i32 = 0x8007_00B7_u32 as i32;
     /// The exit code of a process still running.
-    const STILL_ACTIVE: u32 = 259;
     /// `ACCESS_ALLOWED_ACE_TYPE`.
     const ACCESS_ALLOWED: u8 = 0;
 
@@ -397,12 +398,22 @@ mod imp {
             env: &[(&str, &OsStr)],
             cwd: Option<&Path>,
         ) -> io::Result<Contained> {
+            Self::spawn_impl(Some(self.sid), program, args, env, cwd)
+        }
+
+        fn spawn_impl(
+            sid: Option<PSID>,
+            program: &Path,
+            args: &[&OsStr],
+            env: &[(&str, &OsStr)],
+            cwd: Option<&Path>,
+        ) -> io::Result<Contained> {
             let (child_in, our_in) = pipe(true)?;
             let (child_out, our_out) = pipe(false)?;
             let (child_err, our_err) = pipe(false)?;
 
             let mut capabilities = SECURITY_CAPABILITIES {
-                AppContainerSid: self.sid,
+                AppContainerSid: sid.unwrap_or(null_mut()),
                 Capabilities: null_mut(),
                 CapabilityCount: 0,
                 Reserved: 0,
@@ -411,11 +422,25 @@ mod imp {
 
             let mut size = 0usize;
             // SAFETY: a null list asks for the size needed for 2 attributes.
-            unsafe { InitializeProcThreadAttributeList(null_mut(), 2, 0, &mut size) };
+            unsafe {
+                InitializeProcThreadAttributeList(
+                    null_mut(),
+                    if sid.is_some() { 2 } else { 1 },
+                    0,
+                    &mut size,
+                )
+            };
             let mut buffer = vec![0usize; size.div_ceil(std::mem::size_of::<usize>()).max(1)];
             let list = buffer.as_mut_ptr() as LPPROC_THREAD_ATTRIBUTE_LIST;
             // SAFETY: `buffer` is at least `size` bytes and suitably aligned.
-            let ok = unsafe { InitializeProcThreadAttributeList(list, 2, 0, &mut size) };
+            let ok = unsafe {
+                InitializeProcThreadAttributeList(
+                    list,
+                    if sid.is_some() { 2 } else { 1 },
+                    0,
+                    &mut size,
+                )
+            };
             step("InitializeProcThreadAttributeList", check(ok))?;
             struct List(LPPROC_THREAD_ATTRIBUTE_LIST);
             impl Drop for List {
@@ -425,20 +450,22 @@ mod imp {
                 }
             }
             let _list = List(list);
-            // SAFETY: `capabilities` outlives CreateProcessW below, and its
-            // exact size is passed.
-            let ok = unsafe {
-                UpdateProcThreadAttribute(
-                    list,
-                    0,
-                    PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES as usize,
-                    (&mut capabilities as *mut SECURITY_CAPABILITIES).cast(),
-                    std::mem::size_of::<SECURITY_CAPABILITIES>(),
-                    null_mut(),
-                    null(),
-                )
-            };
-            step("UpdateProcThreadAttribute(capabilities)", check(ok))?;
+            if sid.is_some() {
+                // SAFETY: `capabilities` outlives CreateProcessW below, and its
+                // exact size is passed.
+                let ok = unsafe {
+                    UpdateProcThreadAttribute(
+                        list,
+                        0,
+                        PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES as usize,
+                        (&mut capabilities as *mut SECURITY_CAPABILITIES).cast(),
+                        std::mem::size_of::<SECURITY_CAPABILITIES>(),
+                        null_mut(),
+                        null(),
+                    )
+                };
+                step("UpdateProcThreadAttribute(capabilities)", check(ok))?;
+            }
             // SAFETY: `inherited` outlives CreateProcessW below, and its
             // exact size is passed.
             let ok = unsafe {
@@ -467,7 +494,9 @@ mod imp {
             // starts the program, and refuses to start it without them.
             let profile: Vec<(&str, std::ffi::OsString)> = PROFILE_VARIABLES
                 .iter()
-                .filter(|name| !env.iter().any(|(k, _)| k.eq_ignore_ascii_case(name)))
+                .filter(|name| {
+                    sid.is_some() && !env.iter().any(|(k, _)| k.eq_ignore_ascii_case(name))
+                })
                 .filter_map(|name| Some((*name, std::env::var_os(name)?)))
                 .collect();
             let mut all: Vec<(&str, &OsStr)> = env.to_vec();
@@ -527,6 +556,18 @@ mod imp {
         }
     }
 
+    /// Trusted native worker, NOT an AppContainer/security sandbox. Starts
+    /// suspended with only three inherited pipe handles and explicit environment.
+    /// Caller must assign a resource Job before resume. Never expose program/args
+    /// to model requests or use this to launch a user's application.
+    pub fn spawn_trusted_worker(
+        program: &Path,
+        env: &[(&str, &OsStr)],
+        cwd: Option<&Path>,
+    ) -> io::Result<Contained> {
+        Sandbox::spawn_impl(None, program, &[], env, cwd)
+    }
+
     impl Drop for Sandbox {
         fn drop(&mut self) {
             if !self.sid.is_null() {
@@ -566,10 +607,18 @@ mod imp {
 
         /// The exit code, or `None` while it runs.
         pub fn try_wait(&self) -> io::Result<Option<u32>> {
+            // A readable process object/exit code is not a substitute for the
+            // kernel termination signal. Exit code 259 can itself be legitimate.
+            // SAFETY: the owned process handle is live and zero never blocks.
+            match unsafe { WaitForSingleObject(self.process as HANDLE, 0) } {
+                WAIT_TIMEOUT => return Ok(None),
+                WAIT_OBJECT_0 => {}
+                _ => return Err(io::Error::last_os_error()),
+            }
             let mut code = 0u32;
             // SAFETY: the process handle is open while `self` lives.
             check(unsafe { GetExitCodeProcess(self.process as HANDLE, &mut code) })?;
-            Ok((code != STILL_ACTIVE).then_some(code))
+            Ok(Some(code))
         }
 
         /// Waits up to `limit` for the program to end; its exit code if it did.

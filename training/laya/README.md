@@ -14,7 +14,7 @@ not independent held-out validation. The evaluator reports every miss and
 abstention; a successful run means inference completed, not deployment approved.
 No calibrated threshold or standing permission is enabled by this prototype.
 
-The [first real CPU findings](../../docs/LAYA-VALIDATION-IMPLEMENTATION-2026-10-17.md)
+The [first real CPU findings](../../docs/verification/LAYA-VALIDATION-IMPLEMENTATION-2026-10-17.md)
 include substantial classification misses and latency/memory above the proposed
 targets. Keep this candidate disconnected from production authority.
 

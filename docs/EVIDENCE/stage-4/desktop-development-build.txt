@@ -1,0 +1,6 @@
+   Compiling custodian-winsec v0.1.0 (D:\Custodian\crates\custodian-winsec)
+   Compiling custodian-approval v0.1.0 (D:\Custodian\crates\custodian-approval)
+   Compiling custodian-ledger v0.1.0 (D:\Custodian\crates\custodian-ledger)
+   Compiling custodian-core v0.1.0 (D:\Custodian\crates\custodian-core)
+   Compiling custodian-desktop v0.1.0 (D:\Custodian\apps\desktop\src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 32s

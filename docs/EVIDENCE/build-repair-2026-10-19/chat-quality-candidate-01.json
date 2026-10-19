@@ -1,0 +1,156 @@
+{
+  "caseSha256": "e6990ffc39851865b18b7cba6048b3c966a1d3e25d16789eda8d25406ce39305",
+  "modelSha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+  "agentSha256": "c018a8bcc05f5a6e5ad49add2ea53544d403622afc846c92c4d96eb27c2f4dba",
+  "condition": "Direct-engine diagnostic inference, no host PC tool executor; author-written regression, not sandbox/installation acceptance. Regex checks require human interpretation of recorded answers.",
+  "loadMs": 28937,
+  "rows": [
+    {
+      "id": "Q01",
+      "repetition": 1,
+      "prompt": "Reply with one short sentence: what is a duplicate file?",
+      "answer": "A duplicate file is an exact copy of another file, even if their names or locations differ.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 32048
+    },
+    {
+      "id": "Q02",
+      "repetition": 1,
+      "prompt": "Explain whether changing a file's name changes the bytes stored inside it.",
+      "answer": "Changing a file's name does not alter the bytes stored inside it. The file's content remains the same; only the file's identity changes.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 5397
+    },
+    {
+      "id": "Q03",
+      "repetition": 1,
+      "prompt": "Explain whether two files having the same size proves their contents are identical.",
+      "answer": "Two files having the same size does not prove their contents are identical. They could be identical, but they could also be different. Size alone does not determine the content of the files.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 6269
+    },
+    {
+      "id": "Q04",
+      "repetition": 1,
+      "prompt": "Explain whether renaming a PNG file to end in .jpg converts its image encoding.",
+      "answer": "Renaming a PNG file to end in .jpg does not convert its image encoding. PNG and JPG are different file formats with different image encodings. PNG is used for images that are not too large, while JPG is better for images that are larger. JPG uses a lossy compression method, which means some image data is removed to reduce file size, while PNG uses a lossless compression method, which means no image data is removed. So, changing the file extension from PNG to JPG does not change the image encoding.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 15295
+    },
+    {
+      "id": "Q05",
+      "repetition": 1,
+      "prompt": "Define the difference between copying a file and moving a file.",
+      "answer": "Copying a file creates a duplicate of the original, while moving a file moves the original to a new location without creating a duplicate.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 4493
+    },
+    {
+      "id": "Q06",
+      "repetition": 1,
+      "prompt": "Explain whether compressing a folder by itself guarantees that a backup can be restored.",
+      "answer": "Yes, compressing a folder by itself can guarantee that a backup can be restored. When you compress a folder, you create a smaller, more compact version of the folder, which can be stored on a different device or saved to a cloud service. If you restore the compressed folder, the original folder will be recreated, ensuring that all the files and their contents are intact and ready for use.",
+      "toolCalls": [],
+      "passed": false,
+      "elapsedMs": 10907
+    },
+    {
+      "id": "Q07",
+      "repetition": 1,
+      "prompt": "Explain whether a spreadsheet formula and its cached calculated value are always equally up to date.",
+      "answer": "A spreadsheet formula and its cached calculated value are not always equally up to date. The cached value is typically based on the last time the formula was recalculated, which may not be the most recent or current state of the data.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 20368
+    },
+    {
+      "id": "Q08",
+      "repetition": 1,
+      "prompt": "Explain whether a cryptographic file hash proves who created the file.",
+      "answer": "A cryptographic file hash, also known as a checksum, is a unique string of characters that represents the content of a file. It is computed using a hashing algorithm, which is designed to be deterministic, meaning the same input will always produce the same output. This property makes it possible to verify the integrity of a file by comparing its hash to a known good hash.\n\nHowever, a hash alone does not prove who created the file. The creator's identity is not encoded in the hash; it is simply a representation of the file's content. To determine who created the file, additional information such as the file's metadata (like creation date, author, and description) would be needed. The hash can be used to verify the file's integrity and authenticity, but it cannot confirm the file's origin.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 23249
+    },
+    {
+      "id": "Q01",
+      "repetition": 2,
+      "prompt": "Reply with one short sentence: what is a duplicate file?",
+      "answer": "A duplicate file is an exact copy of another file, even if their names or locations differ.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 4516
+    },
+    {
+      "id": "Q02",
+      "repetition": 2,
+      "prompt": "Explain whether changing a file's name changes the bytes stored inside it.",
+      "answer": "Changing a file's name does not alter the bytes stored inside it. The file's content remains the same, but its reference in the directory changes.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 5372
+    },
+    {
+      "id": "Q03",
+      "repetition": 2,
+      "prompt": "Explain whether two files having the same size proves their contents are identical.",
+      "answer": "Two files having the same size does not prove their contents are identical. They could be identical, but they could also be different. Size alone does not determine the content of the files.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 5605
+    },
+    {
+      "id": "Q04",
+      "repetition": 2,
+      "prompt": "Explain whether renaming a PNG file to end in .jpg converts its image encoding.",
+      "answer": "No, renaming a PNG file to end in .jpg does not convert its image encoding. PNG and JPG are different file formats with different image encodings. PNG is used for lossless compression, while JPG is used for lossy compression. Changing the file extension from PNG to JPG will not alter the image's encoding or quality.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 12420
+    },
+    {
+      "id": "Q05",
+      "repetition": 2,
+      "prompt": "Define the difference between copying a file and moving a file.",
+      "answer": "Copying a file creates a duplicate of the original, while moving a file changes the location of the original.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 3521
+    },
+    {
+      "id": "Q06",
+      "repetition": 2,
+      "prompt": "Explain whether compressing a folder by itself guarantees that a backup can be restored.",
+      "answer": "Yes, compressing a folder by itself can help in creating a backup, but it doesn't guarantee that the backup can be restored. The compression process reduces the size of the folder, but it doesn't ensure that the original data is preserved or that the backup can be accurately restored. Additional steps, such as using a reliable backup software or ensuring the backup is stored in a secure location, are necessary for a successful restoration.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 12207
+    },
+    {
+      "id": "Q07",
+      "repetition": 2,
+      "prompt": "Explain whether a spreadsheet formula and its cached calculated value are always equally up to date.",
+      "answer": "A spreadsheet formula and its cached calculated value are not always equally up to date. The cached value is typically based on the last time the formula was recalculated, which may not be the most recent or current state of the data.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 23161
+    },
+    {
+      "id": "Q08",
+      "repetition": 2,
+      "prompt": "Explain whether a cryptographic file hash proves who created the file.",
+      "answer": "A cryptographic file hash, also known as a checksum, is a unique string of characters that represents the content of a file. It is computed using a hashing algorithm, which is designed to be deterministic, meaning the same input will always produce the same output. This property makes it possible to verify the integrity of a file by comparing its hash to a known good hash.\n\nHowever, a hash alone does not prove who created the file. The creator's identity is not encoded in the hash; it is simply a representation of the file's content. To determine who created the file, additional information such as the file's metadata (like creation date, author, and description) would be needed. The hash can be used to verify the file's integrity and authenticity, but it cannot confirm the file's origin.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 28544
+    }
+  ],
+  "passed": 15,
+  "expected": 16,
+  "gatePassed": false
+}

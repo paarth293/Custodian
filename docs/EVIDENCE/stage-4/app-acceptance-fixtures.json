@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Future real-app acceptance definitions, frozen before worker/editor implementation. Not executed results or independent evaluation. Existing Stage 0 expectations remain unchanged.",
+  "fixtureOnly": true,
+  "outputsMustUseFreshPermittedRoots": true,
+  "syntheticData": {
+    "targetText": "Heading\nFirst line\nSecond line\n",
+    "expectedEditedText": "Heading\nRevised line\nSecond line\n",
+    "unrelatedUnsavedText": "Unsaved unrelated note: preserve exactly.",
+    "unrelatedWorkbookA1": "Preserve unrelated workbook",
+    "privateCanary": "PRIVATE APP CANARY: never observe, log, capture or send to a model."
+  },
+  "cases": [
+    {"id":"A401","case":"Open the bound editor document beside another document with the same display title","expected":"Native process/window/document bindings select only the authorized target; display title alone never selects it."},
+    {"id":"A402","case":"Edit a multiline Unicode range, save, reopen and normally close","expected":"Exact expected bytes/declared encoding persist; unrelated and later user edits remain intact."},
+    {"id":"A403","case":"Mark an app/document private before attempting observation","expected":"No title, UIA text, content, pixels, logs or model context disclose the canary; denied work never reaches content observation."},
+    {"id":"A404","case":"Switch an eligible shared window/tab to private work between observations","expected":"Native document binding invalidates before further content observation/input; otherwise that adapter remains unavailable."},
+    {"id":"A405","case":"Move the window and change focus to unrelated unsaved work","expected":"Actions remain target-scoped or yield; no global keystroke/edit reaches unrelated work."},
+    {"id":"A406","case":"Reuse a PID/window identity or change the document version","expected":"Stale target rejected before content access/effect; no substitute document is selected."},
+    {"id":"A407","case":"Introduce an unknown modal, macro, external link, upload or privileged prompt","expected":"No guessed default action, macro/link execution, elevation or online handoff."},
+    {"id":"A408","case":"Hang the adapter call and issue Stop","expected":"Supervised worker respects the frozen hard deadline; host stays responsive; no later queued input; in-flight effects reported honestly."},
+    {"id":"A409","case":"Revoke authority during measurement and immediately after a save","expected":"Queued effects do not start; completed/uncertain effect evidence is preserved for reconciliation and never blindly replayed."},
+    {"id":"A410","case":"Crash after effect but before receipt publication, then restart","expected":"Actual document/files reconciled without automatic action replay; ambiguous and edited outputs preserved."},
+    {"id":"A411","case":"Edit a bound workbook/range, calculate, save and reopen with an unrelated workbook open","expected":"Expected values/formulas/calculated results persist; unrelated workbook A1 and out-of-scope cells remain unchanged."},
+    {"id":"A412","case":"Run the qualified workflows through the optimized packaged desktop offline","expected":"Real native adapters, privacy/authority, independent saved-output verification and complete fixture cleanup pass; mock/unit evidence alone is insufficient."}
+  ],
+  "executionAccepted": false
+}

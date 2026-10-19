@@ -16,8 +16,8 @@ const fail = (message) => {
 };
 const write = (name, value) =>
   fs.writeFileSync(path.join(root, name), `${JSON.stringify(value, null, 2)}\n`);
-const register = read('docs/CAPABILITY-REGISTER.json');
-const fixtures = read('docs/STAGE-0-ACCEPTANCE-FIXTURES.json');
+const register = read('docs/reference/CAPABILITY-REGISTER.json');
+const fixtures = read('docs/reference/STAGE-0-ACCEPTANCE-FIXTURES.json');
 const lockPath = 'docs/EVIDENCE/stage-0/acceptance-lock.json';
 const rows = register.requirements;
 const ids = new Set();
@@ -149,18 +149,18 @@ const lines = [
     '',
     route.trace,
     '',
-    ...route.sources.map((name) => `- [${name}](../${name})`),
+    ...route.sources.map((name) => `- [${name}](../../${name})`),
     '',
   ]),
   '## Frozen acceptance tasks',
   '',
   `Each of the ${rows.length} requirements has a task and expected result in the canonical JSON.`,
   `The [fixture specification](STAGE-0-ACCEPTANCE-FIXTURES.json) contains ${fixtures.cases.length} representative authored cases with fixed source text and expected effects.`,
-  'Their [acceptance lock](EVIDENCE/stage-0/acceptance-lock.json) detects expectation changes; none of these specifications is automatically labelled an executed result.',
+  'Their [acceptance lock](../EVIDENCE/stage-0/acceptance-lock.json) detects expectation changes; none of these specifications is automatically labelled an executed result.',
   '',
 ];
-const rendered = `${lines.join('\n')}\n`;
-const renderedPath = path.join(root, 'docs/CAPABILITY-REGISTER.md');
+const rendered = `${lines.join('\n').trimEnd()}\n`;
+const renderedPath = path.join(root, 'docs/reference/CAPABILITY-REGISTER.md');
 if (process.argv.includes('--render')) fs.writeFileSync(renderedPath, rendered);
 else if (!fs.existsSync(renderedPath) || fs.readFileSync(renderedPath, 'utf8') !== rendered)
   fail('Human-readable register is stale; regenerate with --render.');
@@ -204,9 +204,9 @@ if (process.argv.includes('--capture') || captureArgument) {
   );
   sourcePaths.forEach((name) => selected.add(name));
   for (const name of [
-    'docs/CAPABILITY-REGISTER.json',
-    'docs/STAGE-0-ACCEPTANCE-FIXTURES.json',
-    'docs/OFFLINE-EXECUTION-PLAN-2026-10-17.md',
+    'docs/reference/CAPABILITY-REGISTER.json',
+    'docs/reference/STAGE-0-ACCEPTANCE-FIXTURES.json',
+    'docs/plans/OFFLINE-EXECUTION-PLAN-2026-10-17.md',
   ])
     selected.add(name);
   let totalBytes = 0;

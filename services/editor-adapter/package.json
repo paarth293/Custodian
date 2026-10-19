@@ -1,0 +1,23 @@
+{
+  "name": "custodian-bound-editor",
+  "displayName": "Custodian Bound Document Adapter",
+  "publisher": "custodian-local",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "vscode": "1.140.0"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.cjs",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    },
+    "virtualWorkspaces": false
+  },
+  "scripts": {
+    "test": "node --test test/*.test.cjs"
+  }
+}

@@ -6,12 +6,13 @@
 
 mod actions;
 mod advice;
+mod app_tasks;
 mod apps;
 mod capability;
 mod file_ops;
 pub mod intent;
-mod launcher;
 mod language;
+mod launcher;
 pub mod privacy;
 mod references;
 mod reply;
@@ -134,7 +135,9 @@ enum PlanOutcome {
 pub struct AssistantState {
     routine: Arc<custodian_core::routine::RoutinePolicy>,
     privacy: Arc<custodian_core::privacy::AccessPolicy>,
+    app_privacy: custodian_core::app_authority::ApplicationAuthority,
     agent_policy_revision: std::sync::atomic::AtomicU64,
+    agent_app_policy_revision: std::sync::atomic::AtomicU64,
     plans: Mutex<HashMap<String, PendingPlan>>,
     agent: Mutex<Option<AgentProcess>>,
     /// When the agent was last started or asked something.
@@ -142,6 +145,7 @@ pub struct AssistantState {
     approvals: Mutex<Option<Arc<ApprovalService>>>,
     /// Model requests waiting for the person's click.
     actions: PendingActions,
+    app_tasks: app_tasks::Pending,
     /// Set by the Stop button; scans and the model check it and stop.
     cancel: AtomicBool,
     /// Stop invalidates requests which have not entered the worker pool yet.
@@ -199,6 +203,7 @@ impl AssistantState {
             .unwrap_or_else(|e| e.into_inner());
         self.request_epoch.fetch_add(1, Ordering::AcqRel);
         self.cancel.store(true, Ordering::Release);
+        self.app_tasks.clear();
         self.coordinator.cancel_all();
     }
     pub fn load(data_dir: &Path) -> Result<Self, String> {
@@ -207,6 +212,10 @@ impl AssistantState {
         )
         .map_err(|e| e.to_string())?;
         Ok(Self {
+            app_privacy: custodian_core::app_authority::ApplicationAuthority::open(
+                data_dir.join("app-privacy.dpapi"),
+            )
+            .map_err(str::to_string)?,
             routine: Arc::new(
                 custodian_core::routine::RoutinePolicy::open(data_dir.join("routine.dpapi"))
                     .map_err(|_| {
@@ -2596,11 +2605,20 @@ fn ask_model(app: &AppHandle, state: &AssistantState, message: &str, channel: Si
         };
     let mut agent = state.agent.lock().unwrap_or_else(|e| e.into_inner());
     let revision = state.privacy.revision();
-    if state.agent_policy_revision.load(Ordering::Acquire) != revision {
+    let app_revision = match state.app_privacy.settings() {
+        Ok(settings) => settings.revision,
+        Err(_) => return say(channel, "Application privacy rules could not be verified."),
+    };
+    if state.agent_policy_revision.load(Ordering::Acquire) != revision
+        || state.agent_app_policy_revision.load(Ordering::Acquire) != app_revision
+    {
         *agent = None;
         state
             .agent_policy_revision
             .store(revision, Ordering::Release);
+        state
+            .agent_app_policy_revision
+            .store(app_revision, Ordering::Release);
     }
     if cancel.load(Ordering::Relaxed) || !custodian_core::privacy::request_is_current() {
         state
@@ -2726,6 +2744,9 @@ fn respond(
         return say(channel, privacy::capability_text());
     }
     if routine::handle(app, state, message, channel, routine_revision) {
+        return;
+    }
+    if app_tasks::handle(app, state, message, channel) {
         return;
     }
     if workflow::handle(app, state, message, channel, routine_revision) {
@@ -2861,6 +2882,23 @@ pub fn list_active_tasks(
                 || task.execution.is_some()
         })
         .filter(|task| task_is_visible(&state.privacy, task))
+        .filter(|task| {
+            task.application.as_ref().is_none_or(|binding| {
+                binding.identity.as_ref().map_or_else(
+                    || {
+                        state
+                            .app_privacy
+                            .admit_document_source(&binding.executable, &binding.document_id)
+                            .is_ok()
+                    },
+                    |identity| {
+                        state
+                            .app_privacy
+                            .task_visible(identity, &binding.document_id)
+                    },
+                )
+            })
+        })
         .collect::<Vec<_>>();
     visible.sort_by_key(|task| {
         (
@@ -2935,6 +2973,15 @@ pub async fn decide_action(
             return Err(
                 "This approval was stopped or its privacy rules changed. Ask again.".into(),
             );
+        }
+        if action_id.starts_with("app-") {
+            return custodian_core::request::with_epoch(state.request_epoch.clone(), epoch, || {
+                custodian_core::privacy::with_policy_revision(
+                    state.privacy.clone(),
+                    revision,
+                    || app_tasks::decide(&app, &state, &action_id, allow),
+                )
+            });
         }
         let (call, file_plan) =
             custodian_core::privacy::with_policy_revision(state.privacy.clone(), revision, || {

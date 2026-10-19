@@ -1,0 +1,11 @@
+{
+  "purpose": "Read-only disposable environment discovery; not installation acceptance",
+  "edition": "CoreSingleLanguage",
+  "displayVersion": "26H2",
+  "build": "26300",
+  "windowsSandboxCommandAvailable": false,
+  "hyperVCommandAvailable": false,
+  "selectedEnvironment": "Full disposable Windows VM",
+  "guestDiscovered": false,
+  "installationAccepted": false
+}

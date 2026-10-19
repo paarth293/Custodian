@@ -223,7 +223,7 @@ Every step has:
 - **Never** run Custodian builds against your own Documents/Desktop while developing; use `npm run fixtures` (Step 7) and point Custodian at the generated fixture roots only (`--roots <fixture>`, dev builds only).
 
 ### Handling [VERIFY] items
-When a step depends on a **[VERIFY]** fact (an API name, a flag, OS behaviour), first write a **minimal spike** in `spikes/<name>/` that proves it on Windows 11. Record the result in `docs/VERIFY-LOG.md` (date, Windows build, outcome). If the fact is false, **update the Architecture document first** (and the register if a decision changes), then implement. Spikes are deleted after their result is captured (no dead code).
+When a step depends on a **[VERIFY]** fact (an API name, a flag, OS behaviour), first write a **minimal spike** in `spikes/<name>/` that proves it on Windows 11. Record the result in `docs/verification/VERIFY-LOG.md` (date, Windows build, outcome). If the fact is false, **update the Architecture document first** (and the register if a decision changes), then implement. Spikes are deleted after their result is captured (no dead code).
 
 ### Running the app during development
 After Step 32: `npm run dev` starts the Supervisor with the dev data directory `%LOCALAPPDATA%\Custodian-dev\` and fixture roots. After Step 166: the real installer. Every phase gate includes "start the app and see Cubby".
@@ -273,10 +273,10 @@ After Step 32: `npm run dev` starts the Supervisor with the dev data directory `
 - **Implements:** A-02.
 - **Do:**
   - Check the latest stable versions of Rust, Tauri 2, Node 24 LTS, Python 3.12, PostgreSQL 17, pgvector, TimescaleDB, the Temporal CLI, Mastra, node-llama-cpp, Playwright, onnxruntime, laya and tabpfn.
-  - Write `docs/VERSIONS.md` (name, version, licence, source URL, SHA-256 where a binary is downloaded).
+  - Write `docs/reference/VERSIONS.md` (name, version, licence, source URL, SHA-256 where a binary is downloaded).
   - Create `rust-toolchain.toml` and `.nvmrc`, and a `.python-version`.
 - **Don't:** install anything globally that the build will depend on implicitly.
-- **Verify:** `rustc --version`, `node --version` and `python --version` match the pins; `docs/VERSIONS.md` lists every A-02 item with a licence.
+- **Verify:** `rustc --version`, `node --version` and `python --version` match the pins; `docs/reference/VERSIONS.md` lists every A-02 item with a licence.
 - **Done when:** the pins are committed and a fresh clone builds the (empty) workspace.
 
 ### Step 2 — Create the repository skeleton
@@ -371,14 +371,14 @@ After Step 32: `npm run dev` starts the Supervisor with the dev data directory `
   2. Add an outbound **block** rule for `net-probe.exe` and `loop-probe.exe` by program path (`New-NetFirewallRule -Program … -Direction Outbound -Action Block`).
   3. Run both.
 - **Don't:** keep the spike code after recording.
-- **Verify:** `net-probe` fails to connect; `loop-probe` **succeeds** on loopback; record the results and the Windows build in `docs/VERIFY-LOG.md`.
+- **Verify:** `net-probe` fails to connect; `loop-probe` **succeeds** on loopback; record the results and the Windows build in `docs/verification/VERIFY-LOG.md`.
 - **Done when:** the log confirms both. If loopback is blocked, update A-26.3 to add loopback allow rules and re-test.
 
 ### Step 10 — Spike B: AppContainer + Node 24 + node-llama-cpp
 - **Goal:** prove the jailed agent can run an LLM.
 - **Implements:** WIN-03, WIN-04, A-11.1 (proof only).
 - **Do:** a spike launcher that creates the AppContainer profile `Custodian.SpikeAgent` (no capabilities), grants read on a spike folder containing `node.exe` (renamed `spike-agent.exe`), a script and a small GGUF model, and starts it with the Node permission flags from A-11.1. The script loads the model with node-llama-cpp (try CUDA, then Vulkan, then CPU), generates 20 tokens, then tries (a) reading `%USERPROFILE%\Desktop`, (b) an HTTP request, (c) spawning a child.
-- **Verify:** generation works (record the backend that worked); (a), (b) and (c) all fail; record in `docs/VERIFY-LOG.md`.
+- **Verify:** generation works (record the backend that worked); (a), (b) and (c) all fail; record in `docs/verification/VERIFY-LOG.md`.
 - **Done when:** the outcome is logged and A-11.1 is updated if the GPU fails (CPU fallback confirmed).
 
 ### Step 11 — Spike C: Windows Sandbox automation, Windows Hello, TPM key
@@ -389,7 +389,7 @@ After Step 32: `npm run dev` starts the Supervisor with the dev data directory `
   2. A tiny Tauri window calls `UserConsentVerifier.RequestVerificationForWindowAsync` with a custom message.
   3. Create a non-exportable key in the Microsoft Platform Crypto Provider and sign a hash.
 - **Verify:** all three succeed on Windows 11 Pro (record timings: Sandbox start time, Hello dialog shows the custom text, TPM signing works); on the Home VM, Windows Sandbox is unavailable and detection reports that cleanly.
-- **Done when:** `docs/VERIFY-LOG.md` has all results; any deviations are reflected in A-15/A-05.
+- **Done when:** `docs/verification/VERIFY-LOG.md` has all results; any deviations are reflected in A-15/A-05.
 
 ---
 
@@ -578,7 +578,7 @@ After Step 32: `npm run dev` starts the Supervisor with the dev data directory `
 ### Step 33 — Bundle PostgreSQL 17, pgvector and TimescaleDB for Windows
 - **Goal:** a reproducible local database distribution.
 - **Implements:** D-10, A-02.
-- **Do:** `scripts/fetch-postgres.ps1` downloads the pinned PostgreSQL 17 Windows binaries and the TimescaleDB Windows release (SHA-256 verified against `docs/VERSIONS.md`), and builds pgvector from its pinned tag with MSVC (`nmake /F Makefile.win`) in CI, producing `vector.dll` + control/SQL files. Everything goes to `vendor\pgsql\` (git-ignored; cached in CI).
+- **Do:** `scripts/fetch-postgres.ps1` downloads the pinned PostgreSQL 17 Windows binaries and the TimescaleDB Windows release (SHA-256 verified against `docs/reference/VERSIONS.md`), and builds pgvector from its pinned tag with MSVC (`nmake /F Makefile.win`) in CI, producing `vector.dll` + control/SQL files. Everything goes to `vendor\pgsql\` (git-ignored; cached in CI).
 - **Don't:** install PostgreSQL as a Windows service.
 - **Verify:** `vendor\pgsql\bin\postgres.exe --version` shows 17.x; a scripted `initdb` + start + `CREATE EXTENSION vector; CREATE EXTENSION timescaledb;` succeeds in a temp dir **[VERIFY TimescaleDB shared_preload_libraries on Windows]**.
 - **Done when:** the fetch/build script is deterministic and cached in CI.
@@ -1200,7 +1200,7 @@ After Step 32: `npm run dev` starts the Supervisor with the dev data directory `
 ### Step 111 — Tools: fetch, pin, verify
 - **Goal:** trusted tool binaries.
 - **Implements:** SR-H1, A-25 (`tools.toml`).
-- **Do:** `tools/fetch.ps1` downloads the pinned ffmpeg (LGPL build), ImageMagick portable, qpdf and 7-Zip (`7za.exe`), verifies their SHA-256, and writes the signed `tools/tools.toml` (path, sha256, licence, templates); licences are recorded in `docs/VERSIONS.md`.
+- **Do:** `tools/fetch.ps1` downloads the pinned ffmpeg (LGPL build), ImageMagick portable, qpdf and 7-Zip (`7za.exe`), verifies their SHA-256, and writes the signed `tools/tools.toml` (path, sha256, licence, templates); licences are recorded in `docs/reference/VERSIONS.md`.
 - **Verify:** a tampered tool binary → the sandbox refuses to run it (test).
 - **Done when:** the tools verify.
 

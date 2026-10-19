@@ -103,6 +103,20 @@ await fs.copyFile(
 );
 await fs.mkdir(path.join(stage, 'bin'), { recursive: true });
 await fs.copyFile(process.execPath, path.join(stage, 'bin/node.exe'));
+const appWorker = process.env.CUSTODIAN_APPWORKER_BINARY
+  ? path.resolve(process.env.CUSTODIAN_APPWORKER_BINARY)
+  : path.join(root, 'target/stage4-production/release/custodian-appworker.exe');
+const workerBytes = await fs.readFile(appWorker);
+if (workerBytes.length === 0 || workerBytes.length > 64 * 1024 * 1024)
+  throw new Error('A current optimized application worker is required before staging.');
+await fs.copyFile(appWorker, path.join(stage, 'bin/custodian-appworker.exe'));
+const workerSha256 = createHash('sha256').update(workerBytes).digest('hex');
+await fs.mkdir(path.join(stage, 'editor-adapter'), { recursive: true });
+for (const name of ['package.json', 'extension.cjs', 'wire.cjs'])
+  await fs.copyFile(
+    path.join(root, 'services/editor-adapter', name),
+    path.join(stage, 'editor-adapter', name),
+  );
 try {
   await fs.copyFile(
     path.join(path.dirname(process.execPath), 'LICENSE'),
@@ -139,6 +153,8 @@ await fs.writeFile(
       packages,
       model: path.basename(model.path),
       sha256: model.sha256,
+      applicationWorker: { sha256: workerSha256 },
+      editorAdapter: { id: 'custodian-local.custodian-bound-editor', version: '0.1.0' },
     },
     null,
     2,

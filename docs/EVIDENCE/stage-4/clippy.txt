@@ -1,0 +1,8 @@
+    Checking custodian-winsec v0.1.0 (D:\Custodian\crates\custodian-winsec)
+    Checking custodian-approval v0.1.0 (D:\Custodian\crates\custodian-approval)
+    Checking custodian-digest v0.1.0 (D:\Custodian\crates\custodian-digest)
+    Checking custodian-ledger v0.1.0 (D:\Custodian\crates\custodian-ledger)
+    Checking custodian-core v0.1.0 (D:\Custodian\crates\custodian-core)
+    Checking custodian-engine v0.1.0 (D:\Custodian\crates\custodian-engine)
+    Checking custodian-desktop v0.1.0 (D:\Custodian\apps\desktop\src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 34.97s

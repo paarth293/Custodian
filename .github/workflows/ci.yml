@@ -14,6 +14,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  repository:
+    name: Repository hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm run repo:check
+
   rust:
     name: Rust
     runs-on: windows-latest

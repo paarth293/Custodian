@@ -12,6 +12,10 @@ interface Capability {
   status: string;
   detail: string;
 }
+interface AppSettings {
+  revision: number;
+  privateExecutables: string[];
+}
 
 export default function PrivacyControls({ onChanged }: { onChanged: () => void }) {
   const [open, setOpen] = useState(false);
@@ -21,14 +25,18 @@ export default function PrivacyControls({ onChanged }: { onChanged: () => void }
   const [capabilities, setCapabilities] = useState<Capability[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [appSettings, setAppSettings] = useState<AppSettings>();
+  const [executables, setExecutables] = useState<string[]>([]);
+  const [executable, setExecutable] = useState('');
   useEffect(() => {
     if (!open) return;
     let active = true;
     void Promise.all([
       call<Settings>('get_privacy_settings'),
       call<Capability[]>('get_capabilities'),
+      call<AppSettings>('get_app_privacy_settings'),
     ])
-      .then(([current, available]) => {
+      .then(([current, available, apps]) => {
         if (!active) return;
         if (!current) {
           setMessage('Privacy controls require the desktop application.');
@@ -37,6 +45,8 @@ export default function PrivacyControls({ onChanged }: { onChanged: () => void }
         setSettings(current);
         setPaths(current.privatePaths);
         setCapabilities(available ?? []);
+        setAppSettings(apps ?? undefined);
+        setExecutables(apps?.privateExecutables ?? []);
         setMessage('');
       })
       .catch(() => {
@@ -69,6 +79,31 @@ export default function PrivacyControls({ onChanged }: { onChanged: () => void }
       setBusy(false);
     }
   };
+  const saveApps = async () => {
+    if (!appSettings || busy) return;
+    setBusy(true);
+    setMessage('Saving application exclusions and stopping existing tasks…');
+    try {
+      const saved = await call<AppSettings>('set_private_applications', {
+        executables,
+        revision: appSettings.revision,
+      });
+      if (!saved) throw new Error('The desktop application is unavailable.');
+      setAppSettings(saved);
+      setExecutables(saved.privateExecutables);
+      onChanged();
+      setMessage(
+        'Application exclusions saved. Tasks were asked to stop and the conversation cleared.',
+      );
+    } catch {
+      setAppSettings(undefined);
+      setMessage(
+        'Application rules could not be saved. Close and reopen these controls to reload them. If access is paused, restart the app.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <div className="privacy-controls">
       <button
@@ -76,7 +111,11 @@ export default function PrivacyControls({ onChanged }: { onChanged: () => void }
         aria-expanded={open}
         disabled={busy}
         onClick={() => {
-          if (!open) setMessage('Loading privacy rules…');
+          if (!open) {
+            setSettings(undefined);
+            setAppSettings(undefined);
+            setMessage('Loading privacy rules…');
+          }
           setOpen(!open);
         }}
       >
@@ -134,6 +173,52 @@ export default function PrivacyControls({ onChanged }: { onChanged: () => void }
             Save privacy rules
           </button>
           <p role="status">{message}</p>
+          <h3>Never access these applications</h3>
+          <p>
+            Add the full executable path without opening or inspecting the application. Exclusions
+            persist across restarts. Qualified tasks access only their own bound document. Screen
+            capture and general app reading remain disabled. These exclusions do not block the
+            application itself or isolate its network access. Use private locations above to exclude
+            its files from file tools too.
+          </p>
+          <ul>
+            {executables.map((item) => (
+              <li key={item}>
+                <span>{item}</span>
+                <button
+                  type="button"
+                  disabled={busy || !appSettings}
+                  aria-label={`Remove private application ${item}`}
+                  onClick={() => setExecutables(executables.filter((entry) => entry !== item))}
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+          <label>
+            Full application executable path
+            <input
+              aria-label="Private application executable path"
+              value={executable}
+              disabled={busy || !appSettings}
+              onChange={(event) => setExecutable(event.target.value)}
+            />
+          </label>
+          <button
+            type="button"
+            disabled={busy || !appSettings || !executable.trim()}
+            onClick={() => {
+              const next = executable.trim();
+              if (!executables.includes(next)) setExecutables([...executables, next]);
+              setExecutable('');
+            }}
+          >
+            Add application
+          </button>
+          <button type="button" disabled={busy || !appSettings} onClick={() => void saveApps()}>
+            Save application exclusions
+          </button>
           <h3>Available in this offline release</h3>
           <ul>
             {capabilities.map((capability) => (

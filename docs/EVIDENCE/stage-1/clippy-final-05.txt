@@ -1,2 +1,0 @@
-    Checking custodian-desktop v0.1.0 (D:\Custodian\apps\desktop\src-tauri)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 17.30s

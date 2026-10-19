@@ -1,0 +1,7 @@
+Exception: D:\Custodian\scripts\verify-desktop.ps1:92
+Line |
+  92 |      throw "Timed out: $Description"
+     |      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Timed out: editor saved output and completion
+
+

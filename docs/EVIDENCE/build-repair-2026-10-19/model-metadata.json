@@ -1,0 +1,46 @@
+[
+  {
+    "filename": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+    "general": {
+      "architecture": "qwen2",
+      "type": "model",
+      "name": "qwen2.5-1.5b-instruct",
+      "version": "v0.1",
+      "finetune": "qwen2.5-1.5b-instruct",
+      "size_label": "1.8B",
+      "file_type": 15,
+      "quantization_version": 2
+    }
+  },
+  {
+    "filename": "Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+    "general": {
+      "architecture": "qwen3",
+      "type": "model",
+      "name": "Qwen3-4B-Instruct-2507",
+      "version": "2507",
+      "finetune": "Instruct",
+      "basename": "Qwen3-4B-Instruct-2507",
+      "quantized_by": "Unsloth",
+      "size_label": "4B",
+      "license": "apache-2.0",
+      "license.link": "https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507/blob/main/LICENSE",
+      "repo_url": "https://huggingface.co/unsloth",
+      "base_model": {
+        "0": {
+          "name": "Qwen3 4B Instruct 2507",
+          "version": "2507",
+          "organization": "Qwen",
+          "repo_url": "https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507"
+        },
+        "count": 1
+      },
+      "tags": [
+        "unsloth",
+        "text-generation"
+      ],
+      "quantization_version": 2,
+      "file_type": 15
+    }
+  }
+]

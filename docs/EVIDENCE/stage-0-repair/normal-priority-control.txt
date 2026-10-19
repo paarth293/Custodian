@@ -1,6 +1,0 @@
-[agent] model integrity verified (2.4s)
-[agent] model runtime imported (4.7s)
-[node-llama-cpp] load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
-[agent] qwen2.5-1.5b-instruct-q4_k_m.gguf on the CPU, 4096 tokens of context
-[agent] model ready (11.7s)
-{"model":"D:\\Custodian\\models\\qwen2.5-1.5b-instruct-q4_k_m.gguf","sha256":"6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e","toolCalls":[],"reply":"A duplicate file is another instance of the same file, exactly the same contents even if their names or locations differ.","elapsedMs":39384.9009,"memory":{"rss":1963454464,"heapTotal":32837632,"heapUsed":29962136,"external":2698454,"arrayBuffers":144967},"success":true}

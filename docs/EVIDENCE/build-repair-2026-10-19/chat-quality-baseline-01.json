@@ -1,0 +1,156 @@
+{
+  "caseSha256": "e6990ffc39851865b18b7cba6048b3c966a1d3e25d16789eda8d25406ce39305",
+  "modelSha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+  "agentSha256": "25e519c7a38eac3ac721f782353ccdcbc89a23d07d100d3c0c3d832db1682ca3",
+  "condition": "Direct-engine diagnostic inference, no host PC tool executor; author-written regression, not sandbox/installation acceptance. Regex checks require human interpretation of recorded answers.",
+  "loadMs": 9511,
+  "rows": [
+    {
+      "id": "Q01",
+      "repetition": 1,
+      "prompt": "Reply with one short sentence: what is a duplicate file?",
+      "answer": "A duplicate file is a file that has the same contents as another file.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 25246
+    },
+    {
+      "id": "Q02",
+      "repetition": 1,
+      "prompt": "Explain whether changing a file's name changes the bytes stored inside it.",
+      "answer": "Changing a file's name does not alter the bytes stored inside it. The name is merely a label that identifies the file to the system and other programs. The content remains unchanged.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 8455
+    },
+    {
+      "id": "Q03",
+      "repetition": 1,
+      "prompt": "Explain whether two files having the same size proves their contents are identical.",
+      "answer": "Yes, if two files have the same size, it suggests they are likely to be identical or nearly identical in content. However, this is not a strict proof and there could be differences due to variations in the way files are stored or created.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 9045
+    },
+    {
+      "id": "Q04",
+      "repetition": 1,
+      "prompt": "Explain whether renaming a PNG file to end in .jpg converts its image encoding.",
+      "answer": "Renaming a PNG file to end in .jpg does not convert its image encoding. PNG and JPG are different file formats with different image compression methods. PNG is typically used for images with transparency, while JPG is better for images with high color depth. Changing the file extension does not affect the image's compression method.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 11471
+    },
+    {
+      "id": "Q05",
+      "repetition": 1,
+      "prompt": "Define the difference between copying a file and moving a file.",
+      "answer": "Copying a file creates a duplicate of the original, while moving a file moves the original to a new location without creating a duplicate.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 6730
+    },
+    {
+      "id": "Q06",
+      "repetition": 1,
+      "prompt": "Explain whether compressing a folder by itself guarantees that a backup can be restored.",
+      "answer": "Yes, compressing a folder by itself can guarantee that a backup can be restored. When you compress a folder, you create a smaller, more manageable file that contains all the files and folders within the original folder. This compressed file can then be stored in a backup location. If you need to restore the original folder, you can simply extract the compressed file, and all the files and folders will be restored to their original location. This process ensures that the backup can be restored without any loss of data.",
+      "toolCalls": [],
+      "passed": false,
+      "elapsedMs": 26551
+    },
+    {
+      "id": "Q07",
+      "repetition": 1,
+      "prompt": "Explain whether a spreadsheet formula and its cached calculated value are always equally up to date.",
+      "answer": "A spreadsheet formula and its cached calculated value are not always equally up to date. The cached value is typically based on the last time the formula was recalculated, which may not be the most recent or current state of the data.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 25027
+    },
+    {
+      "id": "Q08",
+      "repetition": 1,
+      "prompt": "Explain whether a cryptographic file hash proves who created the file.",
+      "answer": "A cryptographic file hash, also known as a checksum, is a unique digital fingerprint of a file. It is computed using a hashing algorithm and is designed to be unique for each file, even if the file is slightly altered. The hash value is typically a long string of characters.\n\nA cryptographic file hash does not inherently prove who created the file. The creator of the file could have used any hashing algorithm or even a different approach to generate the hash. The hash value alone does not provide any information about the creator or the file's origin.\n\nTo determine who created a file, additional information such as the file's metadata, the creator's name, or any other identifying information would be needed. The hash value is just a tool to help verify the file's integrity and uniqueness, not to prove its origin.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 53193
+    },
+    {
+      "id": "Q01",
+      "repetition": 2,
+      "prompt": "Reply with one short sentence: what is a duplicate file?",
+      "answer": "A duplicate file is another copy of the same file, exactly the same in contents.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 4029
+    },
+    {
+      "id": "Q02",
+      "repetition": 2,
+      "prompt": "Explain whether changing a file's name changes the bytes stored inside it.",
+      "answer": "Changing a file's name does not change the bytes stored inside it. The name is just a label that identifies the file, while the bytes are the actual data that the file contains.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 7889
+    },
+    {
+      "id": "Q03",
+      "repetition": 2,
+      "prompt": "Explain whether two files having the same size proves their contents are identical.",
+      "answer": "Two files having the same size does not prove their contents are identical. They could have the same size due to different content or different file formats. To determine if two files are identical, you would need to compare their contents directly.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 12613
+    },
+    {
+      "id": "Q04",
+      "repetition": 2,
+      "prompt": "Explain whether renaming a PNG file to end in .jpg converts its image encoding.",
+      "answer": "No, renaming a PNG file to end in .jpg does not convert its image encoding. PNG and JPEG are different file formats with different compression methods, and changing the file extension does not change the encoding or the image data. The image encoding refers to the way the image data is encoded into the file format, which is determined by the file extension and the specific image data itself.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 15271
+    },
+    {
+      "id": "Q05",
+      "repetition": 2,
+      "prompt": "Define the difference between copying a file and moving a file.",
+      "answer": "Copying a file creates a duplicate of the file on the new location. Moving a file moves the file itself from one location to another, overwriting any existing file at the new location.",
+      "toolCalls": [],
+      "passed": false,
+      "elapsedMs": 10393
+    },
+    {
+      "id": "Q06",
+      "repetition": 2,
+      "prompt": "Explain whether compressing a folder by itself guarantees that a backup can be restored.",
+      "answer": "Yes, compressing a folder by itself can help ensure that a backup can be restored. When you compress a folder, you're creating a single, smaller file that contains all the files and folders within the original folder. This compressed file is typically much smaller in size compared to the original folder, making it more convenient to store and transfer.\n\nWhen restoring the backup, you can simply decompress the single file back into the original folder. This allows you to retrieve all the files and folders from the backup, ensuring that the original state of the folder is restored.\n\nHowever, it's important to note that the compressed file should be stored in a safe location, and the decompression process should be performed using a reliable tool to avoid any data corruption.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 35199
+    },
+    {
+      "id": "Q07",
+      "repetition": 2,
+      "prompt": "Explain whether a spreadsheet formula and its cached calculated value are always equally up to date.",
+      "answer": "A spreadsheet formula and its cached calculated value are not always equally up to date. The cached value is typically based on the last time the formula was recalculated, which may not be the most recent or current state of the data.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 20909
+    },
+    {
+      "id": "Q08",
+      "repetition": 2,
+      "prompt": "Explain whether a cryptographic file hash proves who created the file.",
+      "answer": "No, a cryptographic file hash does not prove who created the file. It only provides a unique identifier for the file's contents. The creator's identity is not encoded in the hash; it's the file's content that determines the hash.",
+      "toolCalls": [],
+      "passed": true,
+      "elapsedMs": 10133
+    }
+  ],
+  "passed": 14,
+  "expected": 16,
+  "gatePassed": false
+}

@@ -118,6 +118,7 @@ mod tests {
         AppWindow {
             handle,
             pid: handle as u32,
+            process_generation: Some(handle as u64),
             title: title.into(),
             exe: exe.into(),
         }

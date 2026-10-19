@@ -1,0 +1,19 @@
+{
+  "path": "D:\\Custodian\\target\\release\\custodian-appworker.exe",
+  "outsideCopyPath": "C:\\Users\\paagu\\.codex\\visualizations\\2026\\10\\16\\01a142c7-c123-7122-873a-8f2707fc4063\\stage4-worker-bundle\\custodian-appworker.exe",
+  "sha256": "831087c0ba746178f85082518d87e26d56f19fabf4945de7eb15c371322b77dc",
+  "bytes": 249856,
+  "x64": true,
+  "aslr": true,
+  "dep": true,
+  "guardCfFlag": false,
+  "certificateTablePresent": false,
+  "forbiddenTestMarkersAbsent": [
+    "--sentinel",
+    "synthetic-effect.txt",
+    "CUSTODIAN_APP_WORKER_FIXTURE",
+    "worker-pids.txt"
+  ],
+  "installationAccepted": false,
+  "warning": "PE flags and marker absence are limited static checks, not a security audit or installation acceptance."
+}
